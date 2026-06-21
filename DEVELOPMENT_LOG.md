@@ -35,3 +35,28 @@ Validation:
 - In-app browser narrow viewport `1024x900`: layout stacks into one column and all 76 keycaps remain visible.
 - In-app browser edit-flow validation: `SYMB` layer tab + `P7 RT14` selection showed `KC_P7` in the editor.
 - In-app browser TSV sanity: output starts with `@LAYER/BASE`, has three layers, contains tab separators, contains `#`, and contains `~`.
+
+## 2026-06-21: qmk-viz exact KLE geometry pass
+
+Goal: stop approximating the Ergodox thumb clusters and place keys from `keyboard-layout.json` exactly.
+
+What did not work:
+
+- The previous `qmk-viz` renderer still made the thumb clusters look wrong because `qmk-viz/src/lib/kle.ts` ignored KLE `rx` and `ry` rotation-origin fields.
+- `qmk-viz/src/models/ergodoxInfinity.ts` compensated with a hand-written `thumbOverrides` table. That made the page usable, but it was not the exact JSON placement the keyboard model was supposed to express.
+- With exact KLE transform bounds at unit `46`, the keyboard produced a small horizontal overflow in the card. Dropping only the scale to unit `45` fixed the overflow without changing relative key placement.
+
+Changes made:
+
+- Extended the KLE parser to carry `x`, `y`, `r`, `rx`, and `ry` state across rows according to KLE semantics.
+- Added `rotationX` and `rotationY` to every visual key and set CSS `transform-origin` from the JSON rotation origin.
+- Removed the manual thumb override table.
+- Compute the keyboard stage bounds from rotated key corners and normalize the exact KLE geometry into the card.
+- Kept the visual scale at `unit: 45` so the exact placement fits the desktop in-app browser viewport without horizontal scroll.
+
+Validation:
+
+- `just viz-build` passed after the parser/model changes.
+- In-app browser desktop viewport `1440x950`: all 76 keycaps visible.
+- In-app browser desktop viewport `1440x950`: keyboard panel had no horizontal overflow after unit `45` (`scrollWidth == clientWidth == 956`).
+- In-app browser screenshot confirmed rotated thumb clusters are now driven by the JSON placement rather than the old override table.

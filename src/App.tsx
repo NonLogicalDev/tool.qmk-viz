@@ -124,7 +124,8 @@ export function App() {
                     top: key.y * model.unit,
                     width: key.width * model.unit,
                     height: key.height * model.unit,
-                    transform: `rotate(${key.rotation}deg)`
+                    transform: `rotate(${key.rotation}deg)`,
+                    transformOrigin: `${(key.rotationX - key.x) * model.unit}px ${(key.rotationY - key.y) * model.unit}px`
                   }}
                   title={`${key.slot}: ${action}`}
                 >

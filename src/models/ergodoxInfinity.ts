@@ -13,6 +13,8 @@ export type KeySlot = {
   width: number;
   height: number;
   rotation: number;
+  rotationX: number;
+  rotationY: number;
 };
 
 export type KeyboardModel = {
@@ -24,6 +26,12 @@ export type KeyboardModel = {
   unit: number;
   keys: KeySlot[];
   layouts: Record<string, string>;
+};
+
+type KeyboardGeometry = {
+  width: number;
+  height: number;
+  keys: KeySlot[];
 };
 
 const visualSlots = [
@@ -58,30 +66,58 @@ const slotsByKleIndex = [
   "LC01", "LC02", "LC20", "LC21", "LC12", "LC22", "RC02", "RC01", "RC12", "RC21", "RC20", "RC22"
 ];
 
-const thumbOverrides: Record<string, Partial<KeySlot>> = {
-  LC01: { x: 7.0, y: 5.15, rotation: 30 },
-  LC02: { x: 8.05, y: 5.55, rotation: 30 },
-  LC12: { x: 7.55, y: 6.45, rotation: 30 },
-  LC20: { x: 4.95, y: 5.6, height: 2, rotation: 30 },
-  LC21: { x: 6.0, y: 6.05, height: 2, rotation: 30 },
-  LC22: { x: 6.95, y: 7.25, rotation: 30 },
-  RC02: { x: 11.45, y: 5.55, rotation: -30 },
-  RC01: { x: 12.5, y: 5.15, rotation: -30 },
-  RC12: { x: 12.05, y: 6.45, rotation: -30 },
-  RC22: { x: 11.55, y: 7.25, rotation: -30 },
-  RC21: { x: 12.55, y: 6.05, height: 2, rotation: -30 },
-  RC20: { x: 13.6, y: 5.6, height: 2, rotation: -30 }
-};
+function rotatePoint(x: number, y: number, originX: number, originY: number, degrees: number) {
+  const radians = degrees * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const dx = x - originX;
+  const dy = y - originY;
 
-function buildKeys(): KeySlot[] {
-  return parseKle(kleLayout).map((key, index) => {
+  return {
+    x: originX + dx * cos - dy * sin,
+    y: originY + dx * sin + dy * cos
+  };
+}
+
+function keyCorners(key: KeySlot) {
+  return [
+    rotatePoint(key.x, key.y, key.rotationX, key.rotationY, key.rotation),
+    rotatePoint(key.x + key.width, key.y, key.rotationX, key.rotationY, key.rotation),
+    rotatePoint(key.x, key.y + key.height, key.rotationX, key.rotationY, key.rotation),
+    rotatePoint(key.x + key.width, key.y + key.height, key.rotationX, key.rotationY, key.rotation)
+  ];
+}
+
+function normalizeGeometry(keys: KeySlot[]): KeyboardGeometry {
+  const corners = keys.flatMap(keyCorners);
+  const minX = Math.min(...corners.map((point) => point.x));
+  const minY = Math.min(...corners.map((point) => point.y));
+  const maxX = Math.max(...corners.map((point) => point.x));
+  const maxY = Math.max(...corners.map((point) => point.y));
+  const padding = 0.35;
+
+  return {
+    width: maxX - minX + padding * 2,
+    height: maxY - minY + padding * 2,
+    keys: keys.map((key) => ({
+      ...key,
+      x: key.x - minX + padding,
+      y: key.y - minY + padding,
+      rotationX: key.rotationX - minX + padding,
+      rotationY: key.rotationY - minY + padding
+    }))
+  };
+}
+
+function buildGeometry(): KeyboardGeometry {
+  const keys = parseKle(kleLayout).map((key, index) => {
     const slot = slotsByKleIndex[index];
     const cell = slotCells.get(slot);
     if (!cell) {
       throw new Error(`Missing TSV cell mapping for ${slot}.`);
     }
 
-    const base: KeySlot = {
+    return {
       slot,
       legend: key.legends.at(-1) ?? key.label,
       row: cell.row,
@@ -90,21 +126,25 @@ function buildKeys(): KeySlot[] {
       y: key.y,
       width: key.width,
       height: key.height,
-      rotation: key.rotation
+      rotation: key.rotation,
+      rotationX: key.rotationX,
+      rotationY: key.rotationY
     };
-
-    return { ...base, ...thumbOverrides[slot] };
   });
+
+  return normalizeGeometry(keys);
 }
+
+const geometry = buildGeometry();
 
 export const ergodoxInfinity: KeyboardModel = {
   id: "input_club/ergodox_infinity",
   name: "Input Club Ergodox Infinity",
   source: "keyboard-layout.json + layout_nonlogical-01.tsv",
-  width: 19.6,
-  height: 8.7,
-  unit: 46,
-  keys: buildKeys(),
+  width: geometry.width,
+  height: geometry.height,
+  unit: 45,
+  keys: geometry.keys,
   layouts: {
     "nonlogical-01": nonlogical01,
     "nonlogical-02": nonlogical02

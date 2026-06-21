@@ -9,12 +9,18 @@ export type KleKey = {
   width: number;
   height: number;
   rotation: number;
+  rotationX: number;
+  rotationY: number;
 };
 
 type KleState = {
+  x: number;
+  y: number;
   width: number;
   height: number;
   rotation: number;
+  rotationX: number;
+  rotationY: number;
 };
 
 function numeric(value: unknown, fallback: number): number {
@@ -27,22 +33,37 @@ function parseLegends(label: string): string[] {
 
 export function parseKle(raw: KleRawLayout): KleKey[] {
   const keys: KleKey[] = [];
-  let cursorY = 0;
+  const state: KleState = {
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1,
+    rotation: 0,
+    rotationX: 0,
+    rotationY: 0
+  };
 
   for (const row of raw) {
-    let cursorX = 0;
-    let rowY = cursorY;
-    let state: KleState = { width: 1, height: 1, rotation: 0 };
+    state.x = state.rotationX;
 
     for (const item of row) {
       if (typeof item === "object" && item !== null) {
-        cursorX += numeric(item.x, 0);
-        rowY += numeric(item.y, 0);
-        state = {
-          width: numeric(item.w, state.width),
-          height: numeric(item.h, state.height),
-          rotation: numeric(item.r, state.rotation)
-        };
+        if (typeof item.r === "number") {
+          state.rotation = item.r;
+        }
+        if (typeof item.rx === "number") {
+          state.rotationX = item.rx;
+          state.x = item.rx;
+        }
+        if (typeof item.ry === "number") {
+          state.rotationY = item.ry;
+          state.y = item.ry;
+        }
+
+        state.x += numeric(item.x, 0);
+        state.y += numeric(item.y, 0);
+        state.width = numeric(item.w, state.width);
+        state.height = numeric(item.h, state.height);
         continue;
       }
 
@@ -51,18 +72,21 @@ export function parseKle(raw: KleRawLayout): KleKey[] {
         index: keys.length,
         label: legends[0] ?? "",
         legends,
-        x: cursorX,
-        y: rowY,
+        x: state.x,
+        y: state.y,
         width: state.width,
         height: state.height,
-        rotation: state.rotation
+        rotation: state.rotation,
+        rotationX: state.rotationX,
+        rotationY: state.rotationY
       });
 
-      cursorX += state.width;
-      state = { ...state, width: 1, height: 1 };
+      state.x += state.width;
+      state.width = 1;
+      state.height = 1;
     }
 
-    cursorY = rowY + 1;
+    state.y += 1;
   }
 
   return keys;
