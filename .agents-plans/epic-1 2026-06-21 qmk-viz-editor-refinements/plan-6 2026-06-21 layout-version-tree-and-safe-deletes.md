@@ -8,6 +8,8 @@ subject: layout-version-tree-and-safe-deletes
 
 Add per-layout version trees in qmk-viz, make destructive project/layout operations visually dangerous with confirmation dialogs, and introduce a special project-level read-only Default layout template used to bootstrap future layouts.
 
+Follow-up: make version history behave more like immutable Git commits. Version nodes should be named by the user, carry the KLE model they were created with, and render branches so forks are visually legible instead of drifting down-right forever.
+
 # Context
 
 Layouts now have their own page with read-only preview. The next product step is to make Layouts useful as a layout history browser: each explicit save creates a dated version node, any version can be loaded, and saving from an older version creates a fork. Even with undo, deleting projects or layouts should feel dangerous and require confirmation.
@@ -36,6 +38,10 @@ The scope expanded before pause:
 - A `Save Version` action creates a new child version from the current working document with `parentId` equal to the active base version.
 - Loading a version replaces the current working document and sets that version as the active base, so later saves fork from it.
 - Version nodes carry `createdAt` timestamps and compact labels.
+- Follow-up decision: saved versions are immutable snapshots. Loading a version copies its document into the mutable layout working copy but does not mutate the saved version.
+- Follow-up decision: each saved version carries the KLE keyboard model snapshot used when it was created.
+- Follow-up decision: version names are user-entered at save time, with an automatic fallback label when the input is blank.
+- Follow-up decision: the version graph should read left-to-right like Git history with branch lanes; time/depth advances horizontally and sibling forks occupy stable vertical lanes.
 - Project and layout delete buttons require `window.confirm(...)` and use danger styling.
 - The project-level Default layout is a separate read-only template document used only to bootstrap new normal layouts.
 - Saving a normal layout as Default replaces the project default template; it does not mark or mutate that normal layout's identity.
@@ -61,6 +67,12 @@ The scope expanded before pause:
 16. [x] Update `DEVELOPMENT_LOG.md`.
 17. [x] Validate with `just viz-build` and in-app browser checks.
 18. [x] Checkpoint the completed pass.
+19. [x] Add immutable version metadata for version names and KLE snapshots.
+20. [x] Add version-name input to the Editor version card and wire it into `Save Version`.
+21. [x] Replace the diagonal React Flow tree layout with a branch-lane layout.
+22. [x] Update `DEVELOPMENT_LOG.md`.
+23. [x] Validate with build, source scans, and in-app browser checks.
+24. [x] Checkpoint the completed follow-up.
 
 # Learning Log
 
@@ -73,6 +85,9 @@ The scope expanded before pause:
 - The Projects page should render the keyboard model visually with marker IDs, not raw KLE JSON. Raw KLE remains available through the download action.
 - The Default template is copied by value into new layouts; it is not selected, tagged, or renamed from a normal layout.
 - Full project re-import should preserve the Default template timestamp as well as the template document, so the read-only Default metadata round-trips cleanly.
+- Reopened on 2026-06-21 because the initial React Flow placement was technically a tree but not a history graph. The better mental model is immutable commits with named snapshots and KLE provenance.
+- Version snapshots should not be reconciled when the project KLE changes. Only the mutable layout working copy and default template should be reconciled to the new active model.
+- The in-app browser caught a hot-reload/session-state edge case: existing version objects could be missing the new `keyboardModel` field. Clone/normalize paths now fill that from the active model.
 
 # Work Log
 
@@ -82,6 +97,8 @@ The scope expanded before pause:
 - [x] 2026-06-21 12:12 - Extracted QMK action helpers, preview keycap rendering, and version tree rendering; `just viz-build` passes.
 - [x] 2026-06-21 12:24 - Added project Default template flows, Projects marker preview/stats, danger styling, and browser/build validation.
 - [x] 2026-06-21 12:27 - Preserved Default template `updatedAt` on full project re-import, updated the development log, reran `just viz-build`, and ran `git diff --check`.
+- [x] 2026-06-21 14:22 - Reopened the plan for immutable/named/KLE-backed version snapshots and a Git-like branch-lane graph.
+- [x] 2026-06-21 14:31 - Added named immutable version snapshots, KLE snapshot metadata, branch-lane graph placement, browser validation, and development-log notes.
 
 # Closeout State
 
@@ -96,7 +113,9 @@ Resolved implementation state:
 
 - `App.tsx` is reconciled with `src/lib/appModel.ts`.
 - QMK action helpers, preview keycap rendering, version tree rendering, and project marker preview rendering now live outside `App.tsx`.
-- `just viz-build` passes after the completed pass.
+- Versions now carry immutable document snapshots plus KLE model snapshots.
+- The version tree now renders left-to-right branch lanes instead of diagonal depth/row placement.
+- `just viz-build` passes after the completed follow-up.
 
 Validation notes:
 
@@ -104,6 +123,7 @@ Validation notes:
 - `git diff --check` passes after the full pass.
 - In-app browser confirmed top nav order, editor 76-key rendering, Projects stats, visual marker preview with 76 keys, Layouts Default controls, version tree rendering, Save Version incrementing version nodes, Save Current as Default switching preview to Default, and New Layout increasing layout count.
 - Delete confirmation source is explicit through `window.confirm(...)` in both project and layout delete handlers; browser interaction reached the confirm path, but the test tab became unstable before a clean dismissed-state assertion could be captured.
+- Follow-up browser validation confirmed one version-name input, one Save Version button in the version card, no Save Version button in the active-layout action row, named mainline save, fork save from `Initial version`, sibling fork nodes in the same column on different lanes, visible KLE provenance, and no new timestamp-filtered console errors.
 
 # Unfinished Work
 

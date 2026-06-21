@@ -13,11 +13,20 @@ import { ergodoxInfinity, ergodoxInfinityDefaultLayers } from "../models/ergodox
 
 export const KEYBOARD_PROJECTS_STORAGE_KEY = "qmk-viz.keyboard-projects.v4";
 
+export type VersionKeyboardModel = {
+  id: string;
+  name: string;
+  author?: string;
+  source: string;
+  kle: KeyboardModel["kle"];
+};
+
 export type SavedLayoutVersion = {
   id: string;
   parentId: string | null;
-  label: string;
+  name: string;
   createdAt: string;
+  keyboardModel: VersionKeyboardModel;
   document: KeymapDocument;
 };
 
@@ -64,19 +73,62 @@ export function formatVersionDate(value: string): string {
   }).format(date);
 }
 
-export function createLayoutVersion(document: KeymapDocument, parentId: string | null, label: string, createdAt = new Date().toISOString()): SavedLayoutVersion {
+function cloneVersionKeyboardModel(model: VersionKeyboardModel): VersionKeyboardModel {
+  return {
+    ...model,
+    kle: cloneKleDocument(model.kle)
+  };
+}
+
+function snapshotVersionKeyboardModel(model: KeyboardModel): VersionKeyboardModel {
+  return {
+    id: model.id,
+    name: model.name,
+    author: model.author,
+    source: model.source,
+    kle: cloneKleDocument(model.kle)
+  };
+}
+
+function normalizeVersionKeyboardModel(raw: unknown, fallback: KeyboardModel): VersionKeyboardModel {
+  if (typeof raw === "object" && raw !== null && "kle" in raw) {
+    const typed = raw as Partial<VersionKeyboardModel>;
+    const model = buildKeyboardModelFromKle(typed.kle, {
+      id: typed.id,
+      name: typed.name,
+      author: typed.author,
+      source: typed.source
+    });
+    return snapshotVersionKeyboardModel(model);
+  }
+
+  return snapshotVersionKeyboardModel(fallback);
+}
+
+export function createLayoutVersion(
+  document: KeymapDocument,
+  parentId: string | null,
+  name: string,
+  model: KeyboardModel,
+  createdAt = new Date().toISOString()
+): SavedLayoutVersion {
   return {
     id: newEntityId("layout-version"),
     parentId,
-    label,
+    name: name.trim() || "Version",
     createdAt,
+    keyboardModel: snapshotVersionKeyboardModel(model),
     document: cloneKeymapDocument(document)
   };
 }
 
-export function cloneLayoutVersion(version: SavedLayoutVersion): SavedLayoutVersion {
+export function cloneLayoutVersion(version: SavedLayoutVersion, fallbackModel: KeyboardModel = ergodoxInfinity): SavedLayoutVersion {
+  const keyboardModel = (version as Partial<SavedLayoutVersion>).keyboardModel;
   return {
     ...version,
+    keyboardModel: keyboardModel
+      ? cloneVersionKeyboardModel(keyboardModel)
+      : snapshotVersionKeyboardModel(fallbackModel),
     document: cloneKeymapDocument(version.document)
   };
 }
@@ -88,11 +140,11 @@ export function cloneDefaultLayout(defaultLayout: SavedDefaultLayout): SavedDefa
   };
 }
 
-export function cloneSavedLayout(layout: SavedLayout): SavedLayout {
+export function cloneSavedLayout(layout: SavedLayout, fallbackModel: KeyboardModel = ergodoxInfinity): SavedLayout {
   const document = cloneKeymapDocument(layout.document);
   const versions = layout.versions.length > 0
-    ? layout.versions.map(cloneLayoutVersion)
-    : [createLayoutVersion(document, null, "Initial version", layout.updatedAt)];
+    ? layout.versions.map((version) => cloneLayoutVersion(version, fallbackModel))
+    : [createLayoutVersion(document, null, "Initial version", fallbackModel, layout.updatedAt)];
   const activeVersionId = versions.some((version) => version.id === layout.activeVersionId)
     ? layout.activeVersionId
     : versions[versions.length - 1].id;
@@ -107,16 +159,13 @@ export function cloneSavedLayout(layout: SavedLayout): SavedLayout {
 
 export function reconcileSavedLayoutToModel(layout: SavedLayout, model: KeyboardModel): SavedLayout {
   const document = reconcileKeymapDocumentToModel(layout.document, model);
-  const versions = layout.versions.map((version) => ({
-    ...version,
-    document: reconcileKeymapDocumentToModel(version.document, model)
-  }));
+  const versions = layout.versions.map((version) => cloneLayoutVersion(version, model));
 
   return cloneSavedLayout({
     ...layout,
     document,
     versions
-  });
+  }, model);
 }
 
 export function reconcileDefaultLayoutToModel(defaultLayout: SavedDefaultLayout, model: KeyboardModel): SavedDefaultLayout {
@@ -135,10 +184,10 @@ export function createDefaultDocument(): KeymapDocument {
   };
 }
 
-export function createLayout(name: string, document: KeymapDocument): SavedLayout {
+export function createLayout(name: string, document: KeymapDocument, model: KeyboardModel): SavedLayout {
   const now = new Date().toISOString();
   const clonedDocument = cloneKeymapDocument(document);
-  const initialVersion = createLayoutVersion(clonedDocument, null, "Initial version", now);
+  const initialVersion = createLayoutVersion(clonedDocument, null, "Initial version", model, now);
 
   return {
     id: newEntityId("layout"),
@@ -171,7 +220,7 @@ export function createKeyboardProject(
   defaultLayoutDocument?: KeymapDocument,
   defaultLayoutUpdatedAt?: string
 ): SavedKeyboardProject {
-  const safeLayouts = layouts.length > 0 ? layouts : [createLayout("Default Layout", createBlankKeymapDocument(model))];
+  const safeLayouts = layouts.length > 0 ? layouts : [createLayout("Default Layout", createBlankKeymapDocument(model), model)];
   const defaultDocument = defaultLayoutDocument
     ? reconcileKeymapDocumentToModel(defaultLayoutDocument, model)
     : cloneKeymapDocument(safeLayouts[0].document);
@@ -181,14 +230,14 @@ export function createKeyboardProject(
     name,
     model: sanitizeKeyboardModel(model),
     defaultLayout: createSavedDefaultLayout(defaultDocument, defaultLayoutUpdatedAt),
-    layouts: safeLayouts.map(cloneSavedLayout),
+    layouts: safeLayouts.map((layout) => cloneSavedLayout(layout, model)),
     activeLayoutId: safeLayouts[0].id,
     updatedAt: new Date().toISOString()
   };
 }
 
 export function defaultKeyboardProject(): SavedKeyboardProject {
-  const monsterLayout = createLayout("Monster", createDefaultDocument());
+  const monsterLayout = createLayout("Monster", createDefaultDocument(), ergodoxInfinity);
   return createKeyboardProject(ergodoxInfinity.name, ergodoxInfinity, [monsterLayout], monsterLayout.document);
 }
 
@@ -198,14 +247,29 @@ export function normalizeLoadedLayout(raw: Partial<SavedLayout>, model: Keyboard
   const updatedAt = typeof raw.updatedAt === "string" ? raw.updatedAt : new Date().toISOString();
   const rawVersions = Array.isArray(raw.versions) ? raw.versions : [];
   const versions = rawVersions.length > 0
-    ? rawVersions.map((version, versionIndex) => ({
-      id: typeof version.id === "string" ? version.id : newEntityId("layout-version"),
-      parentId: typeof version.parentId === "string" ? version.parentId : null,
-      label: typeof version.label === "string" ? version.label : `Version ${versionIndex + 1}`,
-      createdAt: typeof version.createdAt === "string" ? version.createdAt : updatedAt,
-      document: reconcileKeymapDocumentToModel(version.document ?? document, model)
-    }))
-    : [createLayoutVersion(document, null, "Initial version", updatedAt)];
+    ? rawVersions.map((version, versionIndex) => {
+      const rawVersion = version as Partial<SavedLayoutVersion> & { label?: unknown; keyboard?: unknown };
+      const versionKeyboardModel = normalizeVersionKeyboardModel(rawVersion.keyboardModel ?? rawVersion.keyboard, model);
+      const versionModel = buildKeyboardModelFromKle(versionKeyboardModel.kle, {
+        id: versionKeyboardModel.id,
+        name: versionKeyboardModel.name,
+        author: versionKeyboardModel.author,
+        source: versionKeyboardModel.source
+      });
+      return {
+        id: typeof rawVersion.id === "string" ? rawVersion.id : newEntityId("layout-version"),
+        parentId: typeof rawVersion.parentId === "string" ? rawVersion.parentId : null,
+        name: typeof rawVersion.name === "string" && rawVersion.name.trim()
+          ? rawVersion.name
+          : typeof rawVersion.label === "string" && rawVersion.label.trim()
+            ? rawVersion.label
+            : `Version ${versionIndex + 1}`,
+        createdAt: typeof rawVersion.createdAt === "string" ? rawVersion.createdAt : updatedAt,
+        keyboardModel: versionKeyboardModel,
+        document: reconcileKeymapDocumentToModel(rawVersion.document ?? document, versionModel)
+      };
+    })
+    : [createLayoutVersion(document, null, "Initial version", model, updatedAt)];
   const activeVersionId = typeof raw.activeVersionId === "string" && versions.some((version) => version.id === raw.activeVersionId)
     ? raw.activeVersionId
     : versions[versions.length - 1].id;
@@ -217,7 +281,7 @@ export function normalizeLoadedLayout(raw: Partial<SavedLayout>, model: Keyboard
     versions,
     activeVersionId,
     updatedAt
-  });
+  }, model);
 }
 
 function normalizeLoadedDefaultLayout(
@@ -249,7 +313,7 @@ export function normalizeLoadedProject(raw: Partial<SavedKeyboardProject>, index
   const sourceLayouts = Array.isArray(raw.layouts) ? raw.layouts : [];
   const layouts = sourceLayouts.length > 0
     ? sourceLayouts.map((layout, layoutIndex) => normalizeLoadedLayout(layout, model, layoutIndex))
-    : [createLayout("Default Layout", createBlankKeymapDocument(model))];
+    : [createLayout("Default Layout", createBlankKeymapDocument(model), model)];
   const activeLayoutId = typeof raw.activeLayoutId === "string" && layouts.some((layout) => layout.id === raw.activeLayoutId)
     ? raw.activeLayoutId
     : layouts[0].id;
@@ -332,7 +396,7 @@ export function parseLayoutUpload(raw: unknown, model: KeyboardModel, fallbackNa
     ? typedLayout.name.trim()
     : fallbackName;
 
-  return createLayout(name, document);
+  return createLayout(name, document, model);
 }
 
 export function parseProjectFile(raw: unknown, fallbackSource: string): SavedKeyboardProject {

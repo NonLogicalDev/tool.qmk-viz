@@ -1,5 +1,101 @@
 # Development Log
 
+## 2026-06-21: qmk-viz named immutable version branches
+
+Goal: make layout versions behave more like Git commits: named snapshots, immutable history, KLE provenance per saved version, and branch lanes instead of a diagonal tree.
+
+What worked:
+
+- Added a `New version name` field directly above the version tree.
+- Moved the single `Save Version` action out of the active-layout button row and into the version tree card.
+- Saved versions now store:
+  - user-visible `name`
+  - immutable keymap document snapshot
+  - KLE keyboard model snapshot used when the version was created
+  - parent version ID and creation timestamp
+- KLE model updates now reconcile only the mutable layout working copy. Historical version snapshots keep their own KLE/document pair.
+- Hardened the clone path so existing in-memory older version objects without `keyboardModel` normalize instead of throwing.
+- Replaced the old depth/row tree layout with branch lanes:
+  - first child continues on the same lane
+  - forks from the same parent move to separate vertical lanes
+  - time/depth advances left-to-right
+- Version nodes now show the version name, timestamp, and KLE model name.
+
+What did not work:
+
+- The original React Flow placement was a valid tree, but visually it read as "new versions drift down-right" rather than branch history.
+- Treating versions as documents that get reconciled whenever the KLE changes violated the immutability model. Versions now carry the KLE they were created against.
+- The first browser pass exposed a hot-reload/session-state edge case where older version objects lacked `keyboardModel`. The clone path now fills that from the current model.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan found no remaining `version.label` or `activeLayoutVersion.label` usage.
+- In-app browser validation at `http://localhost:5174/` confirmed:
+  - one `version-name-input`
+  - one `save-layout-version`
+  - no `save-layout-version` remains in the active-layout action row
+  - saving a named mainline version renders that name in the tree
+  - loading `Initial version` and saving another named version creates a fork
+  - sibling fork nodes render in the same time column but different vertical lanes
+  - version nodes display `Input Club Ergodox Infinity` as KLE provenance
+  - timestamp-filtered console check had no new errors after the hardening fix.
+
+## 2026-06-21: qmk-viz merges Layouts into Editor
+
+Goal: remove the separate Layouts page and make Editor the single place for choosing, managing, versioning, and editing the active layout.
+
+What worked:
+
+- Removed `Layouts` from top-level navigation.
+- Routed the layout context chip to `Editor`.
+- Added a compact `Active layout` card at the top of Editor with:
+  - layout selector and explicit rename action
+  - `Create Layout`, `Duplicate Layout`, `Import Layout`, and `Download Layout`
+  - `Save as Default` and destructive `Delete Layout`
+- Moved the version tree into Editor as a supporting card below the key editor/composer.
+- Moved project and layout renaming into a shared modal so selects are no longer paired with duplicate name inputs.
+- Added key swapping in Editor:
+  - drag one key onto another to swap their mappings on the active layer
+  - use `Start swap` from the selected-key panel as a non-drag fallback
+  - highlight the active swap source directly on the keyboard
+- Added semantic icon/color treatments for create, duplicate, import, export, rename, save, default, move, capture, transparent, no-op, swap, and destructive buttons.
+- Removed the old Layouts page JSX.
+- Removed the Layouts-only read-only preview state and CSS.
+- Updated the top navigation grid from four columns to three columns.
+
+What did not work:
+
+- Keeping Layouts as a separate page created navigation overhead for controls that are really part of editing the current layout.
+- The read-only Layouts preview duplicated the editable keyboard surface. Once layout management lives in Editor, the keyboard itself is the preview.
+- Preserving the old Layouts-page preview state would have kept dead route-specific complexity, so it was removed rather than hidden.
+- Inline `Project name` and `Layout name` fields competed with the project/layout selectors. A rename modal makes name edits deliberate and keeps the page denser.
+- The first swap implementation only had a button flow. That worked, but did not match the intended direct-manipulation UX, so drag/drop became the primary path.
+- The in-app browser coordinate drag did not trigger a native HTML5 drop event during validation. The keycaps have drag/drop handlers, but the browser-proven path is the `Start swap` fallback.
+- Too many compact buttons looked equivalent after merging pages. Icons and semantic colors became necessary to preserve scanability without making controls larger.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan found no stale `layouts` app page route, Layouts nav id, `activePage === "layouts"`, `setActivePage("layouts")`, preview-source state, read-only preview selectors, Layouts-only CSS, or inline project/layout name inputs.
+- In-app browser validation at `http://localhost:5176/` confirmed:
+  - top navigation is `Projects`, `Editor`, `Export`
+  - no `Layouts` navigation item exists
+  - Editor is the active page after selecting Editor
+  - Editor actions include `Create Layout`, `Duplicate Layout`, `Import Layout`, `Download Layout`, `Rename Layout`, `Save as Default`, and `Delete Layout`
+  - exactly one layout selector exists and no inline layout-name input remains
+  - project and layout rename modals open from their action buttons
+  - keyboard renders 76 keys
+  - source scan confirmed keycaps are draggable and wired to drag/drop swap handlers
+  - the selected-key `Start swap` fallback marks a swap source and swaps on the next key click
+  - action buttons expose semantic icon/color treatments
+  - exactly one version tree exists inside Editor
+  - no Layouts read-only preview DOM remains
+  - the layout context chip routes to Editor
+  - browser console has no errors.
+
 ## 2026-06-21: qmk-viz Layouts action language cleanup
 
 Goal: make the Layouts page action language consistent, put the active layout controls at the top, and remove the oversized Default layout section.

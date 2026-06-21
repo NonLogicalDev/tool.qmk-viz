@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "./lib/actions";
 import { buildKeyboardModelFromKle, type KeyboardModel, type KeySlot } from "./lib/keyboardModel";
 import {
@@ -54,9 +54,13 @@ type BehaviorField = {
 };
 
 type ComposerMode = "simple" | "dance";
-type LayoutPreviewSource = "layout" | "default";
 
-type AppPage = "editor" | "projects" | "layouts" | "export";
+type RenameDialog = {
+  kind: "project" | "layout";
+  value: string;
+};
+
+type AppPage = "editor" | "projects" | "export";
 
 type AppPageDefinition = {
   id: AppPage;
@@ -66,8 +70,7 @@ type AppPageDefinition = {
 
 const appPages: AppPageDefinition[] = [
   { id: "projects", label: "Projects", description: "Backups and project library" },
-  { id: "layouts", label: "Layouts", description: "Named layouts and read-only preview" },
-  { id: "editor", label: "Editor", description: "Keyboard and key actions" },
+  { id: "editor", label: "Editor", description: "Layouts, keyboard, and key actions" },
   { id: "export", label: "Export", description: "JSON and KLE downloads" }
 ];
 
@@ -106,11 +109,13 @@ export function App() {
   const [activeLayoutId, setActiveLayoutId] = useState(initialLayout.id);
   const [keyboardProjectNameDraft, setKeyboardProjectNameDraft] = useState(initialKeyboardProject.name);
   const [layoutNameDraft, setLayoutNameDraft] = useState(initialLayout.name);
+  const [versionNameDraft, setVersionNameDraft] = useState("");
   const [model, setModel] = useState<KeyboardModel>(initialKeyboardProject.model);
   const [layers, setLayers] = useState<KeymapLayer[]>(() => cloneKeymapDocument(initialLayout.document).layers);
   const [activeLayerName, setActiveLayerName] = useState(layers[0]?.name ?? "BASE");
   const [layerNameDraft, setLayerNameDraft] = useState(layers[0]?.name ?? "BASE");
   const [selectedSlot, setSelectedSlot] = useState(model.keys[0]?.slot ?? "");
+  const [swapSourceSlot, setSwapSourceSlot] = useState<string | null>(null);
   const [draftAction, setDraftAction] = useState("");
   const [behaviorSlots, setBehaviorSlots] = useState<BehaviorSlots>(() => parseActionToBehaviorSlots(""));
   const [composerMode, setComposerMode] = useState<ComposerMode>("simple");
@@ -124,13 +129,12 @@ export function App() {
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
   const [isCapturingKey, setIsCapturingKey] = useState(false);
-  const [layoutPreviewSource, setLayoutPreviewSource] = useState<LayoutPreviewSource>("layout");
+  const [renameDialog, setRenameDialog] = useState<RenameDialog | null>(null);
 
   const activeKeyboardProject = keyboardProjects.find((project) => project.id === activeKeyboardProjectId) ?? keyboardProjects[0];
   const availableLayouts = activeKeyboardProject.layouts;
   const activeSavedLayout = availableLayouts.find((layout) => layout.id === activeLayoutId) ?? availableLayouts[0];
   const activeLayoutVersion = activeSavedLayout.versions.find((version) => version.id === activeSavedLayout.activeVersionId) ?? activeSavedLayout.versions[0];
-  const defaultLayoutDocument = activeKeyboardProject.defaultLayout.document;
   const projectStats = useMemo(() => keyboardProjects.map((project) => ({
     id: project.id,
     name: project.name,
@@ -149,10 +153,6 @@ export function App() {
     dances,
     extKeys
   }), [dances, extKeys, layers]);
-  const previewDocument = layoutPreviewSource === "default" ? defaultLayoutDocument : keymapDocument;
-  const previewLayers = previewDocument.layers.length > 0 ? previewDocument.layers : layers;
-  const previewLayer = previewLayers.find((layer) => layer.name === activeLayerName) ?? previewLayers[0] ?? layers[0];
-  const previewLayerIndex = Math.max(0, previewLayers.findIndex((layer) => layer.name === previewLayer.name));
   const jsonOutput = useMemo(() => serializeKeymapExport(model, keymapDocument, {
     keyboardProjectId: activeKeyboardProjectId,
     keyboardProjectName: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
@@ -178,8 +178,8 @@ export function App() {
           name: layoutName,
           document: cloneKeymapDocument(keymapDocument),
           updatedAt: now
-        })
-        : cloneSavedLayout(layout)
+        }, model)
+        : cloneSavedLayout(layout, model)
     ));
 
     return {
@@ -218,6 +218,7 @@ export function App() {
     setActiveLayoutId(layout.id);
     setKeyboardProjectNameDraft(project.name);
     setLayoutNameDraft(layout.name);
+    setVersionNameDraft("");
     setModel(project.model);
     setLayers(document.layers);
     setDances(document.dances);
@@ -226,6 +227,7 @@ export function App() {
     setLayerNameDraft(nextLayerName);
     setSelectedSlot(nextSelectedSlot);
     setDraftAction("");
+    setSwapSourceSlot(null);
     if (options.resetHistory !== false) {
       setUndoStack([]);
       setRedoStack([]);
@@ -270,6 +272,7 @@ export function App() {
     setLayerNameDraft(nextLayerName);
     setSelectedSlot(nextSelectedSlot);
     setDraftAction("");
+    setSwapSourceSlot(null);
   }
 
   function recordHistory() {
@@ -296,6 +299,86 @@ export function App() {
     setDraftAction(selectedKeycode(activeLayer, key.slot));
   }
 
+  function startKeySwap() {
+    setSwapSourceSlot(selectedKey.slot);
+    setStatusMessage(`Select another key to swap with ${selectedKey.slot} on ${activeLayer.name}.`);
+  }
+
+  function cancelKeySwap() {
+    setSwapSourceSlot(null);
+    setStatusMessage("Canceled key swap.");
+  }
+
+  function swapKeySlots(sourceSlot: string, targetKey: KeySlot) {
+    if (targetKey.slot === sourceSlot) {
+      setStatusMessage(`Choose a different key to swap with ${sourceSlot}.`);
+      return;
+    }
+
+    const sourceAction = selectedKeycode(activeLayer, sourceSlot);
+    const targetAction = selectedKeycode(activeLayer, targetKey.slot);
+
+    if (sourceAction !== targetAction) {
+      recordHistory();
+      setLayers((current) => current.map((layer) => {
+        if (layer.name !== activeLayer.name) return layer;
+        return {
+          ...layer,
+          keys: {
+            ...layer.keys,
+            [sourceSlot]: targetAction,
+            [targetKey.slot]: sourceAction
+          }
+        };
+      }));
+    }
+
+    setSelectedSlot(targetKey.slot);
+    setDraftAction(sourceAction);
+    setSwapSourceSlot(null);
+    setStatusMessage(`Swapped ${sourceSlot} and ${targetKey.slot} on ${activeLayer.name}.`);
+  }
+
+  function swapKeyWithSource(targetKey: KeySlot) {
+    if (!swapSourceSlot) return;
+    swapKeySlots(swapSourceSlot, targetKey);
+  }
+
+  function handleKeyDragStart(key: KeySlot, event: DragEvent<HTMLButtonElement>) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-qmk-viz-slot", key.slot);
+    event.dataTransfer.setData("text/plain", key.slot);
+    setSwapSourceSlot(key.slot);
+    setStatusMessage(`Drag ${key.slot} onto another key to swap mappings on ${activeLayer.name}.`);
+  }
+
+  function handleKeyDragOver(event: DragEvent<HTMLButtonElement>) {
+    if (!swapSourceSlot) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }
+
+  function handleKeyDrop(targetKey: KeySlot, event: DragEvent<HTMLButtonElement>) {
+    const sourceSlot = event.dataTransfer.getData("application/x-qmk-viz-slot") || swapSourceSlot;
+    if (!sourceSlot) return;
+    event.preventDefault();
+    swapKeySlots(sourceSlot, targetKey);
+  }
+
+  function handleKeyDragEnd(key: KeySlot) {
+    setSwapSourceSlot((current) => current === key.slot ? null : current);
+  }
+
+  function handleKeyClick(key: KeySlot) {
+    if (swapSourceSlot) {
+      swapKeyWithSource(key);
+      return;
+    }
+
+    selectKey(key);
+    setStatusMessage(`Selected ${key.slot} on ${activeLayer.name}.`);
+  }
+
   function writeAction(value: string) {
     const before = selectedKeycode(activeLayer, selectedKey.slot);
     if (before !== value) {
@@ -303,6 +386,7 @@ export function App() {
     }
     setLayers((current) => updateKeycode(current, activeLayer.name, selectedKey.slot, value));
     setDraftAction(value);
+    setSwapSourceSlot(null);
   }
 
   function applyGeneratedAction() {
@@ -326,6 +410,7 @@ export function App() {
 
     setLayers((current) => updateKeycode(current, activeLayer.name, selectedKey.slot, generatedAction));
     setDraftAction(generatedAction);
+    setSwapSourceSlot(null);
     setStatusMessage(`Applied ${generatedAction} to ${selectedKey.slot}.`);
   }
 
@@ -421,9 +506,71 @@ export function App() {
     )));
   }
 
+  function openProjectRenameDialog() {
+    setRenameDialog({
+      kind: "project",
+      value: keyboardProjectNameDraft || activeKeyboardProject.name
+    });
+  }
+
+  function openLayoutRenameDialog() {
+    setRenameDialog({
+      kind: "layout",
+      value: layoutNameDraft || activeSavedLayout.name
+    });
+  }
+
+  function submitRenameDialog(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!renameDialog) return;
+
+    const name = renameDialog.value.trim();
+    if (!name) {
+      setStatusMessage(`Enter a ${renameDialog.kind} name before saving.`);
+      return;
+    }
+
+    recordHistory();
+    const now = new Date().toISOString();
+    const baseProject = projectWithEditorState();
+
+    if (renameDialog.kind === "project") {
+      const nextProject = {
+        ...baseProject,
+        name,
+        updatedAt: now
+      };
+
+      setKeyboardProjectNameDraft(name);
+      setKeyboardProjects((current) => current.map((project) => (
+        project.id === nextProject.id ? nextProject : project
+      )));
+      setStatusMessage(`Renamed project to ${name}.`);
+    } else {
+      const nextLayouts = baseProject.layouts.map((layout) => (
+        layout.id === activeLayoutId
+          ? cloneSavedLayout({ ...layout, name, updatedAt: now }, model)
+          : layout
+      ));
+      const nextProject = {
+        ...baseProject,
+        layouts: nextLayouts,
+        updatedAt: now
+      };
+
+      setLayoutNameDraft(name);
+      setKeyboardProjects((current) => current.map((project) => (
+        project.id === nextProject.id ? nextProject : project
+      )));
+      setStatusMessage(`Renamed layout to ${name}.`);
+    }
+
+    setRenameDialog(null);
+  }
+
   function createBlankKeyboardProject() {
     const project = createKeyboardProject("Untitled Keyboard Project", ergodoxInfinity, [
-      createLayout("Default Layout", createBlankKeymapDocument(ergodoxInfinity))
+      createLayout("Default Layout", createBlankKeymapDocument(ergodoxInfinity), ergodoxInfinity)
     ]);
     setKeyboardProjects((current) => [...current, project]);
     loadKeyboardProjectObject(project);
@@ -465,7 +612,8 @@ export function App() {
     const baseProject = projectWithEditorState();
     const layout = createLayout(
       uniqueLayoutName("New Layout", baseProject.layouts),
-      baseProject.defaultLayout.document
+      baseProject.defaultLayout.document,
+      model
     );
     const project = {
       ...baseProject,
@@ -477,7 +625,6 @@ export function App() {
       item.id === project.id ? project : item
     )));
     loadLayoutObject(project, layout, { resetHistory: false });
-    setLayoutPreviewSource("layout");
     setStatusMessage(`Created layout ${layout.name} from the Default template.`);
   }
 
@@ -485,7 +632,8 @@ export function App() {
     recordHistory();
     const layout = createLayout(
       uniqueLayoutName(`${layoutNameDraft || "Layout"} copy`, availableLayouts),
-      keymapDocument
+      keymapDocument,
+      model
     );
     const baseProject = projectWithEditorState();
     const project = {
@@ -532,10 +680,12 @@ export function App() {
     recordHistory();
     const baseProject = projectWithEditorState();
     const layout = baseProject.layouts.find((item) => item.id === activeLayoutId) ?? baseProject.layouts[0];
+    const versionName = versionNameDraft.trim() || `Version ${layout.versions.length + 1}`;
     const version = createLayoutVersion(
       keymapDocument,
       layout.activeVersionId,
-      `Version ${layout.versions.length + 1}`
+      versionName,
+      model
     );
     const nextLayout = cloneSavedLayout({
       ...layout,
@@ -543,7 +693,7 @@ export function App() {
       versions: [...layout.versions, version],
       activeVersionId: version.id,
       updatedAt: version.createdAt
-    });
+    }, model);
     const project = {
       ...baseProject,
       layouts: baseProject.layouts.map((item) => item.id === nextLayout.id ? nextLayout : item),
@@ -555,7 +705,8 @@ export function App() {
       item.id === project.id ? project : item
     )));
     loadLayoutObject(project, nextLayout, { resetHistory: false, selectedSlot, activeLayerName });
-    setStatusMessage(`Saved ${nextLayout.name} ${version.label} from ${activeLayoutVersion.label}.`);
+    setVersionNameDraft("");
+    setStatusMessage(`Saved ${nextLayout.name} ${version.name} from ${activeLayoutVersion.name}.`);
   }
 
   function loadLayoutVersion(versionId: string) {
@@ -571,7 +722,7 @@ export function App() {
       document: cloneKeymapDocument(version.document),
       activeVersionId: version.id,
       updatedAt: now
-    });
+    }, model);
     const project = {
       ...baseProject,
       layouts: baseProject.layouts.map((item) => item.id === nextLayout.id ? nextLayout : item),
@@ -583,7 +734,7 @@ export function App() {
       item.id === project.id ? project : item
     )));
     loadLayoutObject(project, nextLayout, { resetHistory: false, selectedSlot, activeLayerName });
-    setStatusMessage(`Loaded ${nextLayout.name} ${version.label}; the next saved version will fork from it.`);
+    setStatusMessage(`Loaded ${nextLayout.name} ${version.name}; the next saved version will fork from it.`);
   }
 
   function saveCurrentLayoutAsDefault() {
@@ -602,7 +753,6 @@ export function App() {
     setKeyboardProjects((current) => current.map((item) => (
       item.id === project.id ? project : item
     )));
-    setLayoutPreviewSource("default");
     setStatusMessage(`Saved ${layoutNameDraft || activeSavedLayout.name} as the Default template for new layouts.`);
   }
 
@@ -777,7 +927,7 @@ export function App() {
             <span>Project</span>
             <strong>{keyboardProjectNameDraft || activeKeyboardProject.name}</strong>
           </button>
-          <button className="context-chip" onClick={() => setActivePage("layouts")} type="button">
+          <button className="context-chip" onClick={() => setActivePage("editor")} type="button">
             <span>Layout</span>
             <strong>{layoutNameDraft || availableLayouts.find((layout) => layout.id === activeLayoutId)?.name || "Layout"}</strong>
           </button>
@@ -818,6 +968,63 @@ export function App() {
 
       {activePage === "editor" && (
         <section className="workspace editor-workspace">
+          <div className="editor-card active-layout-card editor-layout-card">
+            <div className="section-header">
+              <div>
+                <p className="eyebrow">Active layout</p>
+                <h2>{layoutNameDraft}</h2>
+              </div>
+              <span className="metric-pill">{availableLayouts.length} layouts / {activeSavedLayout.versions.length} versions</span>
+            </div>
+            <div className="editor-layout-controls">
+              <label>
+                Layout
+                <select
+                  data-testid="layout-select"
+                  value={activeLayoutId}
+                  onChange={(event) => loadLayout(event.target.value)}
+                >
+                  {availableLayouts.map((layout) => (
+                    <option key={layout.id} value={layout.id}>{layout.name}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="button-row editor-layout-actions">
+                <button className="action-create" data-icon="+" data-testid="new-layout" onClick={createBlankLayoutForActiveProject} type="button">Create Layout</button>
+                <button className="action-copy" data-icon="⧉" data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate Layout</button>
+                <label className="file-import action-import" data-icon="⇣">
+                  Import Layout
+                  <input
+                    data-testid="layout-upload"
+                    accept="application/json,.json"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void uploadLayout(file).catch((error: unknown) => {
+                          setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
+                        });
+                      }
+                      event.target.value = "";
+                    }}
+                    type="file"
+                  />
+                </label>
+                <button className="action-export" data-icon="⇡" data-testid="download-layout" onClick={downloadJson} type="button">Download Layout</button>
+                <button className="action-rename" data-icon="✎" data-testid="rename-layout" onClick={openLayoutRenameDialog} type="button">Rename Layout</button>
+                <button className="action-default" data-icon="★" data-testid="save-default-layout" onClick={saveCurrentLayoutAsDefault} type="button">Save as Default</button>
+                <button
+                  className="danger-button action-danger"
+                  data-icon="!"
+                  data-testid="delete-layout"
+                  disabled={availableLayouts.length <= 1}
+                  onClick={deleteLayout}
+                  type="button"
+                >
+                  Delete Layout
+                </button>
+              </div>
+            </div>
+          </div>
           <div className="keyboard-panel">
           <div className="layer-tabs" role="tablist" aria-label="Layers">
             {layers.map((layer, index) => (
@@ -828,6 +1035,7 @@ export function App() {
                 data-testid={`layer-tab-${layer.name}`}
                 onClick={() => {
                   setActiveLayerName(layer.name);
+                  setSwapSourceSlot(null);
                   setStatusMessage(`Editing ${layer.name}.`);
                 }}
                 role="tab"
@@ -856,9 +1064,11 @@ export function App() {
               />
             </label>
             <div className="button-row">
-              <button data-testid="rename-layer" onClick={renameActiveLayer} type="button">Rename</button>
-              <button data-testid="add-layer" onClick={addLayer} type="button">Add</button>
+              <button className="action-rename" data-icon="✎" data-testid="rename-layer" onClick={renameActiveLayer} type="button">Rename</button>
+              <button className="action-create" data-icon="+" data-testid="add-layer" onClick={addLayer} type="button">Add</button>
               <button
+                className="action-move"
+                data-icon="←"
                 data-testid="move-layer-left"
                 disabled={activeLayerIndex === 0}
                 onClick={() => moveActiveLayer(-1)}
@@ -867,6 +1077,8 @@ export function App() {
                 Move left
               </button>
               <button
+                className="action-move"
+                data-icon="→"
                 data-testid="move-layer-right"
                 disabled={activeLayerIndex === layers.length - 1}
                 onClick={() => moveActiveLayer(1)}
@@ -875,6 +1087,8 @@ export function App() {
                 Move right
               </button>
               <button
+                className="action-danger"
+                data-icon="!"
                 data-testid="remove-layer"
                 disabled={layers.length <= 1}
                 onClick={removeActiveLayer}
@@ -901,13 +1115,15 @@ export function App() {
               const secondaryFit = fitSecondaryKeyLabel(actionType, keyWidth);
               return (
                 <button
-                  className={`keycap ${details.tone} ${key.slot === selectedSlot ? "selected" : ""}`}
+                  className={`keycap ${details.tone} ${key.slot === selectedSlot ? "selected" : ""} ${key.slot === swapSourceSlot ? "swap-source" : ""}`}
                   key={key.slot}
                   data-testid={`key-${key.slot}`}
-                  onClick={() => {
-                    selectKey(key);
-                    setStatusMessage(`Selected ${key.slot} on ${activeLayer.name}.`);
-                  }}
+                  draggable
+                  onClick={() => handleKeyClick(key)}
+                  onDragStart={(event) => handleKeyDragStart(key, event)}
+                  onDragOver={handleKeyDragOver}
+                  onDrop={(event) => handleKeyDrop(key, event)}
+                  onDragEnd={() => handleKeyDragEnd(key)}
                   aria-pressed={key.slot === selectedSlot}
                   style={{
                     left: (key.x + model.padding) * model.unit,
@@ -979,6 +1195,8 @@ export function App() {
                   spellCheck={false}
                 />
                 <button
+                  className="action-capture"
+                  data-icon="⌘"
                   data-testid="capture-key"
                   onClick={() => {
                     setIsCapturingKey(true);
@@ -992,6 +1210,8 @@ export function App() {
             </label>
             <div className="button-row">
               <button
+                className="action-save"
+                data-icon="✓"
                 data-testid="apply-action"
                 onClick={() => {
                   writeAction(draftAction);
@@ -1002,6 +1222,8 @@ export function App() {
                 Apply raw
               </button>
               <button
+                className="action-transparent"
+                data-icon="~"
                 data-testid="transparent-action"
                 onClick={() => {
                   writeAction(TRANSPARENT);
@@ -1012,6 +1234,8 @@ export function App() {
                 Transparent
               </button>
               <button
+                className="action-disable"
+                data-icon="×"
                 data-testid="noop-action"
                 onClick={() => {
                   writeAction("KC_NO");
@@ -1020,6 +1244,15 @@ export function App() {
                 type="button"
               >
                 No-op
+              </button>
+              <button
+                className={swapSourceSlot ? "action-swap active" : "action-swap"}
+                data-icon="⇄"
+                data-testid="swap-action"
+                onClick={swapSourceSlot ? cancelKeySwap : startKeySwap}
+                type="button"
+              >
+                {swapSourceSlot ? "Cancel swap" : "Start swap"}
               </button>
             </div>
             <p className="editor-status" data-testid="editor-status" role="status">{statusMessage}</p>
@@ -1137,6 +1370,8 @@ export function App() {
                   : `Apply this generated raw identifier to ${selectedKey.slot} on ${activeLayer.name}.`}
               </span>
               <button
+                className="action-save"
+                data-icon="✓"
                 data-testid="use-generated-action"
                 onClick={applyGeneratedAction}
                 type="button"
@@ -1151,6 +1386,36 @@ export function App() {
               </details>
             )}
             </div>
+
+            <div className="editor-card version-tree-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Version tree</p>
+                  <h2>{activeLayoutVersion.name}</h2>
+                </div>
+                <span className="metric-pill">{activeSavedLayout.versions.length} versions</span>
+              </div>
+              <p>
+                Click a saved version to load it as the fork point. The next saved version becomes a child of the
+                active node. Saved versions are immutable snapshots with the KLE model used when they were created.
+              </p>
+              <div className="version-save-row">
+                <label>
+                  New version name
+                  <input
+                    data-testid="version-name-input"
+                    onChange={(event) => setVersionNameDraft(event.target.value)}
+                    placeholder={`Version ${activeSavedLayout.versions.length + 1}`}
+                    spellCheck={false}
+                    value={versionNameDraft}
+                  />
+                </label>
+                <button className="action-save" data-icon="✓" data-testid="save-layout-version" onClick={saveLayoutVersion} type="button">
+                  Save Version
+                </button>
+              </div>
+              <LayoutVersionTree layout={activeSavedLayout} onSelectVersion={loadLayoutVersion} />
+            </div>
           </aside>
         </section>
       )}
@@ -1164,8 +1429,8 @@ export function App() {
               <p>Browser-local workspaces. Back up the whole project whenever the layout starts mattering.</p>
             </div>
             <div className="page-actions">
-              <button data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
-              <label className="file-import">
+              <button className="action-create" data-icon="+" data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
+              <label className="file-import action-import" data-icon="⇣">
                 Import Project
                 <input
                   data-testid="project-upload"
@@ -1182,7 +1447,7 @@ export function App() {
                   type="file"
                 />
               </label>
-              <button data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
             </div>
           </div>
           <div className="admin-grid two-column">
@@ -1206,20 +1471,12 @@ export function App() {
                   ))}
                 </select>
               </label>
-              <label>
-                Project name
-                <input
-                  data-testid="project-name"
-                  value={keyboardProjectNameDraft}
-                  onBlur={persistActiveKeyboardProject}
-                  onChange={(event) => setKeyboardProjectNameDraft(event.target.value)}
-                  spellCheck={false}
-                />
-              </label>
               <div className="button-row">
-                <button data-testid="duplicate-project" onClick={duplicateKeyboardProject} type="button">Duplicate</button>
+                <button className="action-rename" data-icon="✎" data-testid="rename-project" onClick={openProjectRenameDialog} type="button">Rename Project</button>
+                <button className="action-copy" data-icon="⧉" data-testid="duplicate-project" onClick={duplicateKeyboardProject} type="button">Duplicate</button>
                 <button
-                  className="danger-button"
+                  className="danger-button action-danger"
+                  data-icon="!"
                   data-testid="delete-project"
                   disabled={keyboardProjects.length <= 1}
                   onClick={deleteKeyboardProject}
@@ -1256,7 +1513,7 @@ export function App() {
                 the new KLE file.
               </p>
               <div className="button-row">
-                <label className="file-import">
+                <label className="file-import action-import" data-icon="⇣">
                   Upload/Update KLE
                   <input
                     data-testid="keyboard-upload"
@@ -1273,7 +1530,7 @@ export function App() {
                     type="file"
                   />
                 </label>
-                <button data-testid="download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
+                <button className="action-export" data-icon="⇡" data-testid="download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
               </div>
             </div>
             <div className="editor-card admin-card project-stats-card">
@@ -1312,190 +1569,6 @@ export function App() {
         </section>
       )}
 
-      {activePage === "layouts" && (
-        <section className="page-panel">
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">Layout library</p>
-              <h1>Layouts</h1>
-              <p>Manage layout files and preview the selected layout without editing keys or layers here.</p>
-            </div>
-            <div className="page-actions">
-              <button data-testid="new-layout" onClick={createBlankLayoutForActiveProject} type="button">Create Layout</button>
-              <button data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate Layout</button>
-              <label className="file-import">
-                Import Layout
-                <input
-                  data-testid="layout-upload"
-                  accept="application/json,.json"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                      void uploadLayout(file).catch((error: unknown) => {
-                        setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
-                      });
-                    }
-                    event.target.value = "";
-                  }}
-                  type="file"
-                />
-              </label>
-              <button data-testid="download-layout" onClick={downloadJson} type="button">Download Layout</button>
-            </div>
-          </div>
-          <div className="admin-grid layout-page-grid">
-            <div className="editor-card admin-card active-layout-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Active layout</p>
-                  <h2>{layoutNameDraft}</h2>
-                </div>
-                <span className="metric-pill">{availableLayouts.length} layouts</span>
-              </div>
-              <label>
-                Layout
-                <select
-                  data-testid="layout-select"
-                  value={activeLayoutId}
-                  onChange={(event) => loadLayout(event.target.value)}
-                >
-                  {availableLayouts.map((layout) => (
-                    <option key={layout.id} value={layout.id}>{layout.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Layout name
-                <input
-                  data-testid="layout-name"
-                  value={layoutNameDraft}
-                  onBlur={persistActiveKeyboardProject}
-                  onChange={(event) => setLayoutNameDraft(event.target.value)}
-                  spellCheck={false}
-                />
-              </label>
-              <div className="button-row">
-                <button data-testid="save-layout-version" onClick={saveLayoutVersion} type="button">Save Version</button>
-                <button data-testid="save-default-layout" onClick={saveCurrentLayoutAsDefault} type="button">Save as Default</button>
-                <button
-                  className="danger-button"
-                  data-testid="delete-layout"
-                  disabled={availableLayouts.length <= 1}
-                  onClick={deleteLayout}
-                  type="button"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-            <div className="editor-card admin-card version-tree-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Version tree</p>
-                  <h2>{activeLayoutVersion.label}</h2>
-                </div>
-                <span className="metric-pill">{activeSavedLayout.versions.length} versions</span>
-              </div>
-              <p>
-                Click a saved version to load it as the fork point. The next saved version becomes a child of the
-                active node.
-              </p>
-              <LayoutVersionTree layout={activeSavedLayout} onSelectVersion={loadLayoutVersion} />
-            </div>
-            <div className="editor-card admin-card layout-preview-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Read-only preview</p>
-                  <h2>{layoutPreviewSource === "default" ? "Default" : layoutNameDraft} / {previewLayerIndex}: {previewLayer.name}</h2>
-                </div>
-                <span className="metric-pill">{previewLayers.length} layers</span>
-              </div>
-              <div className="preview-source-tabs" aria-label="Preview source">
-                <button
-                  className={layoutPreviewSource === "layout" ? "active" : ""}
-                  data-testid="preview-selected-layout"
-                  onClick={() => setLayoutPreviewSource("layout")}
-                  type="button"
-                >
-                  Selected Layout
-                </button>
-                <button
-                  className={layoutPreviewSource === "default" ? "active" : ""}
-                  data-testid="preview-default-template"
-                  onClick={() => setLayoutPreviewSource("default")}
-                  type="button"
-                >
-                  Default
-                </button>
-              </div>
-              <div className="preview-layer-tabs" aria-label="Preview layer">
-                {previewLayers.map((layer, index) => (
-                  <button
-                    className={layer.name === previewLayer.name ? "active" : ""}
-                    key={`${layer.name}-${index}`}
-                    onClick={() => {
-                      setActiveLayerName(layer.name);
-                      setLayerNameDraft(layer.name);
-                    }}
-                    type="button"
-                  >
-                    {index}: {layer.name}
-                  </button>
-                ))}
-              </div>
-              <div className="layout-preview-viewport" aria-label={`${layoutPreviewSource === "default" ? "Default" : layoutNameDraft} ${previewLayer.name} read-only preview`}>
-                <div
-                  className="keyboard-stage read-only-stage"
-                  style={{ width: model.width * model.unit, height: model.height * model.unit }}
-                >
-                  {model.keys.map((key) => {
-                    const action = selectedKeycode(previewLayer, key.slot);
-                    const details = describeAction(action);
-                    const keyWidth = key.width * model.unit;
-                    const actionType = actionTypeLabel(details);
-                    const primaryFit = fitPrimaryKeyLabel(details.primary, keyWidth);
-                    const secondaryFit = fitSecondaryKeyLabel(actionType, keyWidth);
-                    return (
-                      <div
-                        className={`keycap read-only ${details.tone}`}
-                        key={key.slot}
-                        style={{
-                          left: (key.x + model.padding) * model.unit,
-                          top: (key.y + model.padding) * model.unit,
-                          width: key.width * model.unit,
-                          height: key.height * model.unit,
-                          transform: `rotate(${key.rotation}deg)`,
-                          transformOrigin: `${(key.rotationX - key.x) * model.unit}px ${(key.rotationY - key.y) * model.unit}px`
-                        }}
-                        title={`${key.slot}: ${action}`}
-                      >
-                        <span className="key-slot">{key.slot}</span>
-                        <span
-                          className="key-primary"
-                          data-font-size={primaryFit.fontSize.toFixed(2)}
-                          data-measured-width={primaryFit.measuredWidth.toFixed(2)}
-                          style={{ fontSize: primaryFit.fontSize, lineHeight: `${primaryFit.lineHeight}px` }}
-                        >
-                          {details.primary}
-                        </span>
-                        <span
-                          className="key-secondary"
-                          data-font-size={secondaryFit.fontSize.toFixed(2)}
-                          data-measured-width={secondaryFit.measuredWidth.toFixed(2)}
-                          style={{ fontSize: secondaryFit.fontSize, lineHeight: `${secondaryFit.lineHeight}px` }}
-                        >
-                          {actionType}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
       {activePage === "export" && (
         <section className="page-panel export-page">
           <div className="page-heading">
@@ -1529,6 +1602,45 @@ export function App() {
             </p>
           </div>
         </section>
+      )}
+
+      {renameDialog && (
+        <div className="modal-backdrop" role="presentation">
+          <form
+            className="rename-modal"
+            aria-labelledby="rename-modal-title"
+            onSubmit={submitRenameDialog}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="section-header">
+              <div>
+                <p className="eyebrow">Rename {renameDialog.kind}</p>
+                <h2 id="rename-modal-title">
+                  {renameDialog.kind === "project" ? "Project name" : "Layout name"}
+                </h2>
+              </div>
+            </div>
+            <label>
+              Name
+              <input
+                autoFocus
+                data-testid="rename-modal-input"
+                value={renameDialog.value}
+                onChange={(event) => setRenameDialog((current) => (
+                  current ? { ...current, value: event.target.value } : current
+                ))}
+                spellCheck={false}
+              />
+            </label>
+            <div className="button-row rename-modal-actions">
+              <button className="action-rename" data-icon="✎" type="submit">
+                Rename {renameDialog.kind === "project" ? "Project" : "Layout"}
+              </button>
+              <button className="action-disable" data-icon="×" onClick={() => setRenameDialog(null)} type="button">Cancel</button>
+            </div>
+          </form>
+        </div>
       )}
     </main>
   );
