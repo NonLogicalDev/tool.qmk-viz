@@ -5,9 +5,20 @@ export function actionTypeLabel(details: ReturnType<typeof describeAction>): str
   return details.secondary ?? (details.tone === "plain" ? "key" : details.tone);
 }
 
-export function PreviewKeycap({ action, slot, testId }: { action: string; slot: string; testId: string }) {
+export function PreviewKeycap({
+  action,
+  layerColors = {},
+  slot,
+  testId
+}: {
+  action: string;
+  layerColors?: Record<string, string>;
+  slot: string;
+  testId: string;
+}) {
   const details = describeAction(action);
   const actionType = actionTypeLabel(details);
+  const layerColor = details.layer ? layerColors[details.layer] : undefined;
   const previewWidth = 92;
   const primaryFit = fitPrimaryKeyLabel(details.primary, previewWidth);
   const secondaryFit = fitSecondaryKeyLabel(actionType, previewWidth);
@@ -19,6 +30,13 @@ export function PreviewKeycap({ action, slot, testId }: { action: string; slot: 
       title={`${slot}: ${action}`}
     >
       <span className="key-slot">{slot}</span>
+      {layerColor && (
+        <span
+          className="layer-dot"
+          style={{ backgroundColor: layerColor }}
+          title={`${details.layer} layer action`}
+        />
+      )}
       <span
         className="key-primary"
         data-font-size={primaryFit.fontSize.toFixed(2)}

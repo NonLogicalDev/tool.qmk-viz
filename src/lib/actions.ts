@@ -79,10 +79,26 @@ const modTapLabels: Record<string, string> = {
   SFT_T: "Shift"
 };
 
+const modifierWrapperLabels: Record<string, string> = {
+  LALT: "Alt",
+  LCTL: "Ctrl",
+  LGUI: "Cmd",
+  LSFT: "Shift",
+  RALT: "Right Alt",
+  RCTL: "Right Ctrl",
+  RGUI: "Cmd",
+  RSFT: "Right Shift"
+};
+
 export type ActionDetails = {
   primary: string;
   secondary?: string;
   tone: "plain" | "transparent" | "layer" | "modifier" | "special";
+  layer?: string;
+  validation?: {
+    level: "ok" | "warning";
+    message: string;
+  };
 };
 
 export type BehaviorSlots = {
@@ -145,6 +161,104 @@ function layerNameFromHold(value: string): string | undefined {
   if (momentary) return cleanSlot(momentary[1]);
   if (looksLikeLayerName(hold)) return hold;
   return undefined;
+}
+
+function splitFunctionArgs(value: string): string[] {
+  const args: string[] = [];
+  let depth = 0;
+  let start = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (char === "," && depth === 0) {
+      args.push(cleanSlot(value.slice(start, index)));
+      start = index + 1;
+    }
+  }
+
+  args.push(cleanSlot(value.slice(start)));
+  return args;
+}
+
+function parseFunctionCall(value: string): { name: string; args: string[] } | undefined {
+  const match = value.match(/^([A-Z0-9_]+)\((.*)\)$/);
+  if (!match) return undefined;
+
+  const body = match[2];
+  let depth = 0;
+  for (const char of body) {
+    if (char === "(") depth += 1;
+    if (char === ")") {
+      depth -= 1;
+      if (depth < 0) return undefined;
+    }
+  }
+  if (depth !== 0) return undefined;
+
+  return { name: match[1], args: splitFunctionArgs(body) };
+}
+
+function functionValidation(name: string, args: string[]): ActionDetails["validation"] {
+  const expectedArgs: Record<string, number> = {
+    LT: 2,
+    MO: 1,
+    TG: 1,
+    TT: 1,
+    TD: 1,
+    OSL: 1,
+    TO: 1,
+    DF: 1,
+    ALT_T: 1,
+    CTL_T: 1,
+    GUI_T: 1,
+    SFT_T: 1,
+    HYPR_T: 1,
+    MEH_T: 1,
+    LALT: 1,
+    LCTL: 1,
+    LGUI: 1,
+    LSFT: 1,
+    LALT_T: 1,
+    LCTL_T: 1,
+    LGUI_T: 1,
+    LSFT_T: 1,
+    RALT: 1,
+    RCTL: 1,
+    RGUI: 1,
+    RSFT: 1,
+    RALT_T: 1,
+    RCTL_T: 1,
+    RGUI_T: 1,
+    RSFT_T: 1
+  };
+
+  const expected = expectedArgs[name];
+  if (expected === undefined) {
+    return { level: "warning", message: `${name}(...) is not recognized by qmk-viz; verify this raw QMK expression compiles.` };
+  }
+
+  if (args.length !== expected || args.some((arg) => !arg)) {
+    return { level: "warning", message: `${name}(...) expects ${expected} non-empty argument${expected === 1 ? "" : "s"}.` };
+  }
+
+  if (name === "LT" && args.slice(1).some((arg) => parseFunctionCall(arg))) {
+    return { level: "warning", message: "QMK layer-tap usually expects a basic keycode as the tap side; nested functions may not compile." };
+  }
+
+  return { level: "ok", message: `${name}(...) is a recognized qmk-viz composition.` };
+}
+
+function flattenModifierWrapper(value: string): { base: string; labels: string[] } | undefined {
+  const call = parseFunctionCall(value);
+  if (!call || !modifierWrapperLabels[call.name] || call.args.length !== 1) return undefined;
+
+  const nested = flattenModifierWrapper(call.args[0]);
+  return {
+    base: nested?.base ?? call.args[0],
+    labels: [modifierWrapperLabels[call.name], ...(nested?.labels ?? [])]
+  };
 }
 
 function actionDownStatement(value: string, fallback: string): string {
@@ -268,40 +382,82 @@ export function describeAction(identifier: string): ActionDetails {
     return { primary: "~", tone: "transparent" };
   }
 
-  const tapDance = value.match(/^TD\((DANCE_\d+)\)$/);
-  if (tapDance) {
-    return { primary: tapDance[1], secondary: "tap dance", tone: "special" };
+  const functionCall = parseFunctionCall(value);
+
+  if (functionCall?.name === "TD" && functionCall.args.length === 1) {
+    return {
+      primary: functionCall.args[0],
+      secondary: "tap dance",
+      tone: "special",
+      validation: functionValidation(functionCall.name, functionCall.args)
+    };
   }
 
   if (/^DANCE_\d+$/.test(value)) {
     return { primary: value, secondary: "tap dance", tone: "special" };
   }
 
-  const layerTap = value.match(/^LT\(([^,]+),\s*([^)]+)\)$/);
-  if (layerTap) {
+  if (functionCall?.name === "LT") {
+    const [layer, tap] = functionCall.args;
     return {
-      primary: displayKeycode(layerTap[2]),
-      secondary: `hold ${layerTap[1]}`,
-      tone: "layer"
+      primary: displayKeycode(tap ?? ""),
+      secondary: `${layer ?? "layer"} on hold`,
+      tone: "layer",
+      layer,
+      validation: functionValidation(functionCall.name, functionCall.args)
     };
   }
 
-  const momentary = value.match(/^MO\(([^)]+)\)$/);
-  if (momentary) {
-    return { primary: momentary[1], secondary: "momentary", tone: "layer" };
+  if (functionCall?.name === "MO") {
+    const [layer] = functionCall.args;
+    return { primary: layer, secondary: "momentary", tone: "layer", layer, validation: functionValidation(functionCall.name, functionCall.args) };
   }
 
-  const toggle = value.match(/^(TG|TT)\(([^)]+)\)$/);
-  if (toggle) {
-    return { primary: toggle[2], secondary: toggle[1] === "TT" ? "tap-toggle" : "toggle", tone: "layer" };
-  }
-
-  const modTap = value.match(/^([A-Z_]+)\(([^)]+)\)$/);
-  if (modTap?.[1] && modTapLabels[modTap[1]]) {
+  if (functionCall?.name === "TG" || functionCall?.name === "TT") {
+    const [layer] = functionCall.args;
     return {
-      primary: displayKeycode(modTap[2]),
-      secondary: `hold ${modTapLabels[modTap[1]]}`,
-      tone: "modifier"
+      primary: layer,
+      secondary: functionCall.name === "TT" ? "tap-toggle" : "toggle",
+      tone: "layer",
+      layer,
+      validation: functionValidation(functionCall.name, functionCall.args)
+    };
+  }
+
+  if (functionCall?.name && modTapLabels[functionCall.name]) {
+    return {
+      primary: displayKeycode(functionCall.args[0] ?? ""),
+      secondary: `hold ${modTapLabels[functionCall.name]}`,
+      tone: "modifier",
+      validation: functionValidation(functionCall.name, functionCall.args)
+    };
+  }
+
+  if (functionCall?.name && modifierWrapperLabels[functionCall.name]) {
+    const flattened = flattenModifierWrapper(value);
+    return {
+      primary: displayKeycode(flattened?.base ?? functionCall.args[0] ?? ""),
+      secondary: `with ${flattened?.labels.join(" + ") ?? modifierWrapperLabels[functionCall.name]}`,
+      tone: "modifier",
+      validation: functionValidation(functionCall.name, functionCall.args)
+    };
+  }
+
+  if (functionCall) {
+    return {
+      primary: functionCall.name,
+      secondary: `${functionCall.args.length} arg${functionCall.args.length === 1 ? "" : "s"}`,
+      tone: "special",
+      validation: functionValidation(functionCall.name, functionCall.args)
+    };
+  }
+
+  if (/^[A-Z0-9_]+\(/.test(value)) {
+    return {
+      primary: value.replace(/\(.*/, ""),
+      secondary: "malformed",
+      tone: "special",
+      validation: { level: "warning", message: "This looks like a function mapping, but qmk-viz could not parse balanced arguments." }
     };
   }
 

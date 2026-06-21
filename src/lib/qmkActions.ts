@@ -1,16 +1,12 @@
 export type SimpleComposerKind =
+  | "raw"
   | "plain"
   | "transparent"
   | "mo"
   | "lt"
   | "tg"
   | "tt"
-  | "ctl_t"
-  | "sft_t"
-  | "alt_t"
-  | "gui_t"
-  | "hypr_t"
-  | "meh_t";
+  | "mod_tap";
 
 export type SimpleComposerAction = {
   kind: SimpleComposerKind;
@@ -22,18 +18,23 @@ export type SimpleComposerAction = {
 };
 
 export const simpleComposerActions: SimpleComposerAction[] = [
+  { kind: "raw", label: "Raw QMK", fields: [], help: "Use exactly the raw expression entered below." },
   { kind: "plain", label: "Plain keycode", fields: ["keycode"], keycodeLabel: "Keycode", help: "Emits the keycode as-is." },
   { kind: "transparent", label: "Transparent", fields: [], help: "Emits ~ and lets lower layers pass through." },
-  { kind: "mo", label: "Momentary layer", fields: ["layer"], layerLabel: "Layer", help: "MO(layer) while held." },
-  { kind: "lt", label: "Tap key, hold layer", fields: ["keycode", "layer"], keycodeLabel: "Tap keycode", layerLabel: "Hold layer", help: "LT(layer,key): tap for key, hold for layer." },
-  { kind: "tg", label: "Toggle layer", fields: ["layer"], layerLabel: "Layer", help: "TG(layer) toggles a layer on or off." },
-  { kind: "tt", label: "Tap-toggle layer", fields: ["layer"], layerLabel: "Layer", help: "TT(layer): hold momentarily, tap repeatedly to toggle." },
-  { kind: "ctl_t", label: "Mod-tap Ctrl", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Ctrl." },
-  { kind: "sft_t", label: "Mod-tap Shift", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Shift." },
-  { kind: "alt_t", label: "Mod-tap Alt", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Alt." },
-  { kind: "gui_t", label: "Mod-tap Gui/Cmd", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Gui/Cmd." },
-  { kind: "hypr_t", label: "Mod-tap Hyper", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Hyper." },
-  { kind: "meh_t", label: "Mod-tap Meh", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Meh." }
+  { kind: "mo", label: "Momentary layer (MO)", fields: ["layer"], layerLabel: "Layer", help: "MO(layer) while held." },
+  { kind: "lt", label: "Tap key, hold layer (LT)", fields: ["keycode", "layer"], keycodeLabel: "Tap keycode", layerLabel: "Hold layer", help: "LT(layer,key): tap for key, hold for layer." },
+  { kind: "tg", label: "Toggle layer (TG)", fields: ["layer"], layerLabel: "Layer", help: "TG(layer) toggles a layer on or off." },
+  { kind: "tt", label: "Tap-toggle layer (TT)", fields: ["layer"], layerLabel: "Layer", help: "TT(layer): hold momentarily, tap repeatedly to toggle." },
+  { kind: "mod_tap", label: "Mod-tap (MT)", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap one key, hold a selected modifier." }
+];
+
+export const modTapActions = [
+  { value: "CTL_T", label: "Ctrl" },
+  { value: "SFT_T", label: "Shift" },
+  { value: "ALT_T", label: "Alt" },
+  { value: "GUI_T", label: "Gui/Cmd" },
+  { value: "HYPR_T", label: "Hyper" },
+  { value: "MEH_T", label: "Meh" }
 ];
 
 const eventKeyAliases: Record<string, string> = {
@@ -68,6 +69,20 @@ const punctuationKeyAliases: Record<string, string> = {
   "`": "KC_GRV"
 };
 
+const eventCodeAliases: Record<string, string> = {
+  Backquote: "KC_GRV",
+  Backslash: "KC_BSLS",
+  BracketLeft: "KC_LBRC",
+  BracketRight: "KC_RBRC",
+  Comma: "KC_COMM",
+  Equal: "KC_EQL",
+  Minus: "KC_MINS",
+  Period: "KC_DOT",
+  Quote: "KC_QUOT",
+  Semicolon: "KC_SCLN",
+  Slash: "KC_SLSH"
+};
+
 function modifierKeycode(event: KeyboardEvent): string {
   const side = event.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT ? "R" : "L";
 
@@ -88,6 +103,9 @@ function modifierKeycode(event: KeyboardEvent): string {
 export function qmkKeycodeFromEvent(event: KeyboardEvent): string {
   const modifier = modifierKeycode(event);
   if (modifier) return modifier;
+  if (/^Key[A-Z]$/.test(event.code)) return `KC_${event.code.slice(3)}`;
+  if (/^Digit\d$/.test(event.code)) return `KC_${event.code.slice(5)}`;
+  if (eventCodeAliases[event.code]) return eventCodeAliases[event.code];
   if (/^F\d{1,2}$/.test(event.key)) return `KC_${event.key}`;
   if (/^[a-zA-Z]$/.test(event.key)) return `KC_${event.key.toUpperCase()}`;
   if (/^\d$/.test(event.key)) return `KC_${event.key}`;
@@ -100,6 +118,8 @@ export function composeSimpleAction(kind: SimpleComposerKind, keycode: string, l
   const cleanLayer = layer.trim();
 
   switch (kind) {
+    case "raw":
+      return cleanKeycode || "KC_NO";
     case "transparent":
       return "~";
     case "plain":
@@ -112,17 +132,11 @@ export function composeSimpleAction(kind: SimpleComposerKind, keycode: string, l
       return `TG(${cleanLayer || "SYMB"})`;
     case "tt":
       return `TT(${cleanLayer || "SYMB"})`;
-    case "ctl_t":
-      return `CTL_T(${cleanKeycode || "KC_ESC"})`;
-    case "sft_t":
-      return `SFT_T(${cleanKeycode || "KC_NO"})`;
-    case "alt_t":
-      return `ALT_T(${cleanKeycode || "KC_NO"})`;
-    case "gui_t":
-      return `GUI_T(${cleanKeycode || "KC_NO"})`;
-    case "hypr_t":
-      return `HYPR_T(${cleanKeycode || "KC_NO"})`;
-    case "meh_t":
-      return `MEH_T(${cleanKeycode || "KC_NO"})`;
+    case "mod_tap":
+      return cleanKeycode || "KC_NO";
   }
+}
+
+export function composeModTapAction(keycode: string, modifier: string): string {
+  return `${modifier || "CTL_T"}(${keycode.trim() || "KC_ESC"})`;
 }

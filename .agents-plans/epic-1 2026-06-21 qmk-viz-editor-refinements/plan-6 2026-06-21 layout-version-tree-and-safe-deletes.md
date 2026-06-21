@@ -10,6 +10,8 @@ Add per-layout version trees in qmk-viz, make destructive project/layout operati
 
 Follow-up: make version history behave more like immutable Git commits. Version nodes should be named by the user, carry the KLE model they were created with, and render branches so forks are visually legible instead of drifting down-right forever.
 
+Follow-up: allow saved versions to be renamed or deleted. This is the full mutability boundary: names and graph existence can change, but saved version document snapshots and KLE snapshots remain immutable.
+
 # Context
 
 Layouts now have their own page with read-only preview. The next product step is to make Layouts useful as a layout history browser: each explicit save creates a dated version node, any version can be loaded, and saving from an older version creates a fork. Even with undo, deleting projects or layouts should feel dangerous and require confirmation.
@@ -42,6 +44,9 @@ The scope expanded before pause:
 - Follow-up decision: each saved version carries the KLE keyboard model snapshot used when it was created.
 - Follow-up decision: version names are user-entered at save time, with an automatic fallback label when the input is blank.
 - Follow-up decision: the version graph should read left-to-right like Git history with branch lanes; time/depth advances horizontally and sibling forks occupy stable vertical lanes.
+- Follow-up decision: saved version mutability is limited to `name` and deletion.
+- Follow-up decision: deleting the active/selected version is allowed unless it is the only version; direct children collapse upward to the deleted version's parent so the graph stays connected.
+- Follow-up decision: after deletion, the selected fork point falls back to the deleted version's parent when possible, otherwise the newest remaining version.
 - Project and layout delete buttons require `window.confirm(...)` and use danger styling.
 - The project-level Default layout is a separate read-only template document used only to bootstrap new normal layouts.
 - Saving a normal layout as Default replaces the project default template; it does not mark or mutate that normal layout's identity.
@@ -73,6 +78,11 @@ The scope expanded before pause:
 22. [x] Update `DEVELOPMENT_LOG.md`.
 23. [x] Validate with build, source scans, and in-app browser checks.
 24. [x] Checkpoint the completed follow-up.
+25. [x] Add selected-version rename controls without mutating saved document/KLE snapshots.
+26. [x] Add selected-version delete controls with confirmation and safe fallback active version selection.
+27. [x] Update `DEVELOPMENT_LOG.md`.
+28. [x] Validate with build, source scans, and in-app browser checks.
+29. [x] Checkpoint the completed follow-up.
 
 # Learning Log
 
@@ -88,6 +98,8 @@ The scope expanded before pause:
 - Reopened on 2026-06-21 because the initial React Flow placement was technically a tree but not a history graph. The better mental model is immutable commits with named snapshots and KLE provenance.
 - Version snapshots should not be reconciled when the project KLE changes. Only the mutable layout working copy and default template should be reconciled to the new active model.
 - The in-app browser caught a hot-reload/session-state edge case: existing version objects could be missing the new `keyboardModel` field. Clone/normalize paths now fill that from the active model.
+- Renaming/deleting versions is not a violation of version immutability if the immutable payload is defined as the document/KLE snapshot. The UI should make that boundary explicit.
+- Deleting a version is a structural graph edit: direct children are reconnected to the deleted version's parent, while document and KLE snapshots remain immutable.
 
 # Work Log
 
@@ -99,6 +111,8 @@ The scope expanded before pause:
 - [x] 2026-06-21 12:27 - Preserved Default template `updatedAt` on full project re-import, updated the development log, reran `just viz-build`, and ran `git diff --check`.
 - [x] 2026-06-21 14:22 - Reopened the plan for immutable/named/KLE-backed version snapshots and a Git-like branch-lane graph.
 - [x] 2026-06-21 14:31 - Added named immutable version snapshots, KLE snapshot metadata, branch-lane graph placement, browser validation, and development-log notes.
+- [x] 2026-06-21 14:53 - Reopened the plan to add the only allowed saved-version mutations: rename and delete.
+- [x] 2026-06-21 15:02 - Added selected-version rename/delete controls, validated build/browser behavior, and documented the graph-collapse deletion decision.
 
 # Closeout State
 
@@ -115,6 +129,7 @@ Resolved implementation state:
 - QMK action helpers, preview keycap rendering, version tree rendering, and project marker preview rendering now live outside `App.tsx`.
 - Versions now carry immutable document snapshots plus KLE model snapshots.
 - The version tree now renders left-to-right branch lanes instead of diagonal depth/row placement.
+- Selected versions can now be renamed or deleted; delete selects the parent version when available, otherwise the newest remaining version.
 - `just viz-build` passes after the completed follow-up.
 
 Validation notes:
@@ -124,6 +139,7 @@ Validation notes:
 - In-app browser confirmed top nav order, editor 76-key rendering, Projects stats, visual marker preview with 76 keys, Layouts Default controls, version tree rendering, Save Version incrementing version nodes, Save Current as Default switching preview to Default, and New Layout increasing layout count.
 - Delete confirmation source is explicit through `window.confirm(...)` in both project and layout delete handlers; browser interaction reached the confirm path, but the test tab became unstable before a clean dismissed-state assertion could be captured.
 - Follow-up browser validation confirmed one version-name input, one Save Version button in the version card, no Save Version button in the active-layout action row, named mainline save, fork save from `Initial version`, sibling fork nodes in the same column on different lanes, visible KLE provenance, and no new timestamp-filtered console errors.
+- Rename/delete follow-up browser validation confirmed selected-version controls render, a temporary version can be saved, renamed, deleted, and undone, with no new timestamp-filtered console errors.
 
 # Unfinished Work
 

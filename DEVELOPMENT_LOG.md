@@ -1,5 +1,120 @@
 # Development Log
 
+## 2026-06-21: qmk-viz paste imports, compact composer, and editable support data
+
+Goal: make import/edit flows faster and denser: paste JSON directly, keep project stats compact, show and edit support data, improve complex action rendering, and let composer output feed either a key or an extra key alias.
+
+What worked:
+
+- Added paste JSON imports for:
+  - full qmk-viz project JSON
+  - KLE keyboard model JSON
+  - layout JSON
+- File upload and paste import now share parsed-object helpers, so validation and normalization stay consistent.
+- Merged project stats into the Active project card as compact project rows; removed the standalone stats card.
+- Added Editor support-data tables for:
+  - key dances
+  - macros
+  - extra key aliases
+- Added inline Add/Edit/Delete controls for all support-data tables.
+- Added Simple composer `Raw QMK` mode so arbitrary expressions can use the same generated-action pipeline.
+- Composer output can now be saved as an extra key alias without applying it to the selected keyboard key.
+- Collapsed mod-tap options into one `Mod-tap (MT)` action with a hold-modifier parameter.
+- Kept Simple composer compact: no separate layer-action or modifier-wrapper sections.
+- Added QMK function hints to dropdown labels: `(MO)`, `(LT)`, `(TG)`, `(TT)`, `(MT)`.
+- Keycode inputs in Simple composer now include compact Shift/Ctrl/Alt/Gui modifier checkboxes plus Capture.
+- Simple composer Capture now captures shortcuts as base keycode plus modifier checkboxes:
+  - `Meta+Shift+K` -> `KC_K` with Gui and Shift checked
+  - `Shift+9` -> `KC_9` with Shift checked
+- `LT(...)` and other layer actions expose layer metadata for colored key dots.
+- Nested modifier wrappers render with readable modifier stacks, e.g. `Cmd + Shift`, while preserving raw QMK output.
+- Complex `FUNC(args)` mappings now show parser validation notes for recognized, malformed, unknown, or risky compositions.
+
+What did not work:
+
+- A separate Layer Actions section made Simple composer too busy. QMK function names in the dropdown are enough.
+- A dedicated Modifier Wrapper composer also made Simple composer too complex. Raw QMK plus keycode modifier checkboxes covers the immediate need without another section.
+- The first shortcut-capture implementation captured the first modifier key (`KC_LGUI`) before the actual key arrived. Simple capture now ignores standalone modifier keydown events and waits for the base key.
+- Browser validation of project paste modal cancellation hit multiple visible `Cancel` buttons, so modal presence was validated with targeted DOM checks rather than a generic Cancel click.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan confirmed no stale `composer-section`, modifier-wrapper, or layer-composer controls remain.
+- In-app browser validation at `http://localhost:5174/` confirmed:
+  - paste layout JSON imports a layout with dances, macros, aliases, and `LT(...)`
+  - support-data tables render the imported dance, macro, and alias
+  - `LT(...)` renders a layer-color key dot
+  - Simple composer has no extra layer/wrapper sections
+  - dropdown labels include QMK function names
+  - `LT` and `MT` render keycode first and hold action second
+  - shortcut Capture populates base keycode plus modifier checkboxes
+  - Raw QMK composer can save `RGUI(LSFT(KC_9))` as an extra key alias
+  - inline alias edit updates the saved extra key value
+  - inline Add/Save works for new dances and macros
+
+## 2026-06-21: qmk-viz layout creation names and KLE project-name preservation
+
+Goal: make layout creation ask for a name, and make KLE upload/update preserve the keyboard project name.
+
+What worked:
+
+- `Create Layout` now opens a `Create layout` modal instead of silently creating `New Layout`.
+- The modal suggests a unique `New Layout` name but lets the user replace it before creation.
+- Creating from the modal still uses the project Default template as the source document.
+- KLE upload/update no longer assigns `importedModel.name` to the project.
+- KLE upload/update still replaces the keyboard model and reconciles matching slot IDs.
+
+What did not work:
+
+- Silent `New Layout` creation made layout names cleanup work after the fact. The modal makes naming intentional before the layout exists.
+- KLE metadata is not the same concept as the user's project name. Importing a KLE model should not rename the user's project organization label.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan confirmed `Create Layout` opens `openCreateLayoutDialog`, the modal has `create-layout-modal-input`, and no `name: importedModel.name` assignment remains in KLE upload.
+
+## 2026-06-21: qmk-viz version rename and delete boundary
+
+Goal: allow saved versions to be renamed or deleted while keeping the saved keymap document and KLE snapshot immutable.
+
+What worked:
+
+- Added `Selected version name` to the version tree card.
+- Added `Rename Version` for the currently selected version.
+- Added guarded `Delete Version` for the currently selected version.
+- Kept version payload immutability intact:
+  - rename changes only `name`
+  - delete removes the version record
+  - direct children of a deleted version are reconnected to the deleted version's parent
+  - saved `document`, `keyboardModel`, and `createdAt` values are not rewritten
+- Deleting the selected version falls back to the selected version's parent when available, otherwise the newest remaining version.
+- Deleting the only saved version is blocked.
+
+What did not work:
+
+- Leaving children orphaned after deleting a parent made the graph less useful. Delete now collapses the removed vertex by connecting direct children to the deleted version's parent.
+- Browser automation did not reliably surface the `window.confirm` dialog metadata for the final destructive click, so confirmation was validated by source scan plus the browser delete flow.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan confirmed `selected-version-name-input`, `rename-version`, `delete-version`, `renameActiveVersion`, `deleteActiveVersion`, and explicit `window.confirm(...)` for version deletion.
+- In-app browser validation at `http://localhost:5174/` confirmed:
+  - one selected-version name input
+  - one rename-version button
+  - one delete-version button
+  - saving a temporary version increases the version count
+  - renaming changes the visible version node name without changing the count
+  - deleting removes the renamed version and falls back to `Initial version`
+  - source scan confirmed delete rewires direct children to the deleted version's parent
+  - undo restored the browser test edits
+  - timestamp-filtered console check had no new errors.
+
 ## 2026-06-21: qmk-viz named immutable version branches
 
 Goal: make layout versions behave more like Git commits: named snapshots, immutable history, KLE provenance per saved version, and branch lanes instead of a diagonal tree.
