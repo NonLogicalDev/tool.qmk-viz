@@ -1,5 +1,33 @@
 # Development Log
 
+## 2026-06-21: qmk-viz paused WIP for layout history, Default template, and App split
+
+Goal: stop implementation immediately and preserve the current plan, scope, and unfinished work before turning the loose qmk-viz items into a proper goal.
+
+What worked:
+
+- Captured the active WIP in `.agents-plans/epic-1 2026-06-21 qmk-viz-editor-refinements/plan-6 2026-06-21 layout-version-tree-and-safe-deletes.md`.
+- Recorded the expanded scope:
+  - layout version tree with dated forkable versions
+  - destructive layout/project confirmation and danger styling
+  - project-level read-only Default layout template for bootstrapping future layouts
+  - Projects-page KLE preview and layout/version stats
+  - topbar order `Projects -> KLE Model -> Layouts -> Editor -> Export`
+  - `App.tsx` split before more feature work
+- Added the intended data model direction: Default is a separate project-owned template document, not a tag or marker on a normal layout.
+
+What did not work:
+
+- Continuing to add features inside `App.tsx` is no longer sustainable. It has too much data-model, import/export, rendering, and page orchestration code in one file.
+- Implementation was paused mid-refactor. `qmk-viz/src/lib/appModel.ts` was created, but `App.tsx` has not yet been rewired to import it and delete duplicate local helpers.
+- The current uncommitted checkout should be assumed not build-clean until the split is finished and validated.
+
+Validation:
+
+- Not run after the mid-refactor pause.
+- Last clean checkpoint before this WIP: `d002e03 2026-06-21T09:30:00Z :: checkpoint :: qmk-viz layers stay in editor`.
+- Current WIP files include `qmk-viz/package.json`, `qmk-viz/package-lock.json`, `qmk-viz/src/App.tsx`, `qmk-viz/src/lib/appModel.ts`, and the active plan file.
+
 ## 2026-06-21: qmk-viz layer ownership correction
 
 Goal: keep layer editing inside the Editor page while making the Layouts page a read-only preview/browser for named layouts.

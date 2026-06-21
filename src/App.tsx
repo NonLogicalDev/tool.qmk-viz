@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import ReactFlow, { Background, Controls, MiniMap, type Edge, type Node } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "./lib/actions";
 import { buildKeyboardModelFromKle, type KeyboardModel, type KeySlot } from "./lib/keyboardModel";
 import {
@@ -53,9 +55,24 @@ type SimpleComposerAction = {
   help: string;
 };
 
+type SavedLayoutVersion = {
+  id: string;
+  parentId: string | null;
+  label: string;
+  createdAt: string;
+  document: KeymapDocument;
+};
+
 type SavedLayout = {
   id: string;
   name: string;
+  document: KeymapDocument;
+  versions: SavedLayoutVersion[];
+  activeVersionId: string;
+  updatedAt: string;
+};
+
+type SavedDefaultLayout = {
   document: KeymapDocument;
   updatedAt: string;
 };
@@ -64,6 +81,7 @@ type SavedKeyboardProject = {
   id: string;
   name: string;
   model: KeyboardModel;
+  defaultLayout: SavedDefaultLayout;
   layouts: SavedLayout[];
   activeLayoutId: string;
   updatedAt: string;
@@ -84,10 +102,10 @@ type AppPageDefinition = {
 };
 
 const appPages: AppPageDefinition[] = [
-  { id: "editor", label: "Editor", description: "Keyboard and key actions" },
   { id: "projects", label: "Projects", description: "Backups and project library" },
   { id: "model", label: "KLE Model", description: "Physical keyboard geometry" },
   { id: "layouts", label: "Layouts", description: "Named layouts and read-only preview" },
+  { id: "editor", label: "Editor", description: "Keyboard and key actions" },
   { id: "export", label: "Export", description: "JSON and KLE downloads" }
 ];
 
@@ -231,6 +249,63 @@ function newEntityId(prefix: string): string {
   return globalThis.crypto?.randomUUID?.() ?? `${prefix}-${Date.now()}`;
 }
 
+function formatVersionDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
+}
+
+function createLayoutVersion(document: KeymapDocument, parentId: string | null, label: string, createdAt = new Date().toISOString()): SavedLayoutVersion {
+  return {
+    id: newEntityId("layout-version"),
+    parentId,
+    label,
+    createdAt,
+    document: cloneKeymapDocument(document)
+  };
+}
+
+function cloneLayoutVersion(version: SavedLayoutVersion): SavedLayoutVersion {
+  return {
+    ...version,
+    document: cloneKeymapDocument(version.document)
+  };
+}
+
+function cloneSavedLayout(layout: SavedLayout): SavedLayout {
+  const document = cloneKeymapDocument(layout.document);
+  const versions = layout.versions.length > 0
+    ? layout.versions.map(cloneLayoutVersion)
+    : [createLayoutVersion(document, null, "Initial version", layout.updatedAt)];
+  const activeVersionId = versions.some((version) => version.id === layout.activeVersionId)
+    ? layout.activeVersionId
+    : versions[versions.length - 1].id;
+
+  return {
+    ...layout,
+    document,
+    versions,
+    activeVersionId
+  };
+}
+
+function reconcileSavedLayoutToModel(layout: SavedLayout, model: KeyboardModel): SavedLayout {
+  const document = reconcileKeymapDocumentToModel(layout.document, model);
+  const versions = layout.versions.map((version) => ({
+    ...version,
+    document: reconcileKeymapDocumentToModel(version.document, model)
+  }));
+
+  return cloneSavedLayout({
+    ...layout,
+    document,
+    versions
+  });
+}
+
 function createDefaultDocument(): KeymapDocument {
   return {
     version: 1,
@@ -241,11 +316,17 @@ function createDefaultDocument(): KeymapDocument {
 }
 
 function createLayout(name: string, document: KeymapDocument): SavedLayout {
+  const now = new Date().toISOString();
+  const clonedDocument = cloneKeymapDocument(document);
+  const initialVersion = createLayoutVersion(clonedDocument, null, "Initial version", now);
+
   return {
     id: newEntityId("layout"),
     name,
-    document: cloneKeymapDocument(document),
-    updatedAt: new Date().toISOString()
+    document: clonedDocument,
+    versions: [initialVersion],
+    activeVersionId: initialVersion.id,
+    updatedAt: now
   };
 }
 
@@ -263,10 +344,7 @@ function createKeyboardProject(name: string, model: KeyboardModel, layouts: Save
     id: newEntityId("keyboard-project"),
     name,
     model: sanitizeKeyboardModel(model),
-    layouts: safeLayouts.map((layout) => ({
-      ...layout,
-      document: cloneKeymapDocument(layout.document)
-    })),
+    layouts: safeLayouts.map(cloneSavedLayout),
     activeLayoutId: safeLayouts[0].id,
     updatedAt: new Date().toISOString()
   };
@@ -278,13 +356,70 @@ function defaultKeyboardProject(): SavedKeyboardProject {
   ]);
 }
 
+function normalizeLoadedLayout(raw: Partial<SavedLayout>, model: KeyboardModel, index: number): SavedLayout {
+  const fallbackDocument = createBlankKeymapDocument(model);
+  const document = reconcileKeymapDocumentToModel(raw.document ?? fallbackDocument, model);
+  const updatedAt = typeof raw.updatedAt === "string" ? raw.updatedAt : new Date().toISOString();
+  const rawVersions = Array.isArray(raw.versions) ? raw.versions : [];
+  const versions = rawVersions.length > 0
+    ? rawVersions.map((version, versionIndex) => ({
+      id: typeof version.id === "string" ? version.id : newEntityId("layout-version"),
+      parentId: typeof version.parentId === "string" ? version.parentId : null,
+      label: typeof version.label === "string" ? version.label : `Version ${versionIndex + 1}`,
+      createdAt: typeof version.createdAt === "string" ? version.createdAt : updatedAt,
+      document: reconcileKeymapDocumentToModel(version.document ?? document, model)
+    }))
+    : [createLayoutVersion(document, null, "Initial version", updatedAt)];
+  const activeVersionId = typeof raw.activeVersionId === "string" && versions.some((version) => version.id === raw.activeVersionId)
+    ? raw.activeVersionId
+    : versions[versions.length - 1].id;
+
+  return cloneSavedLayout({
+    id: typeof raw.id === "string" ? raw.id : newEntityId("layout"),
+    name: typeof raw.name === "string" && raw.name.trim() ? raw.name : `Layout ${index + 1}`,
+    document,
+    versions,
+    activeVersionId,
+    updatedAt
+  });
+}
+
+function normalizeLoadedProject(raw: Partial<SavedKeyboardProject>, index: number): SavedKeyboardProject {
+  const model = raw.model?.kle
+    ? buildKeyboardModelFromKle(raw.model.kle, {
+      id: raw.model.id,
+      name: raw.model.name,
+      author: raw.model.author,
+      source: raw.model.source
+    })
+    : ergodoxInfinity;
+  const sourceLayouts = Array.isArray(raw.layouts) ? raw.layouts : [];
+  const layouts = sourceLayouts.length > 0
+    ? sourceLayouts.map((layout, layoutIndex) => normalizeLoadedLayout(layout, model, layoutIndex))
+    : [createLayout("Default Layout", createBlankKeymapDocument(model))];
+  const activeLayoutId = typeof raw.activeLayoutId === "string" && layouts.some((layout) => layout.id === raw.activeLayoutId)
+    ? raw.activeLayoutId
+    : layouts[0].id;
+
+  return {
+    id: typeof raw.id === "string" ? raw.id : newEntityId("keyboard-project"),
+    name: typeof raw.name === "string" && raw.name.trim() ? raw.name : `Keyboard Project ${index + 1}`,
+    model: sanitizeKeyboardModel(model),
+    layouts,
+    activeLayoutId,
+    updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : new Date().toISOString()
+  };
+}
+
 function loadKeyboardProjects(): SavedKeyboardProject[] {
   const fallback = [defaultKeyboardProject()];
   try {
     const raw = localStorage.getItem(KEYBOARD_PROJECTS_STORAGE_KEY);
     if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as SavedKeyboardProject[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
+    const parsed = JSON.parse(raw) as Array<Partial<SavedKeyboardProject>>;
+    return Array.isArray(parsed) && parsed.length > 0
+      ? parsed.map((project, index) => normalizeLoadedProject(project, index))
+      : fallback;
   } catch {
     return fallback;
   }
@@ -367,10 +502,7 @@ function parseProjectFile(raw: unknown, fallbackSource: string): SavedKeyboardPr
     source: typedProject.model.source || fallbackSource
   });
   const sourceLayouts = Array.isArray(typedProject.layouts) ? typedProject.layouts : [];
-  const layouts = sourceLayouts.map((layout, index) => createLayout(
-    typeof layout.name === "string" && layout.name.trim() ? layout.name : `Layout ${index + 1}`,
-    reconcileKeymapDocumentToModel(layout.document, model)
-  ));
+  const layouts = sourceLayouts.map((layout, index) => normalizeLoadedLayout(layout, model, index));
   const name = typeof typedProject.name === "string" && typedProject.name.trim()
     ? typedProject.name
     : model.name;
@@ -412,6 +544,59 @@ function PreviewKeycap({ action, slot, testId }: { action: string; slot: string;
   );
 }
 
+function buildLayoutVersionGraph(layout: SavedLayout): { nodes: Node[]; edges: Edge[] } {
+  const knownIds = new Set(layout.versions.map((version) => version.id));
+  const childrenByParent = new Map<string | null, SavedLayoutVersion[]>();
+
+  for (const version of layout.versions) {
+    const parentId = version.parentId && knownIds.has(version.parentId) ? version.parentId : null;
+    const children = childrenByParent.get(parentId) ?? [];
+    children.push(version);
+    childrenByParent.set(parentId, children);
+  }
+
+  for (const children of childrenByParent.values()) {
+    children.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }
+
+  const positioned: Array<{ version: SavedLayoutVersion; depth: number; row: number }> = [];
+  let row = 0;
+  const walk = (parentId: string | null, depth: number) => {
+    for (const version of childrenByParent.get(parentId) ?? []) {
+      positioned.push({ version, depth, row });
+      row += 1;
+      walk(version.id, depth + 1);
+    }
+  };
+  walk(null, 0);
+
+  const nodes: Node[] = positioned.map(({ version, depth, row: nodeRow }) => ({
+    id: version.id,
+    position: { x: depth * 260, y: nodeRow * 104 },
+    className: version.id === layout.activeVersionId ? "version-node active" : "version-node",
+    selected: version.id === layout.activeVersionId,
+    data: {
+      label: (
+        <div className="version-node-label">
+          <strong>{version.label}</strong>
+          <span>{formatVersionDate(version.createdAt)}</span>
+        </div>
+      )
+    }
+  }));
+  const edges: Edge[] = layout.versions
+    .filter((version) => version.parentId && knownIds.has(version.parentId))
+    .map((version) => ({
+      id: `${version.parentId}-${version.id}`,
+      source: version.parentId as string,
+      target: version.id,
+      type: "smoothstep",
+      animated: version.id === layout.activeVersionId
+    }));
+
+  return { nodes, edges };
+}
+
 export function App() {
   const [keyboardProjects, setKeyboardProjects] = useState<SavedKeyboardProject[]>(loadKeyboardProjects);
   const initialKeyboardProject = keyboardProjects[0];
@@ -442,6 +627,9 @@ export function App() {
 
   const activeKeyboardProject = keyboardProjects.find((project) => project.id === activeKeyboardProjectId) ?? keyboardProjects[0];
   const availableLayouts = activeKeyboardProject.layouts;
+  const activeSavedLayout = availableLayouts.find((layout) => layout.id === activeLayoutId) ?? availableLayouts[0];
+  const activeLayoutVersion = activeSavedLayout.versions.find((version) => version.id === activeSavedLayout.activeVersionId) ?? activeSavedLayout.versions[0];
+  const versionGraph = useMemo(() => buildLayoutVersionGraph(activeSavedLayout), [activeSavedLayout]);
   const foundLayerIndex = layers.findIndex((layer) => layer.name === activeLayerName);
   const activeLayerIndex = foundLayerIndex >= 0 ? foundLayerIndex : 0;
   const activeLayer = layers[activeLayerIndex] ?? layers[0];
@@ -473,16 +661,13 @@ export function App() {
     const layoutName = layoutNameDraft.trim() || availableLayouts.find((layout) => layout.id === activeLayoutId)?.name || "Layout";
     const nextLayouts = availableLayouts.map((layout) => (
       layout.id === activeLayoutId
-        ? {
+        ? cloneSavedLayout({
           ...layout,
           name: layoutName,
           document: cloneKeymapDocument(keymapDocument),
           updatedAt: now
-        }
-        : {
-          ...layout,
-          document: cloneKeymapDocument(layout.document)
-        }
+        })
+        : cloneSavedLayout(layout)
     ));
 
     return {
@@ -746,6 +931,12 @@ export function App() {
       return;
     }
 
+    const layoutCount = activeKeyboardProject.layouts.length;
+    const versionCount = activeKeyboardProject.layouts.reduce((total, layout) => total + layout.versions.length, 0);
+    if (!window.confirm(`Delete project "${keyboardProjectNameDraft}" with ${layoutCount} layouts and ${versionCount} saved versions?`)) {
+      return;
+    }
+
     const remaining = keyboardProjects.filter((project) => project.id !== activeKeyboardProjectId);
     setKeyboardProjects(remaining);
     loadKeyboardProjectObject(remaining[0]);
@@ -798,6 +989,10 @@ export function App() {
       return;
     }
 
+    if (!window.confirm(`Delete layout "${layoutNameDraft}" and its ${activeSavedLayout.versions.length} saved versions?`)) {
+      return;
+    }
+
     recordHistory();
     const baseProject = projectWithEditorState();
     const remaining = baseProject.layouts.filter((layout) => layout.id !== activeLayoutId);
@@ -815,17 +1010,74 @@ export function App() {
     setStatusMessage("Deleted layout.");
   }
 
+  function saveLayoutVersion() {
+    recordHistory();
+    const baseProject = projectWithEditorState();
+    const layout = baseProject.layouts.find((item) => item.id === activeLayoutId) ?? baseProject.layouts[0];
+    const version = createLayoutVersion(
+      keymapDocument,
+      layout.activeVersionId,
+      `Version ${layout.versions.length + 1}`
+    );
+    const nextLayout = cloneSavedLayout({
+      ...layout,
+      document: cloneKeymapDocument(keymapDocument),
+      versions: [...layout.versions, version],
+      activeVersionId: version.id,
+      updatedAt: version.createdAt
+    });
+    const project = {
+      ...baseProject,
+      layouts: baseProject.layouts.map((item) => item.id === nextLayout.id ? nextLayout : item),
+      activeLayoutId: nextLayout.id,
+      updatedAt: version.createdAt
+    };
+
+    setKeyboardProjects((current) => current.map((item) => (
+      item.id === project.id ? project : item
+    )));
+    loadLayoutObject(project, nextLayout, { resetHistory: false, selectedSlot, activeLayerName });
+    setStatusMessage(`Saved ${nextLayout.name} ${version.label} from ${activeLayoutVersion.label}.`);
+  }
+
+  function loadLayoutVersion(versionId: string) {
+    const version = activeSavedLayout.versions.find((item) => item.id === versionId);
+    if (!version) return;
+
+    recordHistory();
+    const now = new Date().toISOString();
+    const baseProject = projectWithEditorState();
+    const layout = baseProject.layouts.find((item) => item.id === activeLayoutId) ?? baseProject.layouts[0];
+    const nextLayout = cloneSavedLayout({
+      ...layout,
+      document: cloneKeymapDocument(version.document),
+      activeVersionId: version.id,
+      updatedAt: now
+    });
+    const project = {
+      ...baseProject,
+      layouts: baseProject.layouts.map((item) => item.id === nextLayout.id ? nextLayout : item),
+      activeLayoutId: nextLayout.id,
+      updatedAt: now
+    };
+
+    setKeyboardProjects((current) => current.map((item) => (
+      item.id === project.id ? project : item
+    )));
+    loadLayoutObject(project, nextLayout, { resetHistory: false, selectedSlot, activeLayerName });
+    setStatusMessage(`Loaded ${nextLayout.name} ${version.label}; the next saved version will fork from it.`);
+  }
+
   async function updateActiveKeyboardModel(file: File) {
     const raw = JSON.parse(await file.text()) as unknown;
     const importedModel = buildKeyboardModelFromKle(raw, { source: file.name });
     recordHistory();
 
     const baseProject = projectWithEditorState();
-    const nextLayouts = baseProject.layouts.map((layout) => ({
+    const nextLayouts = baseProject.layouts.map((layout) => reconcileSavedLayoutToModel({
       ...layout,
-      document: reconcileKeymapDocumentToModel(layout.document, importedModel),
       updatedAt: new Date().toISOString()
-    }));
+    }, importedModel));
     const nextLayout = nextLayouts.find((layout) => layout.id === activeLayoutId) ?? nextLayouts[0];
     const nextProject = {
       ...baseProject,
@@ -1427,6 +1679,7 @@ export function App() {
               <div className="button-row">
                 <button data-testid="duplicate-project" onClick={duplicateKeyboardProject} type="button">Duplicate</button>
                 <button
+                  className="danger-button"
                   data-testid="delete-project"
                   disabled={keyboardProjects.length <= 1}
                   onClick={deleteKeyboardProject}
@@ -1589,6 +1842,7 @@ export function App() {
               <div className="button-row">
                 <button data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate</button>
                 <button
+                  className="danger-button"
                   data-testid="delete-layout"
                   disabled={availableLayouts.length <= 1}
                   onClick={deleteLayout}
