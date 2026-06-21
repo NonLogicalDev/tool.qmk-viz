@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import ReactFlow, { Background, Controls, MiniMap, type Edge, type Node } from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "./lib/actions";
 import { buildKeyboardModelFromKle, type KeyboardModel, type KeySlot } from "./lib/keyboardModel";
 import {
@@ -17,6 +15,8 @@ import {
 } from "./lib/keymap";
 import { serializeKeyboardModelKle, serializeLayerKle } from "./lib/kleExport";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "./lib/textFit";
+import { LayoutVersionTree } from "./components/LayoutVersionTree";
+import { PreviewKeycap, actionTypeLabel } from "./components/PreviewKeycap";
 import {
   KEYBOARD_PROJECTS_STORAGE_KEY,
   activeLayoutFor,
@@ -25,7 +25,6 @@ import {
   createLayout,
   createLayoutVersion,
   defaultKeyboardProject,
-  formatVersionDate,
   loadKeyboardProjects,
   parseLayoutUpload,
   parseProjectFile,
@@ -35,9 +34,14 @@ import {
   uniqueLayoutName,
   type ProjectFile,
   type SavedKeyboardProject,
-  type SavedLayout,
-  type SavedLayoutVersion
+  type SavedLayout
 } from "./lib/appModel";
+import {
+  composeSimpleAction,
+  qmkKeycodeFromEvent,
+  simpleComposerActions,
+  type SimpleComposerKind
+} from "./lib/qmkActions";
 import { ergodoxInfinity } from "./models/ergodoxInfinity";
 
 type BehaviorField = {
@@ -48,29 +52,6 @@ type BehaviorField = {
 };
 
 type ComposerMode = "simple" | "dance";
-
-type SimpleComposerKind =
-  | "plain"
-  | "transparent"
-  | "mo"
-  | "lt"
-  | "tg"
-  | "tt"
-  | "ctl_t"
-  | "sft_t"
-  | "alt_t"
-  | "gui_t"
-  | "hypr_t"
-  | "meh_t";
-
-type SimpleComposerAction = {
-  kind: SimpleComposerKind;
-  label: string;
-  fields: Array<"keycode" | "layer">;
-  keycodeLabel?: string;
-  layerLabel?: string;
-  help: string;
-};
 
 type AppPage = "editor" | "projects" | "model" | "layouts" | "export";
 
@@ -97,112 +78,6 @@ const behaviorFields: BehaviorField[] = [
 
 const danceBehaviorFields = behaviorFields;
 
-const simpleComposerActions: SimpleComposerAction[] = [
-  { kind: "plain", label: "Plain keycode", fields: ["keycode"], keycodeLabel: "Keycode", help: "Emits the keycode as-is." },
-  { kind: "transparent", label: "Transparent", fields: [], help: "Emits ~ and lets lower layers pass through." },
-  { kind: "mo", label: "Momentary layer", fields: ["layer"], layerLabel: "Layer", help: "MO(layer) while held." },
-  { kind: "lt", label: "Tap key, hold layer", fields: ["keycode", "layer"], keycodeLabel: "Tap keycode", layerLabel: "Hold layer", help: "LT(layer,key): tap for key, hold for layer." },
-  { kind: "tg", label: "Toggle layer", fields: ["layer"], layerLabel: "Layer", help: "TG(layer) toggles a layer on or off." },
-  { kind: "tt", label: "Tap-toggle layer", fields: ["layer"], layerLabel: "Layer", help: "TT(layer): hold momentarily, tap repeatedly to toggle." },
-  { kind: "ctl_t", label: "Mod-tap Ctrl", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Ctrl." },
-  { kind: "sft_t", label: "Mod-tap Shift", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Shift." },
-  { kind: "alt_t", label: "Mod-tap Alt", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Alt." },
-  { kind: "gui_t", label: "Mod-tap Gui/Cmd", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Gui/Cmd." },
-  { kind: "hypr_t", label: "Mod-tap Hyper", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Hyper." },
-  { kind: "meh_t", label: "Mod-tap Meh", fields: ["keycode"], keycodeLabel: "Tap keycode", help: "Tap key, hold Meh." }
-];
-
-const eventKeyAliases: Record<string, string> = {
-  " ": "KC_SPC",
-  Enter: "KC_ENT",
-  Escape: "KC_ESC",
-  Backspace: "KC_BSPC",
-  Tab: "KC_TAB",
-  Delete: "KC_DEL",
-  Insert: "KC_INS",
-  Home: "KC_HOME",
-  End: "KC_END",
-  PageUp: "KC_PGUP",
-  PageDown: "KC_PGDN",
-  ArrowLeft: "KC_LEFT",
-  ArrowRight: "KC_RGHT",
-  ArrowUp: "KC_UP",
-  ArrowDown: "KC_DOWN"
-};
-
-const punctuationKeyAliases: Record<string, string> = {
-  "-": "KC_MINS",
-  "=": "KC_EQL",
-  "[": "KC_LBRC",
-  "]": "KC_RBRC",
-  "\\": "KC_BSLS",
-  ";": "KC_SCLN",
-  "'": "KC_QUOT",
-  ",": "KC_COMM",
-  ".": "KC_DOT",
-  "/": "KC_SLSH",
-  "`": "KC_GRV"
-};
-
-function modifierKeycode(event: KeyboardEvent): string {
-  const side = event.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT ? "R" : "L";
-
-  switch (event.key) {
-    case "Control":
-      return `KC_${side}CTL`;
-    case "Shift":
-      return `KC_${side}SFT`;
-    case "Alt":
-      return `KC_${side}ALT`;
-    case "Meta":
-      return `KC_${side}GUI`;
-    default:
-      return "";
-  }
-}
-
-function qmkKeycodeFromEvent(event: KeyboardEvent): string {
-  const modifier = modifierKeycode(event);
-  if (modifier) return modifier;
-  if (/^F\d{1,2}$/.test(event.key)) return `KC_${event.key}`;
-  if (/^[a-zA-Z]$/.test(event.key)) return `KC_${event.key.toUpperCase()}`;
-  if (/^\d$/.test(event.key)) return `KC_${event.key}`;
-
-  return eventKeyAliases[event.key] ?? punctuationKeyAliases[event.key] ?? "";
-}
-
-function composeSimpleAction(kind: SimpleComposerKind, keycode: string, layer: string): string {
-  const cleanKeycode = keycode.trim();
-  const cleanLayer = layer.trim();
-
-  switch (kind) {
-    case "transparent":
-      return "~";
-    case "plain":
-      return cleanKeycode || "KC_NO";
-    case "mo":
-      return `MO(${cleanLayer || "SYMB"})`;
-    case "lt":
-      return `LT(${cleanLayer || "SYMB"},${cleanKeycode || "KC_SPC"})`;
-    case "tg":
-      return `TG(${cleanLayer || "SYMB"})`;
-    case "tt":
-      return `TT(${cleanLayer || "SYMB"})`;
-    case "ctl_t":
-      return `CTL_T(${cleanKeycode || "KC_ESC"})`;
-    case "sft_t":
-      return `SFT_T(${cleanKeycode || "KC_NO"})`;
-    case "alt_t":
-      return `ALT_T(${cleanKeycode || "KC_NO"})`;
-    case "gui_t":
-      return `GUI_T(${cleanKeycode || "KC_NO"})`;
-    case "hypr_t":
-      return `HYPR_T(${cleanKeycode || "KC_NO"})`;
-    case "meh_t":
-      return `MEH_T(${cleanKeycode || "KC_NO"})`;
-  }
-}
-
 function normalizeLayerName(value: string, fallback: string): string {
   const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
   if (!normalized) return fallback;
@@ -218,97 +93,6 @@ function uniqueLayerName(base: string, layers: KeymapLayer[], ignoreIndex = -1):
     suffix += 1;
   }
   return `${base}_${suffix}`;
-}
-
-function actionTypeLabel(details: ReturnType<typeof describeAction>): string {
-  return details.secondary ?? (details.tone === "plain" ? "key" : details.tone);
-}
-
-function PreviewKeycap({ action, slot, testId }: { action: string; slot: string; testId: string }) {
-  const details = describeAction(action);
-  const actionType = actionTypeLabel(details);
-  const previewWidth = 92;
-  const primaryFit = fitPrimaryKeyLabel(details.primary, previewWidth);
-  const secondaryFit = fitSecondaryKeyLabel(actionType, previewWidth);
-
-  return (
-    <div
-      className={`key-preview ${details.tone}`}
-      data-testid={testId}
-      title={`${slot}: ${action}`}
-    >
-      <span className="key-slot">{slot}</span>
-      <span
-        className="key-primary"
-        data-font-size={primaryFit.fontSize.toFixed(2)}
-        data-measured-width={primaryFit.measuredWidth.toFixed(2)}
-        style={{ fontSize: primaryFit.fontSize, lineHeight: `${primaryFit.lineHeight}px` }}
-      >
-        {details.primary}
-      </span>
-      <span
-        className="key-secondary"
-        data-font-size={secondaryFit.fontSize.toFixed(2)}
-        data-measured-width={secondaryFit.measuredWidth.toFixed(2)}
-        style={{ fontSize: secondaryFit.fontSize, lineHeight: `${secondaryFit.lineHeight}px` }}
-      >
-        {actionType}
-      </span>
-    </div>
-  );
-}
-
-function buildLayoutVersionGraph(layout: SavedLayout): { nodes: Node[]; edges: Edge[] } {
-  const knownIds = new Set(layout.versions.map((version) => version.id));
-  const childrenByParent = new Map<string | null, SavedLayoutVersion[]>();
-
-  for (const version of layout.versions) {
-    const parentId = version.parentId && knownIds.has(version.parentId) ? version.parentId : null;
-    const children = childrenByParent.get(parentId) ?? [];
-    children.push(version);
-    childrenByParent.set(parentId, children);
-  }
-
-  for (const children of childrenByParent.values()) {
-    children.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
-  }
-
-  const positioned: Array<{ version: SavedLayoutVersion; depth: number; row: number }> = [];
-  let row = 0;
-  const walk = (parentId: string | null, depth: number) => {
-    for (const version of childrenByParent.get(parentId) ?? []) {
-      positioned.push({ version, depth, row });
-      row += 1;
-      walk(version.id, depth + 1);
-    }
-  };
-  walk(null, 0);
-
-  const nodes: Node[] = positioned.map(({ version, depth, row: nodeRow }) => ({
-    id: version.id,
-    position: { x: depth * 260, y: nodeRow * 104 },
-    className: version.id === layout.activeVersionId ? "version-node active" : "version-node",
-    selected: version.id === layout.activeVersionId,
-    data: {
-      label: (
-        <div className="version-node-label">
-          <strong>{version.label}</strong>
-          <span>{formatVersionDate(version.createdAt)}</span>
-        </div>
-      )
-    }
-  }));
-  const edges: Edge[] = layout.versions
-    .filter((version) => version.parentId && knownIds.has(version.parentId))
-    .map((version) => ({
-      id: `${version.parentId}-${version.id}`,
-      source: version.parentId as string,
-      target: version.id,
-      type: "smoothstep",
-      animated: version.id === layout.activeVersionId
-    }));
-
-  return { nodes, edges };
 }
 
 export function App() {
@@ -343,7 +127,6 @@ export function App() {
   const availableLayouts = activeKeyboardProject.layouts;
   const activeSavedLayout = availableLayouts.find((layout) => layout.id === activeLayoutId) ?? availableLayouts[0];
   const activeLayoutVersion = activeSavedLayout.versions.find((version) => version.id === activeSavedLayout.activeVersionId) ?? activeSavedLayout.versions[0];
-  const versionGraph = useMemo(() => buildLayoutVersionGraph(activeSavedLayout), [activeSavedLayout]);
   const foundLayerIndex = layers.findIndex((layer) => layer.name === activeLayerName);
   const activeLayerIndex = foundLayerIndex >= 0 ? foundLayerIndex : 0;
   const activeLayer = layers[activeLayerIndex] ?? layers[0];
@@ -1554,6 +1337,7 @@ export function App() {
                 />
               </label>
               <div className="button-row">
+                <button data-testid="save-layout-version" onClick={saveLayoutVersion} type="button">Save Version</button>
                 <button data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate</button>
                 <button
                   className="danger-button"
@@ -1565,6 +1349,20 @@ export function App() {
                   Delete
                 </button>
               </div>
+            </div>
+            <div className="editor-card admin-card version-tree-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Version tree</p>
+                  <h2>{activeLayoutVersion.label}</h2>
+                </div>
+                <span className="metric-pill">{activeSavedLayout.versions.length} versions</span>
+              </div>
+              <p>
+                Click a saved version to load it as the fork point. The next saved version becomes a child of the
+                active node.
+              </p>
+              <LayoutVersionTree layout={activeSavedLayout} onSelectVersion={loadLayoutVersion} />
             </div>
             <div className="editor-card admin-card layout-preview-card">
               <div className="section-header">

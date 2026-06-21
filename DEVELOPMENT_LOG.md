@@ -32,7 +32,10 @@ Follow-up stabilization:
 
 - Reconciled `qmk-viz/src/App.tsx` with `qmk-viz/src/lib/appModel.ts` so app-model helpers are no longer duplicated.
 - `just viz-build` passed after the split reconciliation.
-- Remaining loose items are still open: Default template UI, version tree UI, Projects KLE/stats page, danger styling, browser validation, and final checkpoint.
+- Extracted QMK action helpers, preview keycap rendering, and React Flow version tree rendering into separate modules.
+- Added the Layouts-page version tree card with `Save Version` and clickable saved-version nodes.
+- `just viz-build` passed after the helper extraction and version tree rendering.
+- Remaining loose items are still open: Default template UI, Projects KLE/stats page, danger styling, browser validation, and final checkpoint.
 
 ## 2026-06-21: qmk-viz layer ownership correction
 

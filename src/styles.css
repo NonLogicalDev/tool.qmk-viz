@@ -841,6 +841,52 @@ textarea {
   min-width: 0;
 }
 
+.version-tree-card {
+  min-width: 0;
+}
+
+.version-tree {
+  background:
+    radial-gradient(circle at 0% 0%, rgb(0 120 168 / 9%), transparent 34%),
+    #fbfaf6;
+  border: 1px solid rgb(217 210 196 / 80%);
+  border-radius: 13px;
+  height: 330px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.version-tree .react-flow__node {
+  background: #fffdf7;
+  border: 1px solid rgb(217 210 196 / 92%);
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgb(54 47 35 / 10%);
+  color: var(--ink);
+  min-width: 190px;
+  padding: 9px 10px;
+}
+
+.version-tree .react-flow__node.version-node.active {
+  border-color: rgb(0 120 168 / 74%);
+  box-shadow: 0 0 0 3px rgb(0 120 168 / 14%), 0 10px 24px rgb(0 120 168 / 14%);
+}
+
+.version-node-label {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.version-node-label strong {
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.version-node-label span {
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
 .layout-preview-viewport {
   background:
     radial-gradient(circle at 10% 20%, rgb(231 93 63 / 9%), transparent 24%),

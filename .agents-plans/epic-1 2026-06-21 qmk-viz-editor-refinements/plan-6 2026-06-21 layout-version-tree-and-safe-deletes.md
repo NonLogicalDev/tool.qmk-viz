@@ -48,14 +48,14 @@ The scope expanded before pause:
 3. [x] Add initial confirmation dialogs for project/layout deletion and attach `danger-button` classes.
 4. [x] Install the first split target as `qmk-viz/src/lib/appModel.ts`.
 5. [x] Finish the `App.tsx` split by importing from `src/lib/appModel.ts` and deleting duplicate local helper/type definitions.
-6. [ ] Move QMK action/keycode constants and event-to-keycode helpers out of `App.tsx`.
-7. [ ] Move `PreviewKeycap` and reusable keyboard key rendering helpers out of `App.tsx`.
-8. [ ] Move React Flow version graph construction/rendering out of `App.tsx`.
+6. [x] Move QMK action/keycode constants and event-to-keycode helpers out of `App.tsx`.
+7. [x] Move `PreviewKeycap` and reusable keyboard key rendering helpers out of `App.tsx`.
+8. [x] Move React Flow version graph construction/rendering out of `App.tsx`.
 9. [ ] Add project-level `defaultLayout` state fully through create/load/normalize/import/export/KLE-reconcile flows.
 10. [ ] Make `New Layout` copy from the read-only project Default layout template.
 11. [ ] Add a Layouts-page action to save the current normal layout as the project Default template.
 12. [ ] Render the special read-only Default layout separately from normal layouts.
-13. [ ] Render the layout version tree in Layouts with React Flow.
+13. [x] Render the layout version tree in Layouts with React Flow.
 14. [ ] Add CSS danger styling for destructive buttons.
 15. [ ] Add Projects-page KLE source preview and project/layout/version stats.
 16. [ ] Update `DEVELOPMENT_LOG.md`.
@@ -69,12 +69,14 @@ The scope expanded before pause:
 - Default layout should not be modeled as a tag, property, or selected version of a normal layout. It is a project-level read-only bootstrap document.
 - The current `App.tsx` size is now a real delivery risk. Further feature work should start by finishing the helper split, not by adding more JSX or state handlers to the same file.
 - The first extraction boundary is stable: project/layout/default-template model helpers now live in `qmk-viz/src/lib/appModel.ts`, and `App.tsx` imports them instead of duplicating that logic.
+- `qmk-viz/src/lib/qmkActions.ts`, `qmk-viz/src/components/PreviewKeycap.tsx`, and `qmk-viz/src/components/LayoutVersionTree.tsx` now own the second extraction boundary.
 
 # Work Log
 
 - [x] 2026-06-21 02:31 - Created plan after adding the graph dependency and before changing the layout data model.
 - [x] 2026-06-21 02:43 - Paused implementation at the user's request and recorded the expanded scope, WIP files, and unfinished work.
 - [x] 2026-06-21 02:50 - Reconciled `App.tsx` with `src/lib/appModel.ts`; `just viz-build` passes again.
+- [x] 2026-06-21 12:12 - Extracted QMK action helpers, preview keycap rendering, and version tree rendering; `just viz-build` passes.
 
 # Paused State
 
