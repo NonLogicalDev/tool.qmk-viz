@@ -1,5 +1,46 @@
 # Development Log
 
+## 2026-06-21: qmk-viz app navigation redesign
+
+Goal: fix the overloaded qmk-viz header by splitting project, model, layout, and export administration into focused app pages instead of continuing to compress controls into the top of the editor.
+
+What worked:
+
+- Replaced the large hero/admin slab with a compact topbar.
+- Added first-class pages:
+  - Editor: keyboard, layer tabs, selected key, and action composer
+  - Projects: project selection, rename, create, duplicate, delete, import, and backup
+  - KLE Model: model facts, KLE upload/update, and KLE download
+  - Layouts: layout CRUD plus active layout layer management
+  - Export: layout JSON, active-layer KLE, project KLE, and full project downloads
+- Kept undo/redo in the topbar because history is app-wide.
+- Kept current project/layout/model as compact context chips instead of editable header fields.
+- Preserved existing handlers and test IDs where practical while moving controls to their owning pages.
+- Kept the editor page focused: no project select, no KLE upload, no layout select, and no export textarea above or beside the keyboard.
+
+What did not work:
+
+- Header compaction alone was the wrong direction. The issue was not button size; it was that unrelated jobs were all competing for the same surface.
+- The first build after moving JSX caught a stale `activeLayout` reference from the old header context. Replaced it with the active layout name lookup.
+- The old responsive breakpoint only knew about `.hero`; it had to be replaced with topbar, nav, context-chip, and admin-grid breakpoints.
+
+Validation:
+
+- `just viz-build` passed after the navigation/page redesign.
+- `git diff --check` passed.
+- In-app browser validation at `http://127.0.0.1:5178/`:
+  - header height is about 58px
+  - old `.hero` is gone
+  - topbar has no inputs, selects, or file controls
+  - app nav shows Editor, Projects, KLE Model, Layouts, and Export
+  - Editor page renders 76 keyboard keys
+  - Projects page owns project selection
+  - KLE Model page owns KLE upload
+  - Layouts page owns layout selection and layer management
+  - Export page owns the JSON textarea
+  - no horizontal overflow at the 1440px viewport
+  - browser console has no errors
+
 ## 2026-06-21: qmk-viz JSON project and KLE model workflow
 
 Goal: move qmk-viz from a TSV-first single-layout editor to a browser-local keyboard-project editor with uploadable KLE models, multiple named layouts, JSON exports, and KLE downloads.

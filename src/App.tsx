@@ -75,6 +75,22 @@ type ProjectFile = {
   project: SavedKeyboardProject;
 };
 
+type AppPage = "editor" | "projects" | "model" | "layouts" | "export";
+
+type AppPageDefinition = {
+  id: AppPage;
+  label: string;
+  description: string;
+};
+
+const appPages: AppPageDefinition[] = [
+  { id: "editor", label: "Editor", description: "Keyboard and key actions" },
+  { id: "projects", label: "Projects", description: "Backups and project library" },
+  { id: "model", label: "KLE Model", description: "Physical keyboard geometry" },
+  { id: "layouts", label: "Layouts", description: "Layouts and layer stack" },
+  { id: "export", label: "Export", description: "JSON and KLE downloads" }
+];
+
 const behaviorFields: BehaviorField[] = [
   { id: "tap", label: "When tapped", placeholder: "KC_SPC", help: "Normal tap output." },
   { id: "hold", label: "When held", placeholder: "NAVI or KC_LCTL", help: "Layer name or held modifier." },
@@ -400,6 +416,7 @@ export function App() {
   const [keyboardProjects, setKeyboardProjects] = useState<SavedKeyboardProject[]>(loadKeyboardProjects);
   const initialKeyboardProject = keyboardProjects[0];
   const initialLayout = activeLayoutFor(initialKeyboardProject);
+  const [activePage, setActivePage] = useState<AppPage>("editor");
   const [activeKeyboardProjectId, setActiveKeyboardProjectId] = useState(initialKeyboardProject.id);
   const [activeLayoutId, setActiveLayoutId] = useState(initialLayout.id);
   const [keyboardProjectNameDraft, setKeyboardProjectNameDraft] = useState(initialKeyboardProject.name);
@@ -944,177 +961,73 @@ export function App() {
   }, [isCapturingKey, selectedKey.slot]);
 
   return (
-    <main className="app-shell">
-      <header className="hero">
-        <div>
-          <p className="eyebrow">qmk-viz</p>
-          <h1>Visual JSON editor for QMK keymaps</h1>
-          <p>
-            Edit keyboard layouts visually, save browser-local projects, then export structured JSON for
-            keymap templating.
-          </p>
+    <main className={`app-shell page-${activePage}`}>
+      <header className="app-topbar">
+        <div className="brand-lockup">
+          <span className="brand-kicker">QMK-VIZ</span>
+          <strong>Keymap Studio</strong>
         </div>
-        <div className="hero-controls">
-          <div className="history-controls" aria-label="History">
+        <nav className="app-nav" aria-label="App pages">
+          {appPages.map((page) => (
             <button
-              aria-label="Undo"
-              data-testid="undo-action"
-              disabled={!canUndo}
-              onClick={undoApp}
-              title={canUndo ? "Undo last app change" : "No changes to undo"}
+              aria-current={activePage === page.id ? "page" : undefined}
+              className={activePage === page.id ? "active" : ""}
+              key={page.id}
+              onClick={() => setActivePage(page.id)}
+              title={page.description}
               type="button"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M9 7H5v4" />
-                <path d="M5 11c2.2-3.4 5.6-5 9.4-4.2 3.1.6 5.4 3.2 5.6 6.4.2 3.8-2.7 7-6.5 7-2.2 0-4.1-1-5.3-2.6" />
-              </svg>
+              <span>{page.label}</span>
             </button>
-            <button
-              aria-label="Redo"
-              data-testid="redo-action"
-              disabled={!canRedo}
-              onClick={redoApp}
-              title={canRedo ? "Redo app change" : "No changes to redo"}
-              type="button"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M15 7h4v4" />
-                <path d="M19 11c-2.2-3.4-5.6-5-9.4-4.2-3.1.6-5.4 3.2-5.6 6.4-.2 3.8 2.7 7 6.5 7 2.2 0 4.1-1 5.3-2.6" />
-              </svg>
-            </button>
-          </div>
-          <label>
-            Keyboard project
-            <select
-              data-testid="project-select"
-              value={activeKeyboardProjectId}
-              onChange={(event) => loadKeyboardProject(event.target.value)}
-            >
-              {keyboardProjects.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Project name
-            <input
-              data-testid="project-name"
-              value={keyboardProjectNameDraft}
-              onBlur={persistActiveKeyboardProject}
-              onChange={(event) => setKeyboardProjectNameDraft(event.target.value)}
-              spellCheck={false}
-            />
-          </label>
-          <div className="project-actions" aria-label="Keyboard project actions">
-            <button data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
-            <button data-testid="duplicate-project" onClick={duplicateKeyboardProject} type="button">Duplicate</button>
-            <button
-              data-testid="delete-project"
-              disabled={keyboardProjects.length <= 1}
-              onClick={deleteKeyboardProject}
-              type="button"
-            >
-              Delete
-            </button>
-            <button data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
-            <label className="file-import">
-              Import Project
-              <input
-                data-testid="project-upload"
-                accept="application/json,.json"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) {
-                    void importFullProject(file).catch((error: unknown) => {
-                      setStatusMessage(error instanceof Error ? error.message : "Failed to import project JSON.");
-                    });
-                  }
-                  event.target.value = "";
-                }}
-                type="file"
-              />
-            </label>
-          </div>
-          <div className="model-readout" data-testid="model-readout">
-            <span>KLE model</span>
-            <strong>{model.name}</strong>
-          </div>
-          <div className="project-actions" aria-label="KLE model actions">
-            <label className="file-import">
-              Upload/Update KLE
-              <input
-                data-testid="keyboard-upload"
-                accept="application/json,.json"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) {
-                    void updateActiveKeyboardModel(file).catch((error: unknown) => {
-                      setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
-                    });
-                  }
-                  event.target.value = "";
-                }}
-                type="file"
-              />
-            </label>
-            <button data-testid="download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
-          </div>
-          <label>
-            Layout
-            <select
-              data-testid="layout-select"
-              value={activeLayoutId}
-              onChange={(event) => loadLayout(event.target.value)}
-            >
-              {availableLayouts.map((layout) => (
-                <option key={layout.id} value={layout.id}>{layout.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Layout name
-            <input
-              data-testid="layout-name"
-              value={layoutNameDraft}
-              onBlur={persistActiveKeyboardProject}
-              onChange={(event) => setLayoutNameDraft(event.target.value)}
-              spellCheck={false}
-            />
-          </label>
-          <div className="project-actions" aria-label="Layout actions">
-            <button data-testid="new-layout" onClick={createBlankLayoutForActiveProject} type="button">New Layout</button>
-            <button data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate</button>
-            <button
-              data-testid="delete-layout"
-              disabled={availableLayouts.length <= 1}
-              onClick={deleteLayout}
-              type="button"
-            >
-              Delete
-            </button>
-            <label className="file-import">
-              Upload Layout
-              <input
-                data-testid="layout-upload"
-                accept="application/json,.json"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) {
-                    void uploadLayout(file).catch((error: unknown) => {
-                      setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
-                    });
-                  }
-                  event.target.value = "";
-                }}
-                type="file"
-              />
-            </label>
-          </div>
+          ))}
+        </nav>
+        <div className="context-strip" aria-label="Current context">
+          <button className="context-chip" onClick={() => setActivePage("projects")} type="button">
+            <span>Project</span>
+            <strong>{keyboardProjectNameDraft || activeKeyboardProject.name}</strong>
+          </button>
+          <button className="context-chip" onClick={() => setActivePage("layouts")} type="button">
+            <span>Layout</span>
+            <strong>{layoutNameDraft || availableLayouts.find((layout) => layout.id === activeLayoutId)?.name || "Layout"}</strong>
+          </button>
+          <button className="context-chip" onClick={() => setActivePage("model")} type="button">
+            <span>Model</span>
+            <strong>{model.keys.length} keys</strong>
+          </button>
+        </div>
+        <div className="history-controls" aria-label="History">
+          <button
+            aria-label="Undo"
+            data-testid="undo-action"
+            disabled={!canUndo}
+            onClick={undoApp}
+            title={canUndo ? "Undo last app change" : "No changes to undo"}
+            type="button"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M9 7H5v4" />
+              <path d="M5 11c2.2-3.4 5.6-5 9.4-4.2 3.1.6 5.4 3.2 5.6 6.4.2 3.8-2.7 7-6.5 7-2.2 0-4.1-1-5.3-2.6" />
+            </svg>
+          </button>
+          <button
+            aria-label="Redo"
+            data-testid="redo-action"
+            disabled={!canRedo}
+            onClick={redoApp}
+            title={canRedo ? "Redo app change" : "No changes to redo"}
+            type="button"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M15 7h4v4" />
+              <path d="M19 11c-2.2-3.4-5.6-5-9.4-4.2-3.1.6-5.4 3.2-5.6 6.4-.2 3.8 2.7 7 6.5 7 2.2 0 4.1-1 5.3-2.6" />
+            </svg>
+          </button>
         </div>
       </header>
 
-      <section className="workspace">
-        <div className="keyboard-panel">
+      {activePage === "editor" && (
+        <section className="workspace editor-workspace">
+          <div className="keyboard-panel">
           <div className="layer-tabs" role="tablist" aria-label="Layers">
             {layers.map((layer, index) => (
               <button
@@ -1134,50 +1047,6 @@ export function App() {
                 {index}: {layer.name}
               </button>
             ))}
-          </div>
-          <div className="layer-toolbar" aria-label="Layer management">
-            <label>
-              Active layer
-              <input
-                data-testid="layer-name-input"
-                value={layerNameDraft}
-                onChange={(event) => setLayerNameDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    renameActiveLayer();
-                  }
-                }}
-                spellCheck={false}
-              />
-            </label>
-            <div className="button-row">
-              <button data-testid="rename-layer" onClick={renameActiveLayer} type="button">Rename</button>
-              <button data-testid="add-layer" onClick={addLayer} type="button">Add</button>
-              <button
-                data-testid="move-layer-left"
-                disabled={activeLayerIndex === 0}
-                onClick={() => moveActiveLayer(-1)}
-                type="button"
-              >
-                Move left
-              </button>
-              <button
-                data-testid="move-layer-right"
-                disabled={activeLayerIndex === layers.length - 1}
-                onClick={() => moveActiveLayer(1)}
-                type="button"
-              >
-                Move right
-              </button>
-              <button
-                data-testid="remove-layer"
-                disabled={layers.length <= 1}
-                onClick={removeActiveLayer}
-                type="button"
-              >
-                Remove
-              </button>
-            </div>
           </div>
 
           <div
@@ -1236,10 +1105,10 @@ export function App() {
               );
             })}
           </div>
-        </div>
+          </div>
 
-        <aside className="editor-panel">
-          <div className="editor-card key-editor-card">
+          <aside className="editor-panel">
+            <div className="editor-card key-editor-card">
             <div className="section-header selected-summary">
               <div>
                 <p className="eyebrow">Selected key</p>
@@ -1318,9 +1187,9 @@ export function App() {
               </button>
             </div>
             <p className="editor-status" data-testid="editor-status" role="status">{statusMessage}</p>
-          </div>
+            </div>
 
-          <div className="editor-card composer-card">
+            <div className="editor-card composer-card">
             <div className="section-header">
               <div>
                 <p className="eyebrow">Action composer</p>
@@ -1445,21 +1314,338 @@ export function App() {
                 <pre>{danceComposition.supportCode}</pre>
               </details>
             )}
-          </div>
+            </div>
+          </aside>
+        </section>
+      )}
 
+      {activePage === "projects" && (
+        <section className="page-panel">
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">Project library</p>
+              <h1>Keyboard projects</h1>
+              <p>Browser-local workspaces. Back up the whole project whenever the layout starts mattering.</p>
+            </div>
+            <div className="page-actions">
+              <button data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
+              <label className="file-import">
+                Import Project
+                <input
+                  data-testid="project-upload"
+                  accept="application/json,.json"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void importFullProject(file).catch((error: unknown) => {
+                        setStatusMessage(error instanceof Error ? error.message : "Failed to import project JSON.");
+                      });
+                    }
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+            </div>
+          </div>
+          <div className="admin-grid two-column">
+            <div className="editor-card admin-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Active project</p>
+                  <h2>{keyboardProjectNameDraft}</h2>
+                </div>
+                <span className="metric-pill">{keyboardProjects.length} projects</span>
+              </div>
+              <label>
+                Keyboard project
+                <select
+                  data-testid="project-select"
+                  value={activeKeyboardProjectId}
+                  onChange={(event) => loadKeyboardProject(event.target.value)}
+                >
+                  {keyboardProjects.map((project) => (
+                    <option key={project.id} value={project.id}>{project.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Project name
+                <input
+                  data-testid="project-name"
+                  value={keyboardProjectNameDraft}
+                  onBlur={persistActiveKeyboardProject}
+                  onChange={(event) => setKeyboardProjectNameDraft(event.target.value)}
+                  spellCheck={false}
+                />
+              </label>
+              <div className="button-row">
+                <button data-testid="duplicate-project" onClick={duplicateKeyboardProject} type="button">Duplicate</button>
+                <button
+                  data-testid="delete-project"
+                  disabled={keyboardProjects.length <= 1}
+                  onClick={deleteKeyboardProject}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+            <div className="editor-card admin-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Backup</p>
+                  <h2>Full project file</h2>
+                </div>
+              </div>
+              <p>
+                A full project export contains the KLE model plus every named layout. Use it as the portable
+                backup and re-import format.
+              </p>
+              <div className="button-row">
+                <button data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
+                <button data-testid="download-full-project" onClick={downloadFullProject} type="button">Full Project</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activePage === "model" && (
+        <section className="page-panel">
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">Keyboard model</p>
+              <h1>KLE geometry and IDs</h1>
+              <p>The model defines physical key placement and matrix IDs. Layouts stay attached by stable slot ID.</p>
+            </div>
+          </div>
+          <div className="admin-grid two-column">
+            <div className="editor-card admin-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">KLE model</p>
+                  <h2>{model.name}</h2>
+                </div>
+                <span className="metric-pill">{model.keys.length} keys</span>
+              </div>
+              <dl className="model-facts" data-testid="model-readout">
+                <div>
+                  <dt>Source</dt>
+                  <dd>{model.source}</dd>
+                </div>
+                <div>
+                  <dt>Canvas</dt>
+                  <dd>{model.width.toFixed(1)}u × {model.height.toFixed(1)}u</dd>
+                </div>
+                <div>
+                  <dt>Author</dt>
+                  <dd>{model.author || "Not specified"}</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="editor-card admin-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Model files</p>
+                  <h2>Upload or download KLE</h2>
+                </div>
+              </div>
+              <p>
+                Updating the KLE model is undoable. Existing layout keys survive when their slot IDs still exist in
+                the new KLE file.
+              </p>
+              <div className="button-row">
+                <label className="file-import">
+                  Upload/Update KLE
+                  <input
+                    data-testid="keyboard-upload"
+                    accept="application/json,.json"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void updateActiveKeyboardModel(file).catch((error: unknown) => {
+                          setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
+                        });
+                      }
+                      event.target.value = "";
+                    }}
+                    type="file"
+                  />
+                </label>
+                <button data-testid="download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
+                <button data-testid="download-project-kle" onClick={downloadProjectKle} type="button">Project KLE</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activePage === "layouts" && (
+        <section className="page-panel">
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">Layouts and layers</p>
+              <h1>{layoutNameDraft}</h1>
+              <p>Manage named layouts and the active layout&apos;s layer stack. Key editing stays on the Editor page.</p>
+            </div>
+            <div className="page-actions">
+              <button data-testid="new-layout" onClick={createBlankLayoutForActiveProject} type="button">New Layout</button>
+              <label className="file-import">
+                Upload Layout
+                <input
+                  data-testid="layout-upload"
+                  accept="application/json,.json"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void uploadLayout(file).catch((error: unknown) => {
+                        setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
+                      });
+                    }
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+            </div>
+          </div>
+          <div className="admin-grid two-column">
+            <div className="editor-card admin-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Named layout</p>
+                  <h2>{layoutNameDraft}</h2>
+                </div>
+                <span className="metric-pill">{availableLayouts.length} layouts</span>
+              </div>
+              <label>
+                Layout
+                <select
+                  data-testid="layout-select"
+                  value={activeLayoutId}
+                  onChange={(event) => loadLayout(event.target.value)}
+                >
+                  {availableLayouts.map((layout) => (
+                    <option key={layout.id} value={layout.id}>{layout.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Layout name
+                <input
+                  data-testid="layout-name"
+                  value={layoutNameDraft}
+                  onBlur={persistActiveKeyboardProject}
+                  onChange={(event) => setLayoutNameDraft(event.target.value)}
+                  spellCheck={false}
+                />
+              </label>
+              <div className="button-row">
+                <button data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate</button>
+                <button
+                  data-testid="delete-layout"
+                  disabled={availableLayouts.length <= 1}
+                  onClick={deleteLayout}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+            <div className="editor-card admin-card layer-admin-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Layer stack</p>
+                  <h2>{activeLayerIndex}: {activeLayer.name}</h2>
+                </div>
+                <span className="metric-pill">{layers.length} layers</span>
+              </div>
+              <div className="layer-list" aria-label="Layer list">
+                {layers.map((layer, index) => (
+                  <button
+                    className={layer.name === activeLayer.name ? "active" : ""}
+                    key={`${layer.name}-${index}`}
+                    onClick={() => {
+                      setActiveLayerName(layer.name);
+                      setLayerNameDraft(layer.name);
+                    }}
+                    type="button"
+                  >
+                    <span>{index}</span>
+                    <strong>{layer.name}</strong>
+                  </button>
+                ))}
+              </div>
+              <label>
+                Active layer
+                <input
+                  data-testid="layer-name-input"
+                  value={layerNameDraft}
+                  onChange={(event) => setLayerNameDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      renameActiveLayer();
+                    }
+                  }}
+                  spellCheck={false}
+                />
+              </label>
+              <div className="button-row">
+                <button data-testid="rename-layer" onClick={renameActiveLayer} type="button">Rename</button>
+                <button data-testid="add-layer" onClick={addLayer} type="button">Add</button>
+                <button
+                  data-testid="move-layer-left"
+                  disabled={activeLayerIndex === 0}
+                  onClick={() => moveActiveLayer(-1)}
+                  type="button"
+                >
+                  Move up
+                </button>
+                <button
+                  data-testid="move-layer-right"
+                  disabled={activeLayerIndex === layers.length - 1}
+                  onClick={() => moveActiveLayer(1)}
+                  type="button"
+                >
+                  Move down
+                </button>
+                <button
+                  data-testid="remove-layer"
+                  disabled={layers.length <= 1}
+                  onClick={removeActiveLayer}
+                  type="button"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activePage === "export" && (
+        <section className="page-panel export-page">
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">Export</p>
+              <h1>Structured output</h1>
+              <p>Use Layout JSON for templating. Use KLE exports for visual previews or model portability.</p>
+            </div>
+            <div className="page-actions">
+              <button onClick={copyJson} type="button">Copy JSON</button>
+              <button data-testid="download-layout-json" onClick={downloadJson} type="button">Layout JSON</button>
+              <button data-testid="download-layer-kle" onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
+              <button data-testid="download-full-project" onClick={downloadFullProject} type="button">Full Project</button>
+            </div>
+          </div>
           <div className="editor-card export-card">
             <div className="section-header">
               <div>
-                <p className="eyebrow">Export</p>
-                <h2>JSON output</h2>
+                <p className="eyebrow">Current layout JSON</p>
+                <h2>{keyboardProjectNameDraft} / {layoutNameDraft}</h2>
               </div>
-              <div className="button-row compact-actions">
-                <button onClick={copyJson} type="button">Copy</button>
-                <button data-testid="download-layout-json" onClick={downloadJson} type="button">Layout JSON</button>
-                <button data-testid="download-layer-kle" onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
-                <button data-testid="download-project-kle" onClick={downloadProjectKle} type="button">Project KLE</button>
-                <button data-testid="download-full-project" onClick={downloadFullProject} type="button">Full Project</button>
-              </div>
+              <button data-testid="download-project-kle" onClick={downloadProjectKle} type="button">Project KLE</button>
             </div>
             <textarea
               readOnly
@@ -1471,8 +1657,8 @@ export function App() {
               Project KLE preserves the uploaded keyboard geometry and slot IDs; Layer KLE adds the active layer labels.
             </p>
           </div>
-        </aside>
-      </section>
+        </section>
+      )}
     </main>
   );
 }
