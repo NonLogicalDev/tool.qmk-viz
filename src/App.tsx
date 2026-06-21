@@ -1,10 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "./lib/actions";
+import { buildKeyboardModelFromKle, type KeyboardModel, type KeySlot } from "./lib/keyboardModel";
+import {
+  cloneKeymapDocument,
+  createBlankKeymapDocument,
+  reconcileKeymapDocumentToModel,
+  selectedKeycode,
+  serializeKeymapExport,
+  transparentLayerFrom,
+  updateKeycode,
+  TRANSPARENT,
+  type ExtKey,
+  type KeymapDocument,
+  type KeymapLayer
+} from "./lib/keymap";
+import { cloneKleDocument } from "./lib/kle";
+import { serializeKeyboardModelKle, serializeLayerKle } from "./lib/kleExport";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "./lib/textFit";
-import { parseLayoutDocumentTsv, serializeLayoutDocumentTsv, updateCell, TRANSPARENT, type TsvExtKey, type TsvLayer } from "./lib/tsv";
-import { ergodoxInfinity, type KeySlot } from "./models/ergodoxInfinity";
+import { ergodoxInfinity, ergodoxInfinityDefaultLayers } from "./models/ergodoxInfinity";
 
-const models = [ergodoxInfinity];
+const KEYBOARD_PROJECTS_STORAGE_KEY = "qmk-viz.keyboard-projects.v4";
 
 type BehaviorField = {
   id: keyof BehaviorSlots;
@@ -36,6 +51,28 @@ type SimpleComposerAction = {
   keycodeLabel?: string;
   layerLabel?: string;
   help: string;
+};
+
+type SavedLayout = {
+  id: string;
+  name: string;
+  document: KeymapDocument;
+  updatedAt: string;
+};
+
+type SavedKeyboardProject = {
+  id: string;
+  name: string;
+  model: KeyboardModel;
+  layouts: SavedLayout[];
+  activeLayoutId: string;
+  updatedAt: string;
+};
+
+type ProjectFile = {
+  version: 1;
+  kind: "qmk-viz-project";
+  project: SavedKeyboardProject;
 };
 
 const behaviorFields: BehaviorField[] = [
@@ -153,21 +190,13 @@ function composeSimpleAction(kind: SimpleComposerKind, keycode: string, layer: s
   }
 }
 
-function selectedCell(layer: TsvLayer, key: KeySlot): string {
-  return layer.rows[key.row]?.[key.col] ?? TRANSPARENT;
-}
-
-function initialDocument(layoutName: string) {
-  return parseLayoutDocumentTsv(ergodoxInfinity.layouts[layoutName]);
-}
-
 function normalizeLayerName(value: string, fallback: string): string {
   const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
   if (!normalized) return fallback;
   return /^\d/.test(normalized) ? `L_${normalized}` : normalized;
 }
 
-function uniqueLayerName(base: string, layers: TsvLayer[], ignoreIndex = -1): string {
+function uniqueLayerName(base: string, layers: KeymapLayer[], ignoreIndex = -1): string {
   const taken = new Set(layers.map((layer, index) => (index === ignoreIndex ? "" : layer.name)));
   if (!taken.has(base)) return base;
 
@@ -178,18 +207,159 @@ function uniqueLayerName(base: string, layers: TsvLayer[], ignoreIndex = -1): st
   return `${base}_${suffix}`;
 }
 
-function transparentLayerFrom(layer: TsvLayer, name: string): TsvLayer {
+function actionTypeLabel(details: ReturnType<typeof describeAction>): string {
+  return details.secondary ?? (details.tone === "plain" ? "key" : details.tone);
+}
+
+function newEntityId(prefix: string): string {
+  return globalThis.crypto?.randomUUID?.() ?? `${prefix}-${Date.now()}`;
+}
+
+function createDefaultDocument(): KeymapDocument {
   return {
-    name,
-    rows: layer.rows.map((row) => row.map((cell) => {
-      if (cell === "+" || cell === "#") return cell;
-      return TRANSPARENT;
-    }))
+    version: 1,
+    layers: ergodoxInfinityDefaultLayers.map((layer) => ({ name: layer.name, keys: { ...layer.keys } })),
+    dances: {},
+    extKeys: []
   };
 }
 
-function actionTypeLabel(details: ReturnType<typeof describeAction>): string {
-  return details.secondary ?? (details.tone === "plain" ? "key" : details.tone);
+function createLayout(name: string, document: KeymapDocument): SavedLayout {
+  return {
+    id: newEntityId("layout"),
+    name,
+    document: cloneKeymapDocument(document),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function sanitizeKeyboardModel(model: KeyboardModel): KeyboardModel {
+  return {
+    ...model,
+    kle: cloneKleDocument(model.kle)
+  };
+}
+
+function createKeyboardProject(name: string, model: KeyboardModel, layouts: SavedLayout[]): SavedKeyboardProject {
+  const safeLayouts = layouts.length > 0 ? layouts : [createLayout("Default Layout", createBlankKeymapDocument(model))];
+
+  return {
+    id: newEntityId("keyboard-project"),
+    name,
+    model: sanitizeKeyboardModel(model),
+    layouts: safeLayouts.map((layout) => ({
+      ...layout,
+      document: cloneKeymapDocument(layout.document)
+    })),
+    activeLayoutId: safeLayouts[0].id,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function defaultKeyboardProject(): SavedKeyboardProject {
+  return createKeyboardProject(ergodoxInfinity.name, ergodoxInfinity, [
+    createLayout("Monster", createDefaultDocument())
+  ]);
+}
+
+function loadKeyboardProjects(): SavedKeyboardProject[] {
+  const fallback = [defaultKeyboardProject()];
+  try {
+    const raw = localStorage.getItem(KEYBOARD_PROJECTS_STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as SavedKeyboardProject[];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function activeLayoutFor(project: SavedKeyboardProject): SavedLayout {
+  return project.layouts.find((layout) => layout.id === project.activeLayoutId) ?? project.layouts[0];
+}
+
+function uniqueLayoutName(base: string, layouts: SavedLayout[], ignoreId = ""): string {
+  const cleanBase = base.trim() || "Layout";
+  const taken = new Set(layouts.filter((layout) => layout.id !== ignoreId).map((layout) => layout.name));
+  if (!taken.has(cleanBase)) return cleanBase;
+
+  let suffix = 1;
+  while (taken.has(`${cleanBase} ${suffix}`)) {
+    suffix += 1;
+  }
+  return `${cleanBase} ${suffix}`;
+}
+
+function safeFileSlug(value: string, fallback: string): string {
+  return value.trim().replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase() || fallback;
+}
+
+function parseLayoutUpload(raw: unknown, model: KeyboardModel, fallbackName: string): SavedLayout {
+  const layout = typeof raw === "object" && raw !== null && "layout" in raw
+    ? (raw as { layout: unknown }).layout
+    : undefined;
+
+  if (typeof layout !== "object" || layout === null || !Array.isArray((layout as { layers?: unknown }).layers)) {
+    throw new Error("Layout JSON must contain a layout object with layers.");
+  }
+
+  const typedLayout = layout as {
+    name?: unknown;
+    layers: KeymapLayer[];
+    dances?: unknown;
+    extKeys?: unknown;
+  };
+  const document = reconcileKeymapDocumentToModel({
+    version: 1,
+    layers: typedLayout.layers.map((layer) => ({
+      name: layer.name,
+      keys: { ...layer.keys }
+    })),
+    dances: typeof typedLayout.dances === "object" && typedLayout.dances !== null
+      ? typedLayout.dances as Record<string, BehaviorSlots>
+      : {},
+    extKeys: Array.isArray(typedLayout.extKeys)
+      ? typedLayout.extKeys.map((key) => ({ ...key })) as ExtKey[]
+      : []
+  }, model);
+  const name = typeof typedLayout.name === "string" && typedLayout.name.trim()
+    ? typedLayout.name.trim()
+    : fallbackName;
+
+  return createLayout(name, document);
+}
+
+function parseProjectFile(raw: unknown, fallbackSource: string): SavedKeyboardProject {
+  if (typeof raw !== "object" || raw === null || (raw as { kind?: unknown }).kind !== "qmk-viz-project") {
+    throw new Error("Project JSON must be a qmk-viz project file.");
+  }
+
+  const project = (raw as { project?: unknown }).project;
+  if (typeof project !== "object" || project === null) {
+    throw new Error("Project JSON is missing a project object.");
+  }
+
+  const typedProject = project as Partial<SavedKeyboardProject>;
+  if (!typedProject.model?.kle) {
+    throw new Error("Project JSON is missing the KLE keyboard model.");
+  }
+
+  const model = buildKeyboardModelFromKle(typedProject.model.kle, {
+    id: typedProject.model.id,
+    name: typedProject.model.name,
+    author: typedProject.model.author,
+    source: typedProject.model.source || fallbackSource
+  });
+  const sourceLayouts = Array.isArray(typedProject.layouts) ? typedProject.layouts : [];
+  const layouts = sourceLayouts.map((layout, index) => createLayout(
+    typeof layout.name === "string" && layout.name.trim() ? layout.name : `Layout ${index + 1}`,
+    reconcileKeymapDocumentToModel(layout.document, model)
+  ));
+  const name = typeof typedProject.name === "string" && typedProject.name.trim()
+    ? typedProject.name
+    : model.name;
+
+  return createKeyboardProject(name, model, layouts);
 }
 
 function PreviewKeycap({ action, slot, testId }: { action: string; slot: string; testId: string }) {
@@ -227,12 +397,18 @@ function PreviewKeycap({ action, slot, testId }: { action: string; slot: string;
 }
 
 export function App() {
-  const [model] = useState(models[0]);
-  const [layoutName, setLayoutName] = useState("nonlogical-01");
-  const [layers, setLayers] = useState(() => initialDocument("nonlogical-01").layers);
+  const [keyboardProjects, setKeyboardProjects] = useState<SavedKeyboardProject[]>(loadKeyboardProjects);
+  const initialKeyboardProject = keyboardProjects[0];
+  const initialLayout = activeLayoutFor(initialKeyboardProject);
+  const [activeKeyboardProjectId, setActiveKeyboardProjectId] = useState(initialKeyboardProject.id);
+  const [activeLayoutId, setActiveLayoutId] = useState(initialLayout.id);
+  const [keyboardProjectNameDraft, setKeyboardProjectNameDraft] = useState(initialKeyboardProject.name);
+  const [layoutNameDraft, setLayoutNameDraft] = useState(initialLayout.name);
+  const [model, setModel] = useState<KeyboardModel>(initialKeyboardProject.model);
+  const [layers, setLayers] = useState<KeymapLayer[]>(() => cloneKeymapDocument(initialLayout.document).layers);
   const [activeLayerName, setActiveLayerName] = useState(layers[0]?.name ?? "BASE");
   const [layerNameDraft, setLayerNameDraft] = useState(layers[0]?.name ?? "BASE");
-  const [selectedSlot, setSelectedSlot] = useState("LT00");
+  const [selectedSlot, setSelectedSlot] = useState(model.keys[0]?.slot ?? "");
   const [draftAction, setDraftAction] = useState("");
   const [behaviorSlots, setBehaviorSlots] = useState<BehaviorSlots>(() => parseActionToBehaviorSlots(""));
   const [composerMode, setComposerMode] = useState<ComposerMode>("simple");
@@ -240,42 +416,146 @@ export function App() {
   const [simpleKeycode, setSimpleKeycode] = useState("KC_SPC");
   const [simpleLayer, setSimpleLayer] = useState("SYMB");
   const [danceName, setDanceName] = useState("DANCE_0");
-  const [dances, setDances] = useState<Record<string, BehaviorSlots>>(() => (
-    Object.fromEntries(initialDocument("nonlogical-01").dances.map((dance) => [dance.name, dance.slots]))
-  ));
-  const [extKeys, setExtKeys] = useState<TsvExtKey[]>(() => initialDocument("nonlogical-01").extKeys);
+  const [dances, setDances] = useState<Record<string, BehaviorSlots>>(() => ({ ...initialLayout.document.dances }));
+  const [extKeys, setExtKeys] = useState<ExtKey[]>(() => initialLayout.document.extKeys.map((key) => ({ ...key })));
   const [statusMessage, setStatusMessage] = useState("Select a key, edit an identifier, then apply it.");
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
   const [isCapturingKey, setIsCapturingKey] = useState(false);
 
+  const activeKeyboardProject = keyboardProjects.find((project) => project.id === activeKeyboardProjectId) ?? keyboardProjects[0];
+  const availableLayouts = activeKeyboardProject.layouts;
   const foundLayerIndex = layers.findIndex((layer) => layer.name === activeLayerName);
   const activeLayerIndex = foundLayerIndex >= 0 ? foundLayerIndex : 0;
   const activeLayer = layers[activeLayerIndex] ?? layers[0];
   const selectedKey = model.keys.find((key) => key.slot === selectedSlot) ?? model.keys[0];
-  const currentAction = selectedCell(activeLayer, selectedKey);
-  const fullTsvOutput = useMemo(() => serializeLayoutDocumentTsv({
+  const currentAction = selectedKey ? selectedKeycode(activeLayer, selectedKey.slot) : TRANSPARENT;
+  const keymapDocument = useMemo<KeymapDocument>(() => ({
+    version: 1,
     layers,
-    dances: Object.entries(dances).map(([name, slots]) => ({ name, slots })),
+    dances,
     extKeys
   }), [dances, extKeys, layers]);
+  const jsonOutput = useMemo(() => serializeKeymapExport(model, keymapDocument, {
+    keyboardProjectId: activeKeyboardProjectId,
+    keyboardProjectName: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
+    layoutId: activeLayoutId,
+    layoutName: layoutNameDraft.trim() || "Layout"
+  }), [
+    activeKeyboardProject.name,
+    activeKeyboardProjectId,
+    activeLayoutId,
+    keyboardProjectNameDraft,
+    keymapDocument,
+    layoutNameDraft,
+    model
+  ]);
 
-  function snapshot() {
-    return fullTsvOutput;
+  function projectWithEditorState(): SavedKeyboardProject {
+    const now = new Date().toISOString();
+    const layoutName = layoutNameDraft.trim() || availableLayouts.find((layout) => layout.id === activeLayoutId)?.name || "Layout";
+    const nextLayouts = availableLayouts.map((layout) => (
+      layout.id === activeLayoutId
+        ? {
+          ...layout,
+          name: layoutName,
+          document: cloneKeymapDocument(keymapDocument),
+          updatedAt: now
+        }
+        : {
+          ...layout,
+          document: cloneKeymapDocument(layout.document)
+        }
+    ));
+
+    return {
+      ...activeKeyboardProject,
+      name: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
+      model: sanitizeKeyboardModel(model),
+      layouts: nextLayouts,
+      activeLayoutId,
+      updatedAt: now
+    };
   }
 
-  function applySnapshot(source: string) {
-    const document = parseLayoutDocumentTsv(source);
-    const nextDances: Record<string, BehaviorSlots> = Object.fromEntries(
-      document.dances.map((dance) => [dance.name, dance.slots])
-    );
-    const nextLayerName = document.layers.find((layer) => layer.name === activeLayerName)?.name ?? document.layers[0]?.name ?? "BASE";
+  function snapshot() {
+    return JSON.stringify({
+      project: projectWithEditorState(),
+      activeLayoutId,
+      activeLayerName,
+      selectedSlot
+    });
+  }
 
+  function loadLayoutObject(project: SavedKeyboardProject, layout: SavedLayout, options: {
+    resetHistory?: boolean;
+    selectedSlot?: string;
+    activeLayerName?: string;
+  } = {}) {
+    const document = cloneKeymapDocument(layout.document);
+    const nextLayerName = options.activeLayerName && document.layers.some((layer) => layer.name === options.activeLayerName)
+      ? options.activeLayerName
+      : document.layers[0]?.name ?? "BASE";
+    const nextSelectedSlot = options.selectedSlot && project.model.keys.some((key) => key.slot === options.selectedSlot)
+      ? options.selectedSlot
+      : project.model.keys[0]?.slot ?? "";
+
+    setActiveKeyboardProjectId(project.id);
+    setActiveLayoutId(layout.id);
+    setKeyboardProjectNameDraft(project.name);
+    setLayoutNameDraft(layout.name);
+    setModel(project.model);
     setLayers(document.layers);
-    setDances(nextDances);
+    setDances(document.dances);
     setExtKeys(document.extKeys);
     setActiveLayerName(nextLayerName);
     setLayerNameDraft(nextLayerName);
+    setSelectedSlot(nextSelectedSlot);
+    setDraftAction("");
+    if (options.resetHistory !== false) {
+      setUndoStack([]);
+      setRedoStack([]);
+    }
+  }
+
+  function loadKeyboardProjectObject(project: SavedKeyboardProject, layoutId = project.activeLayoutId, options: {
+    resetHistory?: boolean;
+    selectedSlot?: string;
+    activeLayerName?: string;
+  } = {}) {
+    const layout = project.layouts.find((item) => item.id === layoutId) ?? activeLayoutFor(project);
+    loadLayoutObject(project, layout, options);
+  }
+
+  function applySnapshot(source: string) {
+    const saved = JSON.parse(source) as {
+      project: SavedKeyboardProject;
+      activeLayoutId: string;
+      activeLayerName: string;
+      selectedSlot: string;
+    };
+    const layout = saved.project.layouts.find((item) => item.id === saved.activeLayoutId) ?? activeLayoutFor(saved.project);
+    const document = cloneKeymapDocument(layout.document);
+    const nextLayerName = document.layers.find((layer) => layer.name === saved.activeLayerName)?.name ?? document.layers[0]?.name ?? "BASE";
+    const nextSelectedSlot = saved.project.model.keys.some((key) => key.slot === saved.selectedSlot)
+      ? saved.selectedSlot
+      : saved.project.model.keys[0]?.slot ?? "";
+
+    setKeyboardProjects((current) => current.map((project) => (
+      project.id === saved.project.id ? saved.project : project
+    )));
+    setActiveKeyboardProjectId(saved.project.id);
+    setActiveLayoutId(layout.id);
+    setKeyboardProjectNameDraft(saved.project.name);
+    setLayoutNameDraft(layout.name);
+    setModel(saved.project.model);
+    setLayers(document.layers);
+    setDances(document.dances);
+    setExtKeys(document.extKeys);
+    setActiveLayerName(nextLayerName);
+    setLayerNameDraft(nextLayerName);
+    setSelectedSlot(nextSelectedSlot);
+    setDraftAction("");
   }
 
   function recordHistory() {
@@ -283,36 +563,37 @@ export function App() {
     setRedoStack([]);
   }
 
-  function loadLayout(name: string) {
-    const document = initialDocument(name);
-    setLayoutName(name);
-    setLayers(document.layers);
-    setDances(Object.fromEntries(document.dances.map((dance) => [dance.name, dance.slots])));
-    setExtKeys(document.extKeys);
-    setActiveLayerName(document.layers[0]?.name ?? "BASE");
-    setLayerNameDraft(document.layers[0]?.name ?? "BASE");
-    setDraftAction("");
-    setUndoStack([]);
-    setRedoStack([]);
+  function loadKeyboardProject(projectId: string) {
+    const project = keyboardProjects.find((item) => item.id === projectId);
+    if (!project) return;
+    loadKeyboardProjectObject(project);
+    setStatusMessage(`Loaded keyboard project ${project.name}.`);
+  }
+
+  function loadLayout(layoutId: string) {
+    const layout = availableLayouts.find((item) => item.id === layoutId);
+    if (!layout) return;
+    loadLayoutObject(activeKeyboardProject, layout);
+    setStatusMessage(`Loaded layout ${layout.name}.`);
   }
 
   function selectKey(key: KeySlot) {
     setSelectedSlot(key.slot);
-    setDraftAction(selectedCell(activeLayer, key));
+    setDraftAction(selectedKeycode(activeLayer, key.slot));
   }
 
   function writeAction(value: string) {
-    const before = selectedCell(activeLayer, selectedKey);
+    const before = selectedKeycode(activeLayer, selectedKey.slot);
     if (before !== value) {
       recordHistory();
     }
-    setLayers((current) => updateCell(current, activeLayer.name, selectedKey.row, selectedKey.col, value));
+    setLayers((current) => updateKeycode(current, activeLayer.name, selectedKey.slot, value));
     setDraftAction(value);
   }
 
   function applyGeneratedAction() {
     const dance = danceComposition.dance;
-    const actionChanged = selectedCell(activeLayer, selectedKey) !== generatedAction;
+    const actionChanged = selectedKeycode(activeLayer, selectedKey.slot) !== generatedAction;
     const existingDance = dance ? dances[dance.name] : undefined;
     const danceChanged = composerMode === "dance" && dance
       ? JSON.stringify(existingDance) !== JSON.stringify(dance.slots)
@@ -329,7 +610,7 @@ export function App() {
       }));
     }
 
-    setLayers((current) => updateCell(current, activeLayer.name, selectedKey.row, selectedKey.col, generatedAction));
+    setLayers((current) => updateKeycode(current, activeLayer.name, selectedKey.slot, generatedAction));
     setDraftAction(generatedAction);
     setStatusMessage(`Applied ${generatedAction} to ${selectedKey.slot}.`);
   }
@@ -419,18 +700,197 @@ export function App() {
     setStatusMessage("Redid app change.");
   }
 
-  async function copyTsv() {
-    await navigator.clipboard.writeText(fullTsvOutput);
+  function persistActiveKeyboardProject() {
+    const nextProject = projectWithEditorState();
+    setKeyboardProjects((current) => current.map((project) => (
+      project.id === nextProject.id ? nextProject : project
+    )));
   }
 
-  function downloadTsv() {
-    const blob = new Blob([fullTsvOutput + "\n"], { type: "text/tab-separated-values" });
+  function createBlankKeyboardProject() {
+    const project = createKeyboardProject("Untitled Keyboard Project", ergodoxInfinity, [
+      createLayout("Default Layout", createBlankKeymapDocument(ergodoxInfinity))
+    ]);
+    setKeyboardProjects((current) => [...current, project]);
+    loadKeyboardProjectObject(project);
+    setStatusMessage("Created a keyboard project. Upload a KLE file to replace the default model.");
+  }
+
+  function duplicateKeyboardProject() {
+    const project = createKeyboardProject(`${keyboardProjectNameDraft || "Keyboard Project"} copy`, model, availableLayouts);
+    setKeyboardProjects((current) => [...current, project]);
+    loadKeyboardProjectObject(project);
+    setStatusMessage(`Duplicated keyboard project as ${project.name}.`);
+  }
+
+  function deleteKeyboardProject() {
+    if (keyboardProjects.length <= 1) {
+      setStatusMessage("Cannot delete the last keyboard project.");
+      return;
+    }
+
+    const remaining = keyboardProjects.filter((project) => project.id !== activeKeyboardProjectId);
+    setKeyboardProjects(remaining);
+    loadKeyboardProjectObject(remaining[0]);
+    setStatusMessage("Deleted keyboard project.");
+  }
+
+  function createBlankLayoutForActiveProject() {
+    recordHistory();
+    const layout = createLayout(
+      uniqueLayoutName("New Layout", availableLayouts),
+      createBlankKeymapDocument(model)
+    );
+    const baseProject = projectWithEditorState();
+    const project = {
+      ...baseProject,
+      layouts: [...baseProject.layouts, layout],
+      activeLayoutId: layout.id,
+      updatedAt: new Date().toISOString()
+    };
+    setKeyboardProjects((current) => current.map((item) => (
+      item.id === project.id ? project : item
+    )));
+    loadLayoutObject(project, layout, { resetHistory: false });
+    setStatusMessage(`Created layout ${layout.name}.`);
+  }
+
+  function duplicateLayout() {
+    recordHistory();
+    const layout = createLayout(
+      uniqueLayoutName(`${layoutNameDraft || "Layout"} copy`, availableLayouts),
+      keymapDocument
+    );
+    const baseProject = projectWithEditorState();
+    const project = {
+      ...baseProject,
+      layouts: [...baseProject.layouts, layout],
+      activeLayoutId: layout.id,
+      updatedAt: new Date().toISOString()
+    };
+    setKeyboardProjects((current) => current.map((item) => (
+      item.id === project.id ? project : item
+    )));
+    loadLayoutObject(project, layout, { resetHistory: false });
+    setStatusMessage(`Duplicated layout as ${layout.name}.`);
+  }
+
+  function deleteLayout() {
+    if (availableLayouts.length <= 1) {
+      setStatusMessage("Cannot delete the last layout.");
+      return;
+    }
+
+    recordHistory();
+    const baseProject = projectWithEditorState();
+    const remaining = baseProject.layouts.filter((layout) => layout.id !== activeLayoutId);
+    const nextLayout = remaining[0];
+    const project = {
+      ...baseProject,
+      layouts: remaining,
+      activeLayoutId: nextLayout.id,
+      updatedAt: new Date().toISOString()
+    };
+    setKeyboardProjects((current) => current.map((item) => (
+      item.id === project.id ? project : item
+    )));
+    loadLayoutObject(project, nextLayout, { resetHistory: false });
+    setStatusMessage("Deleted layout.");
+  }
+
+  async function updateActiveKeyboardModel(file: File) {
+    const raw = JSON.parse(await file.text()) as unknown;
+    const importedModel = buildKeyboardModelFromKle(raw, { source: file.name });
+    recordHistory();
+
+    const baseProject = projectWithEditorState();
+    const nextLayouts = baseProject.layouts.map((layout) => ({
+      ...layout,
+      document: reconcileKeymapDocumentToModel(layout.document, importedModel),
+      updatedAt: new Date().toISOString()
+    }));
+    const nextLayout = nextLayouts.find((layout) => layout.id === activeLayoutId) ?? nextLayouts[0];
+    const nextProject = {
+      ...baseProject,
+      name: importedModel.name,
+      model: importedModel,
+      layouts: nextLayouts,
+      activeLayoutId: nextLayout.id,
+      updatedAt: new Date().toISOString()
+    };
+
+    setKeyboardProjects((current) => current.map((project) => (
+      project.id === nextProject.id ? nextProject : project
+    )));
+    loadLayoutObject(nextProject, nextLayout, {
+      resetHistory: false,
+      selectedSlot,
+      activeLayerName
+    });
+    setStatusMessage(`Updated KLE model to ${importedModel.name}; matching slot IDs kept their mappings.`);
+  }
+
+  async function uploadLayout(file: File) {
+    const raw = JSON.parse(await file.text()) as unknown;
+    const fallbackName = file.name.replace(/\.json$/i, "") || "Uploaded Layout";
+    const layout = parseLayoutUpload(raw, model, uniqueLayoutName(fallbackName, availableLayouts));
+    recordHistory();
+
+    const baseProject = projectWithEditorState();
+    const project = {
+      ...baseProject,
+      layouts: [...baseProject.layouts, layout],
+      activeLayoutId: layout.id,
+      updatedAt: new Date().toISOString()
+    };
+    setKeyboardProjects((current) => current.map((item) => (
+      item.id === project.id ? project : item
+    )));
+    loadLayoutObject(project, layout, { resetHistory: false });
+    setStatusMessage(`Uploaded layout ${layout.name}.`);
+  }
+
+  async function importFullProject(file: File) {
+    const raw = JSON.parse(await file.text()) as unknown;
+    const project = parseProjectFile(raw, file.name);
+    setKeyboardProjects((current) => [...current, project]);
+    loadKeyboardProjectObject(project);
+    setStatusMessage(`Imported project ${project.name} with ${project.layouts.length} layouts.`);
+  }
+
+  async function copyJson() {
+    await navigator.clipboard.writeText(jsonOutput);
+  }
+
+  function downloadText(content: string, filename: string) {
+    const blob = new Blob([content + "\n"], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `layout_${layoutName}.tsv`;
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
+  }
+
+  function downloadJson() {
+    downloadText(jsonOutput, `${safeFileSlug(layoutNameDraft, "qmk-layout")}.json`);
+  }
+
+  function downloadFullProject() {
+    const projectFile: ProjectFile = {
+      version: 1,
+      kind: "qmk-viz-project",
+      project: projectWithEditorState()
+    };
+    downloadText(JSON.stringify(projectFile, null, 2), `${safeFileSlug(keyboardProjectNameDraft, "qmk-viz-project")}.qmk-viz-project.json`);
+  }
+
+  function downloadProjectKle() {
+    downloadText(serializeKeyboardModelKle(model), `${safeFileSlug(keyboardProjectNameDraft, "keyboard")}.kle.json`);
+  }
+
+  function downloadActiveLayerKle() {
+    downloadText(serializeLayerKle(model, activeLayer), `${safeFileSlug(layoutNameDraft, "layout")}-${safeFileSlug(activeLayer.name, "layer")}.kle.json`);
   }
 
   const simpleAction = simpleComposerActions.find((action) => action.kind === simpleKind) ?? simpleComposerActions[0];
@@ -441,6 +901,14 @@ export function App() {
   const selectedDetails = describeAction(currentAction);
   const canUndo = undoStack.length > 0;
   const canRedo = redoStack.length > 0;
+
+  useEffect(() => {
+    localStorage.setItem(KEYBOARD_PROJECTS_STORAGE_KEY, JSON.stringify(keyboardProjects));
+  }, [keyboardProjects]);
+
+  useEffect(() => {
+    persistActiveKeyboardProject();
+  }, [activeKeyboardProjectId, activeLayoutId, keyboardProjectNameDraft, keymapDocument, layoutNameDraft, model]);
 
   useEffect(() => {
     setDraftAction(currentAction);
@@ -480,10 +948,10 @@ export function App() {
       <header className="hero">
         <div>
           <p className="eyebrow">qmk-viz</p>
-          <h1>Visual TSV editor for QMK keymaps</h1>
+          <h1>Visual JSON editor for QMK keymaps</h1>
           <p>
-            Edit the Ergodox Infinity layout visually, then export the exact TSV identifiers consumed by
-            <code> scripts/render-layout.py</code>.
+            Edit keyboard layouts visually, save browser-local projects, then export structured JSON for
+            keymap templating.
           </p>
         </div>
         <div className="hero-controls">
@@ -516,19 +984,132 @@ export function App() {
             </button>
           </div>
           <label>
-            Keyboard model
-            <select value={model.id} disabled>
-              <option value={model.id}>{model.name}</option>
-            </select>
-          </label>
-          <label>
-            Source layout
-            <select value={layoutName} onChange={(event) => loadLayout(event.target.value)}>
-              {Object.keys(model.layouts).map((name) => (
-                <option key={name} value={name}>{name}</option>
+            Keyboard project
+            <select
+              data-testid="project-select"
+              value={activeKeyboardProjectId}
+              onChange={(event) => loadKeyboardProject(event.target.value)}
+            >
+              {keyboardProjects.map((project) => (
+                <option key={project.id} value={project.id}>{project.name}</option>
               ))}
             </select>
           </label>
+          <label>
+            Project name
+            <input
+              data-testid="project-name"
+              value={keyboardProjectNameDraft}
+              onBlur={persistActiveKeyboardProject}
+              onChange={(event) => setKeyboardProjectNameDraft(event.target.value)}
+              spellCheck={false}
+            />
+          </label>
+          <div className="project-actions" aria-label="Keyboard project actions">
+            <button data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
+            <button data-testid="duplicate-project" onClick={duplicateKeyboardProject} type="button">Duplicate</button>
+            <button
+              data-testid="delete-project"
+              disabled={keyboardProjects.length <= 1}
+              onClick={deleteKeyboardProject}
+              type="button"
+            >
+              Delete
+            </button>
+            <button data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
+            <label className="file-import">
+              Import Project
+              <input
+                data-testid="project-upload"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void importFullProject(file).catch((error: unknown) => {
+                      setStatusMessage(error instanceof Error ? error.message : "Failed to import project JSON.");
+                    });
+                  }
+                  event.target.value = "";
+                }}
+                type="file"
+              />
+            </label>
+          </div>
+          <div className="model-readout" data-testid="model-readout">
+            <span>KLE model</span>
+            <strong>{model.name}</strong>
+          </div>
+          <div className="project-actions" aria-label="KLE model actions">
+            <label className="file-import">
+              Upload/Update KLE
+              <input
+                data-testid="keyboard-upload"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void updateActiveKeyboardModel(file).catch((error: unknown) => {
+                      setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
+                    });
+                  }
+                  event.target.value = "";
+                }}
+                type="file"
+              />
+            </label>
+            <button data-testid="download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
+          </div>
+          <label>
+            Layout
+            <select
+              data-testid="layout-select"
+              value={activeLayoutId}
+              onChange={(event) => loadLayout(event.target.value)}
+            >
+              {availableLayouts.map((layout) => (
+                <option key={layout.id} value={layout.id}>{layout.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Layout name
+            <input
+              data-testid="layout-name"
+              value={layoutNameDraft}
+              onBlur={persistActiveKeyboardProject}
+              onChange={(event) => setLayoutNameDraft(event.target.value)}
+              spellCheck={false}
+            />
+          </label>
+          <div className="project-actions" aria-label="Layout actions">
+            <button data-testid="new-layout" onClick={createBlankLayoutForActiveProject} type="button">New Layout</button>
+            <button data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate</button>
+            <button
+              data-testid="delete-layout"
+              disabled={availableLayouts.length <= 1}
+              onClick={deleteLayout}
+              type="button"
+            >
+              Delete
+            </button>
+            <label className="file-import">
+              Upload Layout
+              <input
+                data-testid="layout-upload"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void uploadLayout(file).catch((error: unknown) => {
+                      setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
+                    });
+                  }
+                  event.target.value = "";
+                }}
+                type="file"
+              />
+            </label>
+          </div>
         </div>
       </header>
 
@@ -607,7 +1188,7 @@ export function App() {
             style={{ width: model.width * model.unit, height: model.height * model.unit }}
           >
             {model.keys.map((key) => {
-              const action = selectedCell(activeLayer, key);
+              const action = selectedKeycode(activeLayer, key.slot);
               const details = describeAction(action);
               const keyWidth = key.width * model.unit;
               const actionType = actionTypeLabel(details);
@@ -847,7 +1428,7 @@ export function App() {
             <div className="generated">
               <span>
                 {composerMode === "dance"
-                  ? `Apply TD(${danceName || "DANCE_0"}) and append or update its @DANCES row in TSV.`
+                  ? `Apply TD(${danceName || "DANCE_0"}) and add or update its dances JSON entry.`
                   : `Apply this generated raw identifier to ${selectedKey.slot} on ${activeLayer.name}.`}
               </span>
               <button
@@ -870,20 +1451,24 @@ export function App() {
             <div className="section-header">
               <div>
                 <p className="eyebrow">Export</p>
-                <h2>TSV output</h2>
+                <h2>JSON output</h2>
               </div>
               <div className="button-row compact-actions">
-                <button onClick={copyTsv} type="button">Copy</button>
-                <button onClick={downloadTsv} type="button">Download</button>
+                <button onClick={copyJson} type="button">Copy</button>
+                <button data-testid="download-layout-json" onClick={downloadJson} type="button">Layout JSON</button>
+                <button data-testid="download-layer-kle" onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
+                <button data-testid="download-project-kle" onClick={downloadProjectKle} type="button">Project KLE</button>
+                <button data-testid="download-full-project" onClick={downloadFullProject} type="button">Full Project</button>
               </div>
             </div>
             <textarea
               readOnly
-              value={fullTsvOutput}
+              value={jsonOutput}
               spellCheck={false}
             />
             <p>
-              Save as <code>layout_&lt;name&gt;.tsv</code>, then run <code>just use-layout &lt;name&gt;</code>.
+              Layout JSON is the `keymap.c` template input. Full Project JSON is the backup/import format.
+              Project KLE preserves the uploaded keyboard geometry and slot IDs; Layer KLE adds the active layer labels.
             </p>
           </div>
         </aside>

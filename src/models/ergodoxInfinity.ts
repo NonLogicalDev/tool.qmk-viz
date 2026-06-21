@@ -1,108 +1,255 @@
 import kleLayout from "../../../qmk/keyboards/input_club/ergodox_infinity/keymaps/monster/keyboard-layout.json";
-import nonlogical01 from "../../../qmk/keyboards/input_club/ergodox_infinity/keymaps/monster/layout_nonlogical-01.tsv?raw";
-import nonlogical02 from "../../../qmk/keyboards/input_club/ergodox_infinity/keymaps/monster/layout_nonlogical-02.tsv?raw";
-import { parseKle } from "../lib/kle";
+import { buildKeyboardModelFromKle } from "../lib/keyboardModel";
+import type { KeymapLayer } from "../lib/keymap";
 
-export type KeySlot = {
-  slot: string;
-  legend: string;
-  row: number;
-  col: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
-  rotationX: number;
-  rotationY: number;
-};
-
-export type KeyboardModel = {
-  id: string;
-  name: string;
-  source: string;
-  width: number;
-  height: number;
-  unit: number;
-  padding: number;
-  keys: KeySlot[];
-  layouts: Record<string, string>;
-};
-
-const visualSlots = [
-  ["+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+"],
-  ["LT00", "LT01", "LT02", "LT03", "LT04", "LT05", "LT06", "+", "RT06", "RT05", "RT04", "RT03", "RT02", "RT01", "RT00"],
-  ["LT10", "LT11", "LT12", "LT13", "LT14", "LT15", "LT16", "+", "RT16", "RT15", "RT14", "RT13", "RT12", "RT11", "RT10"],
-  ["LT20", "LT21", "LT22", "LT23", "LT24", "LT25", "#", "+", "#", "RT25", "RT24", "RT23", "RT22", "RT21", "RT20"],
-  ["LT30", "LT31", "LT32", "LT33", "LT34", "LT35", "LT36", "+", "RT36", "RT35", "RT34", "RT33", "RT32", "RT31", "RT30"],
-  ["LT40", "LT41", "LT42", "LT43", "LT44", "#", "#", "+", "#", "#", "RT44", "RT43", "RT42", "RT41", "RT40"],
-  ["+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+"],
-  ["#", "#", "#", "#", "#", "LC01", "LC02", "+", "RC02", "RC01", "#", "#", "#", "#", "#"],
-  ["#", "#", "#", "#", "#", "#", "LC12", "+", "RC12", "#", "#", "#", "#", "#", "#"],
-  ["#", "#", "#", "#", "LC20", "LC21", "LC22", "+", "RC22", "RC21", "RC20", "#", "#", "#", "#"],
-  ["+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+", "+"]
-];
-
-const slotCells = new Map<string, { row: number; col: number }>();
-visualSlots.forEach((row, rowIndex) => {
-  row.forEach((slot, colIndex) => {
-    if (!["+", "#"].includes(slot)) {
-      slotCells.set(slot, { row: rowIndex, col: colIndex });
-    }
-  });
+export const ergodoxInfinity = buildKeyboardModelFromKle(kleLayout, {
+  id: "input-club-ergodox-infinity",
+  name: "Input Club Ergodox Infinity",
+  source: "keyboard-layout.json"
 });
 
-const slotsByKleIndex = [
-  "LT03", "RT03", "LT02", "LT04", "RT04", "RT02", "LT05", "LT06", "RT06", "RT05", "LT00", "LT01", "RT01", "RT00",
-  "LT13", "RT13", "LT12", "LT14", "RT14", "RT12", "LT15", "LT16", "RT16", "RT15", "LT10", "LT11", "RT11", "RT10",
-  "LT23", "RT23", "LT22", "LT24", "RT24", "RT22", "LT25", "RT25", "LT20", "LT21", "RT21", "RT20",
-  "LT36", "RT36", "LT33", "RT33", "LT32", "LT34", "RT34", "RT32", "LT35", "RT35", "LT30", "LT31", "RT31", "RT30",
-  "LT43", "RT43", "LT42", "LT44", "RT44", "RT42", "LT40", "LT41", "RT41", "RT40",
-  "LC01", "LC02", "LC20", "LC21", "LC12", "LC22", "RC02", "RC01", "RC12", "RC21", "RC20", "RC22"
-];
-
-function buildKeys(): KeySlot[] {
-  return parseKle(kleLayout).map((key, index) => {
-    const slot = slotsByKleIndex[index];
-    const cell = slotCells.get(slot);
-    if (!cell) {
-      throw new Error(`Missing TSV cell mapping for ${slot}.`);
+export const ergodoxInfinityDefaultLayers: KeymapLayer[] = [
+  {
+    name: "BASE",
+    keys: {
+      LT00: "KC_LBRC",
+      LT01: "KC_5",
+      LT02: "KC_4",
+      LT03: "KC_3",
+      LT04: "KC_2",
+      LT05: "KC_1",
+      LT06: "KC_GRV",
+      RT06: "KC_RBRC",
+      RT05: "KC_6",
+      RT04: "KC_7",
+      RT03: "KC_8",
+      RT02: "KC_9",
+      RT01: "KC_0",
+      RT00: "KC_BSLS",
+      LT10: "KC_TAB",
+      LT11: "KC_Q",
+      LT12: "KC_W",
+      LT13: "KC_E",
+      LT14: "KC_R",
+      LT15: "KC_T",
+      LT16: "KC_ENT",
+      RT16: "KC_ENT",
+      RT15: "KC_Y",
+      RT14: "KC_U",
+      RT13: "KC_I",
+      RT12: "KC_O",
+      RT11: "KC_P",
+      RT10: "KC_MINS",
+      LT20: "KC_ESC",
+      LT21: "KC_A",
+      LT22: "KC_S",
+      LT23: "KC_D",
+      LT24: "KC_F",
+      LT25: "KC_G",
+      RT25: "KC_H",
+      RT24: "KC_J",
+      RT23: "KC_K",
+      RT22: "KC_L",
+      RT21: "KC_SCLN",
+      RT20: "KC_QUOT",
+      LT30: "KC_LSFT",
+      LT31: "KC_Z",
+      LT32: "KC_X",
+      LT33: "KC_C",
+      LT34: "KC_V",
+      LT35: "KC_B",
+      LT36: "MO(SYMB)",
+      RT36: "KC_NO",
+      RT35: "KC_N",
+      RT34: "KC_M",
+      RT33: "KC_COMM",
+      RT32: "KC_DOT",
+      RT31: "KC_SLSH",
+      RT30: "KC_RSFT",
+      LT40: "KC_HOME",
+      LT41: "KC_PGDN",
+      LT42: "KC_PGUP",
+      LT43: "KC_END",
+      LT44: "KC_LGUI",
+      RT44: "MO(SYMB)",
+      RT43: "KC_LEFT",
+      RT42: "KC_DOWN",
+      RT41: "KC_UP",
+      RT40: "KC_RGHT",
+      LC01: "MO(MDIA)",
+      LC02: "KC_INS",
+      RC02: "KC_RGUI",
+      RC01: "MO(MDIA)",
+      LC12: "KC_LSFT",
+      RC12: "KC_RSFT",
+      LC20: "KC_BSPC",
+      LC21: "KC_LCTL",
+      LC22: "KC_LALT",
+      RC22: "KC_RALT",
+      RC21: "KC_RCTL",
+      RC20: "KC_SPC"
     }
-
-    return {
-      slot,
-      legend: key.legends.at(-1) ?? key.label,
-      row: cell.row,
-      col: cell.col,
-      x: key.x,
-      y: key.y,
-      width: key.width,
-      height: key.height,
-      rotation: key.rotation,
-      rotationX: key.rotationX,
-      rotationY: key.rotationY
-    };
-  });
-}
-
-function maxCoordinate(keys: KeySlot[], axis: "x" | "y", size: "width" | "height") {
-  return Math.max(...keys.map((key) => key[axis] + key[size]));
-}
-
-const keys = buildKeys();
-const stagePadding = 1;
-
-export const ergodoxInfinity: KeyboardModel = {
-  id: "input_club/ergodox_infinity",
-  name: "Input Club Ergodox Infinity",
-  source: "keyboard-layout.json + layout_nonlogical-01.tsv",
-  width: maxCoordinate(keys, "x", "width") + stagePadding * 2,
-  height: maxCoordinate(keys, "y", "height") + stagePadding * 2,
-  unit: 60,
-  padding: stagePadding,
-  keys,
-  layouts: {
-    "nonlogical-01": nonlogical01,
-    "nonlogical-02": nonlogical02
+  },
+  {
+    name: "SYMB",
+    keys: {
+      LT00: "~",
+      LT01: "KC_F1",
+      LT02: "KC_F2",
+      LT03: "KC_F3",
+      LT04: "KC_F4",
+      LT05: "KC_F5",
+      LT06: "KC_F11",
+      RT06: "KC_F12",
+      RT05: "KC_F6",
+      RT04: "KC_F7",
+      RT03: "KC_F8",
+      RT02: "KC_F9",
+      RT01: "KC_F10",
+      RT00: "KC_NUM",
+      LT10: "~",
+      LT11: "~",
+      LT12: "~",
+      LT13: "KK_LPRN",
+      LT14: "KK_RPRN",
+      LT15: "KK_DQOT",
+      LT16: "~",
+      RT16: "~",
+      RT15: "~",
+      RT14: "KC_P7",
+      RT13: "KC_P8",
+      RT12: "KC_P9",
+      RT11: "~",
+      RT10: "~",
+      LT20: "~",
+      LT21: "~",
+      LT22: "~",
+      LT23: "KC_LBRC",
+      LT24: "KC_RBRC",
+      LT25: "KC_QUOT",
+      RT25: "~",
+      RT24: "KC_P4",
+      RT23: "KC_P5",
+      RT22: "KC_P6",
+      RT21: "~",
+      RT20: "~",
+      LT30: "~",
+      LT31: "~",
+      LT32: "~",
+      LT33: "KK_LCBR",
+      LT34: "KK_RCBR",
+      LT35: "KC_GRV",
+      LT36: "~",
+      RT36: "~",
+      RT35: "~",
+      RT34: "KC_P1",
+      RT33: "KC_P2",
+      RT32: "KC_P3",
+      RT31: "~",
+      RT30: "~",
+      LT40: "~",
+      LT41: "~",
+      LT42: "~",
+      LT43: "~",
+      LT44: "~",
+      RT44: "~",
+      RT43: "KC_P0",
+      RT42: "KC_PDOT",
+      RT41: "~",
+      RT40: "~",
+      LC01: "~",
+      LC02: "~",
+      RC02: "~",
+      RC01: "~",
+      LC12: "~",
+      RC12: "~",
+      LC20: "~",
+      LC21: "~",
+      LC22: "~",
+      RC22: "~",
+      RC21: "~",
+      RC20: "~"
+    }
+  },
+  {
+    name: "MDIA",
+    keys: {
+      LT00: "~",
+      LT01: "~",
+      LT02: "~",
+      LT03: "~",
+      LT04: "~",
+      LT05: "~",
+      LT06: "QK_BOOT",
+      RT06: "QK_BOOT",
+      RT05: "~",
+      RT04: "~",
+      RT03: "~",
+      RT02: "~",
+      RT01: "~",
+      RT00: "~",
+      LT10: "~",
+      LT11: "~",
+      LT12: "MS_BTN2",
+      LT13: "MS_BTN1",
+      LT14: "~",
+      LT15: "~",
+      LT16: "~",
+      RT16: "~",
+      RT15: "KC_VOLU",
+      RT14: "~",
+      RT13: "~",
+      RT12: "~",
+      RT11: "~",
+      RT10: "~",
+      LT20: "~",
+      LT21: "MS_LEFT",
+      LT22: "MS_DOWN",
+      LT23: "MS_UP",
+      LT24: "MS_RGHT",
+      LT25: "~",
+      RT25: "~",
+      RT24: "KC_VOLD",
+      RT23: "~",
+      RT22: "~",
+      RT21: "~",
+      RT20: "~",
+      LT30: "~",
+      LT31: "NL_MS_L5",
+      LT32: "NL_MS_D5",
+      LT33: "NL_MS_U5",
+      LT34: "NL_MS_R5",
+      LT35: "~",
+      LT36: "~",
+      RT36: "~",
+      RT35: "KC_MUTE",
+      RT34: "~",
+      RT33: "~",
+      RT32: "~",
+      RT31: "~",
+      RT30: "~",
+      LT40: "~",
+      LT41: "~",
+      LT42: "~",
+      LT43: "~",
+      LT44: "~",
+      RT44: "~",
+      RT43: "~",
+      RT42: "~",
+      RT41: "~",
+      RT40: "~",
+      LC01: "~",
+      LC02: "~",
+      RC02: "~",
+      RC01: "~",
+      LC12: "KC_CAPS",
+      RC12: "KC_CAPS",
+      LC20: "KC_DEL",
+      LC21: "~",
+      LC22: "~",
+      RC22: "~",
+      RC21: "~",
+      RC20: "KC_DEL"
+    }
   }
-};
+];

@@ -1,5 +1,54 @@
 # Development Log
 
+## 2026-06-21: qmk-viz JSON project and KLE model workflow
+
+Goal: move qmk-viz from a TSV-first single-layout editor to a browser-local keyboard-project editor with uploadable KLE models, multiple named layouts, JSON exports, and KLE downloads.
+
+What worked:
+
+- Changed the app hierarchy to Keyboard Project > Named Layouts.
+- Added browser-local project storage with a no-backcompat storage namespace.
+- Added project controls for create, duplicate, delete, full-project download, and full-project import.
+- Added KLE model controls for upload/update and canonical KLE download.
+- Added layout controls for create, duplicate, delete, and layout JSON upload.
+- Added active layout JSON export shaped for a future `keymap.c` template generator.
+- Added full project JSON export that includes the KLE-backed keyboard model and every named layout.
+- Added KLE-compatible exports:
+  - project KLE with source geometry and matrix IDs embedded
+  - active-layer KLE with current layer identifiers written on key tops
+- Made KLE model replacement preserve layouts by stable slot ID.
+- Moved undo/redo snapshots to project scope so layout mutations and KLE updates are undoable.
+- Normalized the Ergodox KLE source to use ID-only marker labels:
+  - `LT##` for left top
+  - `RT##` for right top
+  - `LC##` for left cluster
+  - `RC##` for right cluster
+- Removed KLE `a` alignment properties from the Ergodox model because they break display when pasted into the Keyboard Layout Editor website.
+- Updated qmk-viz KLE cloning/export paths to strip `a` properties from stored and downloaded KLE documents.
+- Updated the built-in Ergodox default layers to use `LT/RT/LC/RC` keys instead of older `L/R` and legend-derived key IDs.
+
+What did not work:
+
+- The old TSV-centered app model made it awkward to represent projects, uploads, full backups, and KLE model replacement.
+- The first JSON refactor used a flat project-with-one-document shape; that did not match the desired Keyboard Project > Named Layouts hierarchy.
+- Keeping ordinary KLE legends such as `Q`, `3`, and punctuation in the source KLE made qmk-viz derive ambiguous IDs. The source KLE is now ID-only.
+- Preserving KLE `a` alignment fields made the JSON less portable to the Keyboard Layout Editor website. The app now tolerates uploaded `a` fields for parsing but drops them from canonical/exported KLE documents.
+- Vite hot module replacement preserved stale React state during the storage migration and wrote old `L03/R03` models into new localStorage keys. Stopping Vite before the final storage-key bump avoided repopulating the fresh namespace with stale state.
+- Browser file upload automation is still limited in the current in-app browser API, so upload paths were compile-validated and UI-presence-validated rather than end-to-end file-input automated.
+
+Validation:
+
+- `just viz-build` passed after the JSON project/KLE workflow changes.
+- `just viz-build` passed again after adding the KLE `a`-property sanitizer.
+- `just build nonlogical-01` still passed after sanitizing the KLE model; firmware size remained `50072` bytes (`0xc398`).
+- Source KLE validation found 76 key labels, all with exactly one non-empty marker in the ID slot and no leftover visual legends.
+- Source KLE validation found no remaining `a` alignment properties after sanitizing the checked-in model.
+- Source scan found no remaining KLE-style `"a":` alignment fields in `qmk-viz/src` or the canonical Ergodox model.
+- In-app browser validation after restarting Vite: project, project upload, KLE upload, layout selector, layout upload, KLE download, and full-project download controls are present.
+- In-app browser validation: fresh model export has 76 keyboard keys, `baseLT03 == KC_3`, no `baseL03`, and no old `L/R` or letter-derived key IDs.
+- In-app browser validation: creating a new layout adds it, enables undo, and undo removes it while preserving the `LT03` mapping and 76-key model.
+- In-app browser validation after sanitizing KLE alignment fields: app reloads with 76 keys, the Monster layout, and KLE/full-project download controls present.
+
 ## 2026-06-21: qmk-viz keyboard-first dense editor pass
 
 Goal: keep the keyboard viewer as the primary surface, dynamically fit key identifiers, and make the rest of the UI denser without losing hierarchy.

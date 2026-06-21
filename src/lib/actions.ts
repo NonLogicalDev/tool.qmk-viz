@@ -400,7 +400,7 @@ export function composeBehaviorAction(slots: BehaviorSlots, danceName = "DANCE_0
     return {
       identifier: `TD(${normalizedDanceName})`,
       compileReady: true,
-      note: `${note} Oryx-style advanced behavior maps to TD(${normalizedDanceName}) plus an @DANCES TSV row.`,
+      note: `${note} Oryx-style advanced behavior maps to TD(${normalizedDanceName}) plus a dances JSON entry.`,
       dance: { name: normalizedDanceName, slots },
       supportCode: generateDanceSupportCode(slots, normalizedDanceName)
     };
