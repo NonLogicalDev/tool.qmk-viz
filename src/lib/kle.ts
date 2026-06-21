@@ -54,6 +54,9 @@ export function parseKle(raw: KleRawLayout): KleKey[] {
         if (typeof item.rx === "number") {
           state.rotationX = item.rx;
           state.x = item.rx;
+          if (typeof item.ry !== "number") {
+            state.y = state.rotationY;
+          }
         }
         if (typeof item.ry === "number") {
           state.rotationY = item.ry;

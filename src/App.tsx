@@ -120,8 +120,8 @@ export function App() {
                   key={key.slot}
                   onClick={() => selectKey(key)}
                   style={{
-                    left: key.x * model.unit,
-                    top: key.y * model.unit,
+                    left: (key.x + model.padding) * model.unit,
+                    top: (key.y + model.padding) * model.unit,
                     width: key.width * model.unit,
                     height: key.height * model.unit,
                     transform: `rotate(${key.rotation}deg)`,

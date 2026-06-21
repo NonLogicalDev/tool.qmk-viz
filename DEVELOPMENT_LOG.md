@@ -60,3 +60,47 @@ Validation:
 - In-app browser desktop viewport `1440x950`: all 76 keycaps visible.
 - In-app browser desktop viewport `1440x950`: keyboard panel had no horizontal overflow after unit `45` (`scrollWidth == clientWidth == 956`).
 - In-app browser screenshot confirmed rotated thumb clusters are now driven by the JSON placement rather than the old override table.
+
+## 2026-06-21: qmk-viz raw KLE coordinate pass
+
+Goal: simplify the visual renderer further and render `keyboard-layout.json` coordinates directly.
+
+What did not work:
+
+- The exact KLE geometry pass still computed rotated key bounds and normalized/transformed the whole layout into the card. That made the layout fit, but it was still more interpretation than needed.
+- Display scale `45`, `44`, and `43` each left some horizontal overflow once rotated keys were included in the browser's scroll width.
+
+Changes made:
+
+- Removed rotated-bound normalization from `qmk-viz/src/models/ergodoxInfinity.ts`.
+- Kept the KLE parser's `x`, `y`, `w`, `h`, `r`, `rx`, and `ry` values as the source of truth for key placement.
+- Added a fixed `padding` field to the keyboard model and applied it only at render time in `qmk-viz/src/App.tsx`.
+- Set display scale to `unit: 42` so the raw JSON layout fits the desktop editor card without horizontal scrolling.
+
+Validation:
+
+- `just viz-build` passed before browser validation.
+- In-app browser desktop viewport `1440x950`: all 76 keycaps visible.
+- In-app browser desktop viewport `1440x950`: raw KLE render had no horizontal overflow at unit `42` (`scrollWidth == clientWidth == 956`).
+- In-app browser screenshot confirmed key clusters are rendered from direct KLE placement plus only fixed padding/scale.
+
+## 2026-06-21: qmk-viz right thumb KLE group fix
+
+Goal: explain and fix why the left thumb cluster looked correct but the right thumb cluster was vertically misplaced.
+
+What did not work:
+
+- The parser handled the left thumb cluster because the JSON starts that group with `rx` and `ry`.
+- The right thumb cluster starts with `rx` but omits `ry`, relying on the active KLE rotation origin. The parser changed x but kept the row y cursor after the left thumb rows, so the right cluster inherited the wrong vertical cursor.
+
+Changes made:
+
+- In `qmk-viz/src/lib/kle.ts`, when a new `rx` starts a group and no `ry` is supplied, reset the row y cursor to the active `rotationY` before applying the row's `y` offset.
+- Kept placement otherwise raw: KLE `x`, `y`, `w`, `h`, `r`, `rx`, and `ry` still drive rendering.
+
+Validation:
+
+- `just viz-build` passed after the parser change.
+- In-app browser desktop viewport `1440x950`: all 76 keycaps visible.
+- In-app browser measurement showed left and right thumb bounds now match vertically: both top `537.4` and bottom `688.5`.
+- In-app browser screenshot confirmed the right thumb cluster now mirrors the left cluster's vertical placement.
