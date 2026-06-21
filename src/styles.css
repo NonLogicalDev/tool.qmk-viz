@@ -395,6 +395,7 @@ textarea {
 .app-nav button:focus-visible,
 .context-chip:focus-visible,
 .composer-mode-tabs button:focus-visible,
+.preview-layer-tabs button:focus-visible,
 .keycap:focus-visible,
 .history-controls button:focus-visible,
 .project-actions button:focus-visible,
@@ -522,6 +523,16 @@ textarea {
   border-color: var(--accent);
   box-shadow: 0 6px 22px rgb(0 120 168 / 18%);
   z-index: 2;
+}
+
+.keycap.read-only {
+  cursor: default;
+}
+
+.keycap.read-only:hover {
+  border-color: #d7d7d7;
+  box-shadow: none;
+  z-index: auto;
 }
 
 .keycap.selected {
@@ -744,6 +755,11 @@ textarea {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.layout-page-grid {
+  align-items: start;
+  grid-template-columns: minmax(300px, 0.35fr) minmax(0, 1fr);
+}
+
 .admin-card {
   min-height: 210px;
 }
@@ -795,45 +811,49 @@ textarea {
   margin: 0;
 }
 
-.layer-list {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-}
-
-.layer-list button {
-  align-items: center;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--ink);
-  cursor: pointer;
+.preview-layer-tabs {
   display: flex;
-  gap: 8px;
-  min-height: 38px;
-  padding: 7px;
-  text-align: left;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
-.layer-list button.active {
-  background: var(--layer);
-  border-color: rgb(0 120 168 / 42%);
-}
-
-.layer-list span {
+.preview-layer-tabs button {
   align-items: center;
   background: #eee8dc;
-  border-radius: 7px;
-  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
   font-size: 0.72rem;
-  font-weight: 900;
-  height: 24px;
-  justify-items: center;
-  width: 24px;
+  font-weight: 850;
+  min-height: 30px;
+  padding: 7px 10px;
 }
 
-.layer-list strong {
-  font-size: 0.8rem;
+.preview-layer-tabs button.active {
+  background: var(--layer);
+  border-color: rgb(0 120 168 / 42%);
+  color: var(--ink);
+}
+
+.layout-preview-card {
+  min-width: 0;
+}
+
+.layout-preview-viewport {
+  background:
+    radial-gradient(circle at 10% 20%, rgb(231 93 63 / 9%), transparent 24%),
+    radial-gradient(circle at 86% 0%, rgb(0 120 168 / 9%), transparent 30%),
+    #fbfaf6;
+  border: 1px solid rgb(217 210 196 / 80%);
+  border-radius: 13px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.read-only-stage {
+  margin: 0 auto;
 }
 
 .export-page .export-card {
@@ -1076,6 +1096,10 @@ textarea {
   }
 
   .admin-grid.two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-page-grid {
     grid-template-columns: 1fr;
   }
 }

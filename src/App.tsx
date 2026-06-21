@@ -87,7 +87,7 @@ const appPages: AppPageDefinition[] = [
   { id: "editor", label: "Editor", description: "Keyboard and key actions" },
   { id: "projects", label: "Projects", description: "Backups and project library" },
   { id: "model", label: "KLE Model", description: "Physical keyboard geometry" },
-  { id: "layouts", label: "Layouts", description: "Layouts and layer stack" },
+  { id: "layouts", label: "Layouts", description: "Named layouts and read-only preview" },
   { id: "export", label: "Export", description: "JSON and KLE downloads" }
 ];
 
@@ -1049,6 +1049,51 @@ export function App() {
             ))}
           </div>
 
+          <div className="layer-toolbar" aria-label="Layer management">
+            <label>
+              Active layer
+              <input
+                data-testid="layer-name-input"
+                value={layerNameDraft}
+                onChange={(event) => setLayerNameDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    renameActiveLayer();
+                  }
+                }}
+                spellCheck={false}
+              />
+            </label>
+            <div className="button-row">
+              <button data-testid="rename-layer" onClick={renameActiveLayer} type="button">Rename</button>
+              <button data-testid="add-layer" onClick={addLayer} type="button">Add</button>
+              <button
+                data-testid="move-layer-left"
+                disabled={activeLayerIndex === 0}
+                onClick={() => moveActiveLayer(-1)}
+                type="button"
+              >
+                Move left
+              </button>
+              <button
+                data-testid="move-layer-right"
+                disabled={activeLayerIndex === layers.length - 1}
+                onClick={() => moveActiveLayer(1)}
+                type="button"
+              >
+                Move right
+              </button>
+              <button
+                data-testid="remove-layer"
+                disabled={layers.length <= 1}
+                onClick={removeActiveLayer}
+                type="button"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+
           <div
             className="keyboard-stage"
             id="keyboard-stage"
@@ -1485,9 +1530,9 @@ export function App() {
         <section className="page-panel">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">Layouts and layers</p>
+              <p className="eyebrow">Named layouts</p>
               <h1>{layoutNameDraft}</h1>
-              <p>Manage named layouts and the active layout&apos;s layer stack. Key editing stays on the Editor page.</p>
+              <p>Manage layout files and preview the selected layout without editing keys or layers here.</p>
             </div>
             <div className="page-actions">
               <button data-testid="new-layout" onClick={createBlankLayoutForActiveProject} type="button">New Layout</button>
@@ -1510,7 +1555,7 @@ export function App() {
               </label>
             </div>
           </div>
-          <div className="admin-grid two-column">
+          <div className="admin-grid layout-page-grid">
             <div className="editor-card admin-card">
               <div className="section-header">
                 <div>
@@ -1553,15 +1598,15 @@ export function App() {
                 </button>
               </div>
             </div>
-            <div className="editor-card admin-card layer-admin-card">
+            <div className="editor-card admin-card layout-preview-card">
               <div className="section-header">
                 <div>
-                  <p className="eyebrow">Layer stack</p>
+                  <p className="eyebrow">Read-only preview</p>
                   <h2>{activeLayerIndex}: {activeLayer.name}</h2>
                 </div>
                 <span className="metric-pill">{layers.length} layers</span>
               </div>
-              <div className="layer-list" aria-label="Layer list">
+              <div className="preview-layer-tabs" aria-label="Preview layer">
                 {layers.map((layer, index) => (
                   <button
                     className={layer.name === activeLayer.name ? "active" : ""}
@@ -1572,52 +1617,57 @@ export function App() {
                     }}
                     type="button"
                   >
-                    <span>{index}</span>
-                    <strong>{layer.name}</strong>
+                    {index}: {layer.name}
                   </button>
                 ))}
               </div>
-              <label>
-                Active layer
-                <input
-                  data-testid="layer-name-input"
-                  value={layerNameDraft}
-                  onChange={(event) => setLayerNameDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      renameActiveLayer();
-                    }
-                  }}
-                  spellCheck={false}
-                />
-              </label>
-              <div className="button-row">
-                <button data-testid="rename-layer" onClick={renameActiveLayer} type="button">Rename</button>
-                <button data-testid="add-layer" onClick={addLayer} type="button">Add</button>
-                <button
-                  data-testid="move-layer-left"
-                  disabled={activeLayerIndex === 0}
-                  onClick={() => moveActiveLayer(-1)}
-                  type="button"
+              <div className="layout-preview-viewport" aria-label={`${layoutNameDraft} ${activeLayer.name} read-only preview`}>
+                <div
+                  className="keyboard-stage read-only-stage"
+                  style={{ width: model.width * model.unit, height: model.height * model.unit }}
                 >
-                  Move up
-                </button>
-                <button
-                  data-testid="move-layer-right"
-                  disabled={activeLayerIndex === layers.length - 1}
-                  onClick={() => moveActiveLayer(1)}
-                  type="button"
-                >
-                  Move down
-                </button>
-                <button
-                  data-testid="remove-layer"
-                  disabled={layers.length <= 1}
-                  onClick={removeActiveLayer}
-                  type="button"
-                >
-                  Remove
-                </button>
+                  {model.keys.map((key) => {
+                    const action = selectedKeycode(activeLayer, key.slot);
+                    const details = describeAction(action);
+                    const keyWidth = key.width * model.unit;
+                    const actionType = actionTypeLabel(details);
+                    const primaryFit = fitPrimaryKeyLabel(details.primary, keyWidth);
+                    const secondaryFit = fitSecondaryKeyLabel(actionType, keyWidth);
+                    return (
+                      <div
+                        className={`keycap read-only ${details.tone}`}
+                        key={key.slot}
+                        style={{
+                          left: (key.x + model.padding) * model.unit,
+                          top: (key.y + model.padding) * model.unit,
+                          width: key.width * model.unit,
+                          height: key.height * model.unit,
+                          transform: `rotate(${key.rotation}deg)`,
+                          transformOrigin: `${(key.rotationX - key.x) * model.unit}px ${(key.rotationY - key.y) * model.unit}px`
+                        }}
+                        title={`${key.slot}: ${action}`}
+                      >
+                        <span className="key-slot">{key.slot}</span>
+                        <span
+                          className="key-primary"
+                          data-font-size={primaryFit.fontSize.toFixed(2)}
+                          data-measured-width={primaryFit.measuredWidth.toFixed(2)}
+                          style={{ fontSize: primaryFit.fontSize, lineHeight: `${primaryFit.lineHeight}px` }}
+                        >
+                          {details.primary}
+                        </span>
+                        <span
+                          className="key-secondary"
+                          data-font-size={secondaryFit.fontSize.toFixed(2)}
+                          data-measured-width={secondaryFit.measuredWidth.toFixed(2)}
+                          style={{ fontSize: secondaryFit.fontSize, lineHeight: `${secondaryFit.lineHeight}px` }}
+                        >
+                          {actionType}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

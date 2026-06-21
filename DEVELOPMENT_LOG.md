@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-06-21: qmk-viz layer ownership correction
+
+Goal: keep layer editing inside the Editor page while making the Layouts page a read-only preview/browser for named layouts.
+
+What worked:
+
+- Restored layer rename/add/reorder/remove controls directly under the Editor layer tabs.
+- Kept Layouts focused on named layout CRUD.
+- Added a read-only keyboard preview to Layouts so users can inspect the selected layout without editing keys there.
+- Added preview layer pills on Layouts to switch the viewed layer without exposing layer CRUD there.
+
+What did not work:
+
+- Moving layer creation/renaming/reordering/removal to Layouts was too literal. Layers are part of editing the active layout, so splitting them away from the keyboard made the model less coherent.
+
+Validation:
+
+- `just viz-build` passed.
+- In-app browser validation:
+  - Editor has layer rename/add controls and 76 editable keycaps
+  - Layouts has layout selection and 76 read-only preview keycaps
+  - Layouts has no layer rename/add controls
+  - layout preview keycaps are not clickable editor buttons
+  - no horizontal overflow at 1440px
+  - browser console has no errors
+
 ## 2026-06-21: qmk-viz app navigation redesign
 
 Goal: fix the overloaded qmk-viz header by splitting project, model, layout, and export administration into focused app pages instead of continuing to compress controls into the top of the editor.

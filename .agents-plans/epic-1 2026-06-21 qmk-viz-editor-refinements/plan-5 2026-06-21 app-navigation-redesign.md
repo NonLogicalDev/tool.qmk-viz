@@ -16,8 +16,8 @@ The JSON project workflow added necessary controls, but placing project CRUD, KL
 
 - Existing product model: one page with a large hero/header that doubles as branding, global navigation, project admin, model admin, layout admin, and history.
 - New requirement's real intent: separate high-frequency editing from low-frequency administration so the app feels deliberate, not like every feature was bolted onto the first available row.
-- Cleanest integrated model: a compact topbar/rail owns identity, navigation, current context, and undo/redo. Separate pages own Editor, Projects, KLE Model, Layouts/Layers, and Export.
-- Existing pieces that should move, change, or disappear: project controls move to Projects; KLE upload/download moves to Model; layout CRUD and layer CRUD move to Layouts; export textarea/downloads move to Export; the editor page keeps only layer tabs, keyboard, selected-key inspector, and action composer.
+- Cleanest integrated model: a compact topbar/rail owns identity, navigation, current context, and undo/redo. Separate pages own Editor, Projects, KLE Model, Layouts, and Export.
+- Existing pieces that should move, change, or disappear: project controls move to Projects; KLE upload/download moves to Model; layout CRUD moves to Layouts; export textarea/downloads move to Export; the editor page keeps layer tabs, layer management, keyboard, selected-key inspector, and action composer.
 - Architecture impact: add app-page state and conditional page rendering, preserve existing editor state/actions, and restyle the shell around page-level cards instead of a monolithic hero.
 - Why this is better than a local patch: it changes the information architecture so future features have an obvious home and the keyboard remains the main task surface.
 
@@ -26,7 +26,8 @@ The JSON project workflow added necessary controls, but placing project CRUD, KL
 - Use in-app pages rather than URL routing for this pass; localStorage state and GitHub Pages hosting stay simple.
 - Keep existing `data-testid` attributes on moved controls where practical so browser checks remain stable.
 - Put undo/redo in the topbar because history is global; keep destructive project/layout deletes inside their owning pages.
-- Keep layer switching on the Editor page, but move layer creation/renaming/reordering/removal to the Layouts page.
+- Keep layer switching and layer creation/renaming/reordering/removal on the Editor page because layers are part of editing the active layout.
+- Use Layouts as named-layout administration plus read-only preview, not as a second layer editor.
 - Export page owns all JSON/KLE/project download buttons and the full JSON textarea.
 
 # Implementation Steps
@@ -47,13 +48,14 @@ The JSON project workflow added necessary controls, but placing project CRUD, KL
 
 - Header compaction is the wrong fix when controls belong to different user jobs. The real problem is information architecture.
 - Project/model/layout/export controls are lower-frequency than key editing, so they should live behind navigation instead of occupying the top of every editing session.
-- Keeping layer switching on the editor page works because it is part of key editing. Layer creation, renaming, reordering, and deletion belongs on the Layouts page because it is structural admin.
+- Keeping layer controls in the Editor is the coherent model: changing layers is part of changing the active layout. Layouts should preview selected layouts read-only and manage named layout files.
 - Context chips are useful in the topbar as navigation shortcuts, but editable fields in the topbar recreate the same overload problem.
 
 # Work Log
 
 - [x] 2026-06-21 02:16 - Created plan for splitting qmk-viz into focused app pages.
 - [x] 2026-06-21 02:22 - Implemented the page split, validated build/browser behavior, and updated the development log.
+- [x] 2026-06-21 02:33 - Corrected layer ownership: layer controls moved back to Editor and Layouts now previews read-only.
 
 # Unfinished Work
 
