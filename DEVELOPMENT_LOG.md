@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-06-21: qmk-viz KLE marker label cleanup
+
+Goal: simplify the Ergodox Infinity KLE model so key labels are plain marker IDs such as `LT03` instead of multiline KLE legend strings like `\n\n\n\n\n\nLT03`.
+
+What worked:
+
+- Collapsed all `LT/RT/LC/RC` marker labels in `qmk/keyboards/input_club/ergodox_infinity/keymaps/monster/keyboard-layout.json` to plain identifiers.
+- Preserved all KLE geometry and key property objects.
+- Verified the file still parses as JSON.
+- Verified the file contains 76 marker IDs and zero multiline key strings.
+
+What did not work:
+
+- Keeping IDs in the seventh KLE legend slot made the raw file harder to review and edit by hand. For qmk-viz, the marker ID itself is the useful label.
+
+Validation:
+
+- JSON parse passed.
+- Marker scan returned `markers: 76`, `multiline: 0`, `rows: 26`.
+
 ## 2026-06-21: qmk-viz project polish and KLE-backed layout export
 
 Goal: clean up qmk-viz project-page controls, make project metadata easier to scan, and make the layout JSON export carry the KLE keyboard model used to produce the layout.
