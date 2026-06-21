@@ -70,7 +70,7 @@ export function describeAction(identifier: string): ActionDetails {
   const value = identifier.trim();
 
   if (value === "~" || value === "KC_TRNS") {
-    return { primary: "~", secondary: "transparent", tone: "transparent" };
+    return { primary: "~", tone: "transparent" };
   }
 
   const layerTap = value.match(/^LT\(([^,]+),\s*([^)]+)\)$/);

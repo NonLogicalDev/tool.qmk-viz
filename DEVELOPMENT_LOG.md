@@ -134,3 +134,27 @@ Validation:
 - In-app browser interaction check: clicking `Transparent` updated the selected key to `~`, applied the `transparent` tone, and refreshed the draft input.
 - In-app browser interaction check: switching to `SYMB` refreshed the selected `LT01` draft to that layer's cell (`KC_F1` before edit).
 - In-app browser interaction check: composing `LT(NAVI,KC_SPC)` and clicking `Use generated` updated the selected key, preview, TSV output, and status message.
+
+## 2026-06-21: qmk-viz key label density and transparent ghosting
+
+Goal: make keycap labels smaller and make transparent cells visually recede.
+
+What did not work:
+
+- Primary key labels measured `14.4px` in the in-app browser, which was too large for the 42px KLE unit.
+- Secondary key labels measured `9.92px`, still large enough to compete with the primary action labels.
+- Transparent cells rendered as `~transparent`, which made transparent-heavy layers noisy and made the absence of an action look like content.
+
+Changes made:
+
+- Reduced `.key-primary` to `clamp(0.56rem, 0.72vw, 0.7rem)`, measuring `10.368px` in the browser.
+- Reduced `.key-secondary` to `clamp(0.42rem, 0.55vw, 0.5rem)`, measuring `7.92px` in the browser.
+- Changed transparent action metadata so transparent keycaps no longer render the secondary `transparent` label.
+- Added transparent keycap ghost styling: pale striped fill, dashed border, hidden primary/secondary text, and a small diagonal marker.
+
+Validation:
+
+- `just viz-build` passed after the TypeScript/CSS changes.
+- In-app browser desktop viewport `1440x950`: all 76 keycaps visible, no horizontal overflow (`scrollWidth == clientWidth == 956`).
+- In-app browser `SYMB` layer check: 43 transparent keycaps used dashed ghost styling, with `.key-primary` hidden and no full `transparent` label visible.
+- In-app browser screenshot confirmed transparent cells now recede while active labels stay scannable.

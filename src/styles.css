@@ -241,8 +241,34 @@ textarea {
 }
 
 .keycap.transparent {
-  background: #f9f9f9;
-  color: #a0a3ad;
+  background:
+    repeating-linear-gradient(
+      -35deg,
+      rgb(34 36 51 / 2%),
+      rgb(34 36 51 / 2%) 4px,
+      transparent 4px,
+      transparent 9px
+    ),
+    #fbfaf6;
+  border-color: #e6dfd3;
+  border-style: dashed;
+  color: #b3afa7;
+}
+
+.keycap.transparent::after {
+  border-top: 2px solid rgb(34 36 51 / 18%);
+  content: "";
+  position: absolute;
+  transform: rotate(-18deg);
+  width: 34%;
+}
+
+.keycap.transparent .key-primary {
+  display: none;
+}
+
+.keycap.transparent .key-secondary {
+  display: none;
 }
 
 .keycap.layer {
@@ -259,16 +285,16 @@ textarea {
 
 .key-primary {
   align-self: end;
-  font-size: clamp(0.78rem, 1vw, 1rem);
-  font-weight: 850;
+  font-size: clamp(0.56rem, 0.72vw, 0.7rem);
+  font-weight: 820;
   line-height: 1;
 }
 
 .key-secondary {
   color: var(--muted);
-  font-size: clamp(0.5rem, 0.72vw, 0.62rem);
+  font-size: clamp(0.42rem, 0.55vw, 0.5rem);
   line-height: 1.1;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .key-slot {
