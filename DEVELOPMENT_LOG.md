@@ -104,3 +104,33 @@ Validation:
 - In-app browser desktop viewport `1440x950`: all 76 keycaps visible.
 - In-app browser measurement showed left and right thumb bounds now match vertically: both top `537.4` and bottom `688.5`.
 - In-app browser screenshot confirmed the right thumb cluster now mirrors the left cluster's vertical placement.
+
+## 2026-06-21: qmk-viz key editor polish pass
+
+Goal: make the visual editor feel more like an editing tool and less like a debug render.
+
+What did not work:
+
+- Key ids were rendered as normal content inside each keycap, competing with the actual key action label.
+- Layer buttons were styled as pills, so they looked like filters rather than tabs that switch the active layer.
+- The action input used `draftAction || currentAction`. That made the field look controlled, but the write path could silently fall back to the current saved action when the draft was empty or stale.
+- Switching layers cleared the draft instead of explicitly loading the selected cell for the new active layer. The visible value and the value written by `Apply` could feel disconnected.
+
+Changes made:
+
+- Moved key ids into absolute-positioned, tiny top-left debug text in each keycap.
+- Reduced keycap radius to `4px` so keys look more square and less like rounded UI cards.
+- Restyled layer controls as connected tabs with selected, hover, and focus states.
+- Added explicit draft synchronization from the selected key/layer cell.
+- Added editor status feedback after key selection, layer switching, manual apply, transparent/no-op presets, and generated action apply.
+- Added stable `data-testid` hooks for keycaps, layer tabs, the action input, composer controls, and write buttons to make browser validation precise.
+
+Validation:
+
+- `just viz-build` passed after the TypeScript/CSS changes.
+- In-app browser desktop viewport `1440x950`: all 76 keycaps visible, no horizontal overflow (`scrollWidth == clientWidth == 956`).
+- In-app browser style measurement: key ids are `absolute` at top `3px` / left `4px`, font size about `6px`; keycap radius is `4px`; active layer tab radius is `11px 11px 0 0` with no bottom border.
+- In-app browser interaction check: selecting `LT01`, entering `KC_F13`, and clicking `Apply` updated the preview, selected keycap, TSV output, and status message.
+- In-app browser interaction check: clicking `Transparent` updated the selected key to `~`, applied the `transparent` tone, and refreshed the draft input.
+- In-app browser interaction check: switching to `SYMB` refreshed the selected `LT01` draft to that layer's cell (`KC_F1` before edit).
+- In-app browser interaction check: composing `LT(NAVI,KC_SPC)` and clicking `Use generated` updated the selected key, preview, TSV output, and status message.

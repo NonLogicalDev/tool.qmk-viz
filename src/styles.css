@@ -132,15 +132,61 @@ textarea {
 }
 
 .layer-tabs {
+  align-items: end;
+  border-bottom: 1px solid var(--line);
   display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: 3px;
+  margin: 0 -2px 20px;
+  padding: 0 8px;
   position: sticky;
   top: 0;
   z-index: 4;
 }
 
-.layer-tabs button,
+.layer-tabs button {
+  background: #eee6d8;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 11px 11px 0 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  margin-bottom: -1px;
+  padding: 10px 16px 11px;
+  position: relative;
+}
+
+.layer-tabs button:hover {
+  background: #f8f2e7;
+  color: var(--ink);
+}
+
+.layer-tabs button.active {
+  background: var(--paper);
+  color: var(--ink);
+  padding-bottom: 12px;
+}
+
+.layer-tabs button.active::after {
+  background: var(--paper);
+  bottom: -1px;
+  content: "";
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
+.layer-tabs button:focus-visible,
+.keycap:focus-visible,
+.button-row button:focus-visible,
+.generated button:focus-visible {
+  outline: 3px solid rgb(0 120 168 / 28%);
+  outline-offset: 2px;
+}
+
 .button-row button,
 .generated button {
   background: #fff;
@@ -152,7 +198,6 @@ textarea {
   padding: 10px 16px;
 }
 
-.layer-tabs button.active,
 .button-row button:first-child,
 .generated button {
   background: var(--ink);
@@ -170,14 +215,14 @@ textarea {
   align-items: center;
   background: rgb(255 255 255 / 86%);
   border: 2px solid #d7d7d7;
-  border-radius: 9px;
+  border-radius: 4px;
   color: var(--ink);
   cursor: pointer;
   display: grid;
-  grid-template-rows: 1fr auto auto;
+  grid-template-rows: 1fr auto;
   justify-items: center;
   overflow: hidden;
-  padding: 5px;
+  padding: 8px 5px 5px;
   position: absolute;
   text-align: center;
   transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
@@ -227,11 +272,15 @@ textarea {
 }
 
 .key-slot {
-  color: rgb(34 36 51 / 42%);
+  color: rgb(34 36 51 / 36%);
   font-family: "SF Mono", "Menlo", monospace;
-  font-size: clamp(0.46rem, 0.62vw, 0.54rem);
+  font-size: 0.38rem;
   font-weight: 800;
-  margin-top: 2px;
+  left: 4px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  position: absolute;
+  top: 3px;
 }
 
 .editor-panel {
@@ -278,6 +327,16 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.editor-status {
+  background: #f1ede3;
+  border: 1px solid rgb(217 210 196 / 75%);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin: 0;
+  padding: 9px 11px;
 }
 
 .generated {

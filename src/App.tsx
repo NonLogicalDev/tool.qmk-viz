@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { describeAction, displayKeycode, composeAction } from "./lib/actions";
+import { useEffect, useMemo, useState } from "react";
+import { describeAction, composeAction } from "./lib/actions";
 import { parseLayoutTsv, serializeLayoutTsv, updateCell, TRANSPARENT, type TsvLayer } from "./lib/tsv";
 import { ergodoxInfinity, type KeySlot } from "./models/ergodoxInfinity";
 
@@ -23,6 +23,7 @@ export function App() {
   const [tapDraft, setTapDraft] = useState("KC_SPC");
   const [holdDraft, setHoldDraft] = useState("SYMB");
   const [composerKind, setComposerKind] = useState("plain");
+  const [statusMessage, setStatusMessage] = useState("Select a key, edit an identifier, then apply it.");
 
   const activeLayer = layers.find((layer) => layer.name === activeLayerName) ?? layers[0];
   const selectedKey = model.keys.find((key) => key.slot === selectedSlot) ?? model.keys[0];
@@ -64,6 +65,10 @@ export function App() {
   const generatedAction = composeAction(composerKind, tapDraft, holdDraft);
   const selectedDetails = describeAction(currentAction);
 
+  useEffect(() => {
+    setDraftAction(currentAction);
+  }, [currentAction, activeLayer.name, selectedKey.slot]);
+
   return (
     <main className="app-shell">
       <header className="hero">
@@ -100,17 +105,29 @@ export function App() {
               <button
                 className={layer.name === activeLayer.name ? "active" : ""}
                 key={layer.name}
+                id={`tab-${layer.name}`}
+                data-testid={`layer-tab-${layer.name}`}
                 onClick={() => {
                   setActiveLayerName(layer.name);
-                  setDraftAction("");
+                  setStatusMessage(`Editing ${layer.name}.`);
                 }}
+                role="tab"
+                aria-controls="keyboard-stage"
+                aria-selected={layer.name === activeLayer.name}
+                type="button"
               >
                 {layer.name}
               </button>
             ))}
           </div>
 
-          <div className="keyboard-stage" style={{ width: model.width * model.unit, height: model.height * model.unit }}>
+          <div
+            className="keyboard-stage"
+            id="keyboard-stage"
+            role="tabpanel"
+            aria-labelledby={`tab-${activeLayer.name}`}
+            style={{ width: model.width * model.unit, height: model.height * model.unit }}
+          >
             {model.keys.map((key) => {
               const action = selectedCell(activeLayer, key);
               const details = describeAction(action);
@@ -118,7 +135,12 @@ export function App() {
                 <button
                   className={`keycap ${details.tone} ${key.slot === selectedSlot ? "selected" : ""}`}
                   key={key.slot}
-                  onClick={() => selectKey(key)}
+                  data-testid={`key-${key.slot}`}
+                  onClick={() => {
+                    selectKey(key);
+                    setStatusMessage(`Selected ${key.slot} on ${activeLayer.name}.`);
+                  }}
+                  aria-pressed={key.slot === selectedSlot}
                   style={{
                     left: (key.x + model.padding) * model.unit,
                     top: (key.y + model.padding) * model.unit,
@@ -128,10 +150,11 @@ export function App() {
                     transformOrigin: `${(key.rotationX - key.x) * model.unit}px ${(key.rotationY - key.y) * model.unit}px`
                   }}
                   title={`${key.slot}: ${action}`}
+                  type="button"
                 >
+                  <span className="key-slot">{key.slot}</span>
                   <span className="key-primary">{details.primary}</span>
                   {details.secondary && <span className="key-secondary">{details.secondary}</span>}
-                  <span className="key-slot">{key.slot}</span>
                 </button>
               );
             })}
@@ -153,28 +176,62 @@ export function App() {
             <label>
               Identifier for {activeLayer.name}
               <input
-                value={draftAction || currentAction}
+                data-testid="action-input"
+                value={draftAction}
                 onChange={(event) => setDraftAction(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
-                    writeAction(draftAction || currentAction);
+                    writeAction(draftAction);
+                    setStatusMessage(`Updated ${selectedKey.slot} on ${activeLayer.name}.`);
                   }
                 }}
                 spellCheck={false}
               />
             </label>
             <div className="button-row">
-              <button onClick={() => writeAction(draftAction || currentAction)}>Apply</button>
-              <button onClick={() => writeAction(TRANSPARENT)}>Transparent</button>
-              <button onClick={() => writeAction("KC_NO")}>No-op</button>
+              <button
+                data-testid="apply-action"
+                onClick={() => {
+                  writeAction(draftAction);
+                  setStatusMessage(`Updated ${selectedKey.slot} on ${activeLayer.name}.`);
+                }}
+                type="button"
+              >
+                Apply
+              </button>
+              <button
+                data-testid="transparent-action"
+                onClick={() => {
+                  writeAction(TRANSPARENT);
+                  setStatusMessage(`${selectedKey.slot} is transparent on ${activeLayer.name}.`);
+                }}
+                type="button"
+              >
+                Transparent
+              </button>
+              <button
+                data-testid="noop-action"
+                onClick={() => {
+                  writeAction("KC_NO");
+                  setStatusMessage(`${selectedKey.slot} is disabled on ${activeLayer.name}.`);
+                }}
+                type="button"
+              >
+                No-op
+              </button>
             </div>
+            <p className="editor-status" data-testid="editor-status" role="status">{statusMessage}</p>
           </div>
 
           <div className="editor-card">
             <p className="eyebrow">Action composer</p>
             <label>
               Action type
-              <select value={composerKind} onChange={(event) => setComposerKind(event.target.value)}>
+              <select
+                data-testid="composer-kind"
+                value={composerKind}
+                onChange={(event) => setComposerKind(event.target.value)}
+              >
                 <option value="plain">Plain keycode</option>
                 <option value="transparent">Transparent</option>
                 <option value="mo">Momentary layer: MO(layer)</option>
@@ -191,22 +248,41 @@ export function App() {
             </label>
             <label>
               Tap keycode
-              <input value={tapDraft} onChange={(event) => setTapDraft(event.target.value)} spellCheck={false} />
+              <input
+                data-testid="composer-tap"
+                value={tapDraft}
+                onChange={(event) => setTapDraft(event.target.value)}
+                spellCheck={false}
+              />
             </label>
             <label>
               Held modifier/layer
-              <input value={holdDraft} onChange={(event) => setHoldDraft(event.target.value)} spellCheck={false} />
+              <input
+                data-testid="composer-hold"
+                value={holdDraft}
+                onChange={(event) => setHoldDraft(event.target.value)}
+                spellCheck={false}
+              />
             </label>
             <div className="generated">
               <code>{generatedAction}</code>
-              <button onClick={() => writeAction(generatedAction)}>Use generated</button>
+              <button
+                data-testid="use-generated-action"
+                onClick={() => {
+                  writeAction(generatedAction);
+                  setStatusMessage(`Applied ${generatedAction} to ${selectedKey.slot}.`);
+                }}
+                type="button"
+              >
+                Use generated
+              </button>
             </div>
           </div>
 
           <div className="editor-card export-card">
             <div className="button-row">
-              <button onClick={copyTsv}>Copy TSV</button>
-              <button onClick={downloadTsv}>Download TSV</button>
+              <button onClick={copyTsv} type="button">Copy TSV</button>
+              <button onClick={downloadTsv} type="button">Download TSV</button>
             </div>
             <textarea readOnly value={tsvOutput} spellCheck={false} />
             <p>
