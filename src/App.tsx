@@ -57,7 +57,7 @@ type BehaviorField = {
 type ComposerMode = "simple" | "dance";
 type LayoutPreviewSource = "layout" | "default";
 
-type AppPage = "editor" | "projects" | "model" | "layouts" | "export";
+type AppPage = "editor" | "projects" | "layouts" | "export";
 
 type AppPageDefinition = {
   id: AppPage;
@@ -67,7 +67,6 @@ type AppPageDefinition = {
 
 const appPages: AppPageDefinition[] = [
   { id: "projects", label: "Projects", description: "Backups and project library" },
-  { id: "model", label: "KLE Model", description: "Physical keyboard geometry" },
   { id: "layouts", label: "Layouts", description: "Named layouts and read-only preview" },
   { id: "editor", label: "Editor", description: "Keyboard and key actions" },
   { id: "export", label: "Export", description: "JSON and KLE downloads" }
@@ -783,7 +782,7 @@ export function App() {
             <span>Layout</span>
             <strong>{layoutNameDraft || availableLayouts.find((layout) => layout.id === activeLayoutId)?.name || "Layout"}</strong>
           </button>
-          <button className="context-chip" onClick={() => setActivePage("model")} type="button">
+          <button className="context-chip" onClick={() => setActivePage("projects")} type="button">
             <span>Model</span>
             <strong>{model.keys.length} keys</strong>
           </button>
@@ -1246,6 +1245,53 @@ export function App() {
                 <button data-testid="download-full-project" onClick={downloadFullProject} type="button">Full Project</button>
               </div>
             </div>
+            <div className="editor-card admin-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Keyboard model</p>
+                  <h2>{model.name}</h2>
+                </div>
+                <span className="metric-pill">{model.keys.length} keys</span>
+              </div>
+              <dl className="model-facts" data-testid="model-readout">
+                <div>
+                  <dt>Source</dt>
+                  <dd>{model.source}</dd>
+                </div>
+                <div>
+                  <dt>Canvas</dt>
+                  <dd>{model.width.toFixed(1)}u × {model.height.toFixed(1)}u</dd>
+                </div>
+                <div>
+                  <dt>Author</dt>
+                  <dd>{model.author || "Not specified"}</dd>
+                </div>
+              </dl>
+              <p>
+                Updating the KLE model is undoable. Existing layout keys survive when their slot IDs still exist in
+                the new KLE file.
+              </p>
+              <div className="button-row">
+                <label className="file-import">
+                  Upload/Update KLE
+                  <input
+                    data-testid="keyboard-upload"
+                    accept="application/json,.json"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void updateActiveKeyboardModel(file).catch((error: unknown) => {
+                          setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
+                        });
+                      }
+                      event.target.value = "";
+                    }}
+                    type="file"
+                  />
+                </label>
+                <button data-testid="download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
+              </div>
+            </div>
             <div className="editor-card admin-card project-stats-card">
               <div className="section-header">
                 <div>
@@ -1275,79 +1321,8 @@ export function App() {
                   <p className="eyebrow">Associated KLE model</p>
                   <h2>Marker preview</h2>
                 </div>
-                <button data-testid="projects-download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
               </div>
               <KeyboardModelPreview model={model} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {activePage === "model" && (
-        <section className="page-panel">
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">Keyboard model</p>
-              <h1>KLE geometry and IDs</h1>
-              <p>The model defines physical key placement and matrix IDs. Layouts stay attached by stable slot ID.</p>
-            </div>
-          </div>
-          <div className="admin-grid two-column">
-            <div className="editor-card admin-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">KLE model</p>
-                  <h2>{model.name}</h2>
-                </div>
-                <span className="metric-pill">{model.keys.length} keys</span>
-              </div>
-              <dl className="model-facts" data-testid="model-readout">
-                <div>
-                  <dt>Source</dt>
-                  <dd>{model.source}</dd>
-                </div>
-                <div>
-                  <dt>Canvas</dt>
-                  <dd>{model.width.toFixed(1)}u × {model.height.toFixed(1)}u</dd>
-                </div>
-                <div>
-                  <dt>Author</dt>
-                  <dd>{model.author || "Not specified"}</dd>
-                </div>
-              </dl>
-            </div>
-            <div className="editor-card admin-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Model files</p>
-                  <h2>Upload or download KLE</h2>
-                </div>
-              </div>
-              <p>
-                Updating the KLE model is undoable. Existing layout keys survive when their slot IDs still exist in
-                the new KLE file.
-              </p>
-              <div className="button-row">
-                <label className="file-import">
-                  Upload/Update KLE
-                  <input
-                    data-testid="keyboard-upload"
-                    accept="application/json,.json"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        void updateActiveKeyboardModel(file).catch((error: unknown) => {
-                          setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
-                        });
-                      }
-                      event.target.value = "";
-                    }}
-                    type="file"
-                  />
-                </label>
-                <button data-testid="download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
-                <button data-testid="download-project-kle" onClick={downloadProjectKle} type="button">Project KLE</button>
-              </div>
             </div>
           </div>
         </section>

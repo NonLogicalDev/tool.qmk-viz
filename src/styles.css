@@ -88,7 +88,7 @@ code {
   border-radius: 11px;
   display: grid;
   gap: 3px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 3px;
 }
 
@@ -301,6 +301,11 @@ textarea {
   grid-template-columns: minmax(0, 1fr);
   margin: 0 auto;
   max-width: 1680px;
+  width: 100%;
+}
+
+.editor-workspace {
+  max-width: none;
 }
 
 .keyboard-panel,
@@ -701,8 +706,9 @@ textarea {
 .editor-panel {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(320px, 0.85fr) minmax(430px, 1.15fr);
+  grid-template-columns: minmax(320px, 0.78fr) minmax(520px, 1.22fr);
   align-self: start;
+  width: 100%;
 }
 
 .page-panel {
@@ -778,7 +784,7 @@ textarea {
 
 .layout-page-grid {
   align-items: start;
-  grid-template-columns: minmax(300px, 0.35fr) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .admin-card {
@@ -960,9 +966,9 @@ textarea {
 }
 
 .layout-preview-card {
-  grid-column: 2;
-  grid-row: 1 / span 3;
+  grid-column: 1 / -1;
   min-width: 0;
+  order: -1;
 }
 
 .version-tree-card {
@@ -1281,7 +1287,7 @@ textarea {
 
 @media (max-width: 760px) {
   .app-nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .context-strip {

@@ -1,5 +1,41 @@
 # Development Log
 
+## 2026-06-21: qmk-viz folds KLE model into Projects
+
+Goal: remove the standalone `KLE Model` top-level page, make KLE model management part of project configuration, and keep keyboard editor/viewer surfaces as full-width primary page surfaces.
+
+What worked:
+
+- Removed `KLE Model` from top-level navigation.
+- Moved KLE model facts, `Upload/Update KLE`, and `Download KLE` into the Projects page.
+- Kept the visual marker preview on Projects as the main way to understand the current keyboard model.
+- Kept Export focused on generated outputs; it still offers the Project KLE export beside layout JSON.
+- Changed the model context chip to route to Projects, since model ownership now lives there.
+- Made the Editor workspace full-width so the keyboard panel owns the page width and selected-key/composer controls sit below it.
+- Made the Layouts read-only preview the first full-width row, with named layout, Default, and version controls below it.
+
+What did not work:
+
+- Keeping KLE as a top-level page was too granular. It created a separate navigation concept for what is really project settings.
+- The first folded pass had two duplicate KLE download buttons in the Projects model card. Reduced that to one visible `Download KLE` action.
+- The Editor page already avoided a side-by-side keyboard split, but the workspace still had a max-width container. Removed that cap for the editor-specific workspace.
+- The Layouts page still had the keyboard preview in a right-side grid column. Moved it to a full-width first row so layout controls no longer constrain the preview.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan found no stale `KLE Model`, `activePage === "model"`, `setActivePage("model")`, `id: "model"`, or five-tab nav references.
+- In-app browser validation at `http://localhost:5176/` confirmed:
+  - top navigation is `Projects`, `Layouts`, `Editor`, `Export`
+  - no `KLE Model` nav item exists
+  - Projects contains project select, model readout, KLE upload, KLE download, project stats, and a 76-key marker preview
+  - Editor keyboard panel and editor controls span the full available workspace width
+  - Editor renders 76 keys with horizontal keyboard scrolling inside the full-width panel on narrow viewports
+  - Layouts preview spans the full page grid width above the layout/default/version controls at both the default narrow viewport and a 1440px desktop viewport
+  - Projects has no horizontal overflow
+  - browser console has no errors
+
 ## 2026-06-21: qmk-viz key label clipping fix
 
 Goal: stop compact key labels such as `Space` from rendering as ellipsized text like `Spa...`.
