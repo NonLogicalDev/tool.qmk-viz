@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-06-21: qmk-viz JSON validation and KLE identifier checks
+
+Goal: prevent invalid Project/Layout/KLE JSON from being saved or applied, and reject KLE models that reuse the same key identifier.
+
+What worked:
+
+- Added live validation for JSON modal contents.
+- Project/Layout JSON edit modals now parse and schema-check via the same parsers used by save/import.
+- KLE paste/update now validates through the real keyboard model builder before enabling `Update KLE`.
+- `Save JSON` and `Update KLE` are disabled until JSON parses and passes the relevant schema/model checks.
+- KLE model building now throws on duplicate non-empty key identifiers instead of silently dropping repeated IDs.
+- Validation messages appear inline inside the modal, with OK/error styling.
+
+What did not work:
+
+- Submit-time-only validation was too late for an edit modal; users could still press a save button that had no chance of succeeding.
+- The old KLE builder used `seen.has(slot)` to skip duplicate identifiers, which hid malformed keyboard models and could make mappings silently target the wrong key.
+
+Validation:
+
+- `just viz-build` passed.
+- In-app browser validation at `http://localhost:5174/` confirmed:
+  - invalid Layout JSON disables `Save JSON` and shows the parse error
+  - pasted KLE JSON with duplicate identifier `DUP` disables `Update KLE`
+  - duplicate KLE validation message includes the duplicated identifier
+
 ## 2026-06-21: qmk-viz terse chord labels and composer selection isolation
 
 Goal: make modifier-wrapper keys read like user-facing shortcuts, prevent editor-key selection from mutating Action Composer state by default, add an explicit composer sync toggle, replace Project/Layout paste JSON with edit/save JSON modals, and persist layer colors from a fixed palette.

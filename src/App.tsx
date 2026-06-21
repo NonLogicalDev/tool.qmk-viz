@@ -77,6 +77,11 @@ type JsonEditDialog = {
   value: string;
 };
 
+type JsonValidation = {
+  ok: boolean;
+  message: string;
+};
+
 type CaptureTarget = "raw" | "simple";
 
 type ExtKeyTableKind = "macro" | "alias";
@@ -189,6 +194,23 @@ function simpleModifiersFromEvent(event: KeyboardEvent): string[] {
   ].filter(Boolean);
 }
 
+function validateJsonText(value: string, emptyMessage: string, validateRaw: (raw: unknown) => void): JsonValidation {
+  const clean = value.trim();
+  if (!clean) {
+    return { ok: false, message: emptyMessage };
+  }
+
+  try {
+    validateRaw(JSON.parse(clean) as unknown);
+    return { ok: true, message: "JSON is valid." };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Invalid JSON."
+    };
+  }
+}
+
 function isModifierKeyEvent(event: KeyboardEvent): boolean {
   return event.key === "Shift" || event.key === "Control" || event.key === "Alt" || event.key === "Meta";
 }
@@ -280,6 +302,24 @@ export function App() {
     layoutNameDraft,
     model
   ]);
+  const jsonEditValidation = useMemo<JsonValidation>(() => {
+    if (!jsonEditDialog) return { ok: true, message: "" };
+
+    return validateJsonText(jsonEditDialog.value, "JSON editor is empty.", (raw) => {
+      if (jsonEditDialog.kind === "project") {
+        parseProjectFile(raw, "edited-project.json");
+      } else {
+        parseLayoutUpload(raw, model, layoutNameDraft || "Edited Layout");
+      }
+    });
+  }, [jsonEditDialog, layoutNameDraft, model]);
+  const pasteJsonValidation = useMemo<JsonValidation>(() => {
+    if (!pasteJsonDialog) return { ok: true, message: "" };
+
+    return validateJsonText(pasteJsonDialog.value, "Paste KLE JSON before updating.", (raw) => {
+      buildKeyboardModelFromKle(raw, { source: "pasted-kle.json" });
+    });
+  }, [pasteJsonDialog]);
 
   function projectWithEditorState(): SavedKeyboardProject {
     const now = new Date().toISOString();
@@ -1211,11 +1251,12 @@ export function App() {
     event.preventDefault();
     if (!pasteJsonDialog) return;
 
-    const pasted = pasteJsonDialog.value.trim();
-    if (!pasted) {
-      setStatusMessage("Paste JSON before importing.");
+    if (!pasteJsonValidation.ok) {
+      setStatusMessage(pasteJsonValidation.message);
       return;
     }
+
+    const pasted = pasteJsonDialog.value.trim();
 
     try {
       const raw = JSON.parse(pasted) as unknown;
@@ -1232,11 +1273,12 @@ export function App() {
     event.preventDefault();
     if (!jsonEditDialog) return;
 
-    const edited = jsonEditDialog.value.trim();
-    if (!edited) {
-      setStatusMessage("JSON editor is empty.");
+    if (!jsonEditValidation.ok) {
+      setStatusMessage(jsonEditValidation.message);
       return;
     }
+
+    const edited = jsonEditDialog.value.trim();
 
     try {
       const raw = JSON.parse(edited) as unknown;
@@ -2463,8 +2505,22 @@ export function App() {
               />
             </label>
             <p className="modal-help">{jsonEditLabels[jsonEditDialog.kind].help}</p>
+            <p
+              className={`action-validation ${jsonEditValidation.ok ? "ok" : "warning"}`}
+              data-testid="edit-json-validation"
+            >
+              {jsonEditValidation.message}
+            </p>
             <div className="button-row rename-modal-actions">
-              <button className="action-save" data-icon="✓" data-testid="save-edit-json" type="submit">Save JSON</button>
+              <button
+                className="action-save"
+                data-icon="✓"
+                data-testid="save-edit-json"
+                disabled={!jsonEditValidation.ok}
+                type="submit"
+              >
+                Save JSON
+              </button>
               <button className="action-disable" data-icon="×" data-testid="close-edit-json" onClick={() => setJsonEditDialog(null)} type="button">Close</button>
             </div>
           </form>
@@ -2499,8 +2555,22 @@ export function App() {
                 spellCheck={false}
               />
             </label>
+            <p
+              className={`action-validation ${pasteJsonValidation.ok ? "ok" : "warning"}`}
+              data-testid="paste-json-validation"
+            >
+              {pasteJsonValidation.message}
+            </p>
             <div className="button-row rename-modal-actions">
-              <button className="action-import" data-icon="{}" data-testid="submit-paste-json" type="submit">Update KLE</button>
+              <button
+                className="action-import"
+                data-icon="{}"
+                data-testid="submit-paste-json"
+                disabled={!pasteJsonValidation.ok}
+                type="submit"
+              >
+                Update KLE
+              </button>
               <button className="action-disable" data-icon="×" onClick={() => setPasteJsonDialog(null)} type="button">Close</button>
             </div>
           </form>

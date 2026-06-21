@@ -62,7 +62,10 @@ export function buildKeyboardModelFromKle(raw: unknown, options: {
 
   for (const key of parsedKeys) {
     const slot = slotFromLegend(key).trim();
-    if (!slot || seen.has(slot)) continue;
+    if (!slot) continue;
+    if (seen.has(slot)) {
+      throw new Error(`Duplicate KLE key identifier "${slot}". Key identifiers must be unique.`);
+    }
     seen.add(slot);
     keys.push({
       slot,
