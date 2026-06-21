@@ -28,6 +28,12 @@ Validation:
 - Last clean checkpoint before this WIP: `d002e03 2026-06-21T09:30:00Z :: checkpoint :: qmk-viz layers stay in editor`.
 - Current WIP files include `qmk-viz/package.json`, `qmk-viz/package-lock.json`, `qmk-viz/src/App.tsx`, `qmk-viz/src/lib/appModel.ts`, and the active plan file.
 
+Follow-up stabilization:
+
+- Reconciled `qmk-viz/src/App.tsx` with `qmk-viz/src/lib/appModel.ts` so app-model helpers are no longer duplicated.
+- `just viz-build` passed after the split reconciliation.
+- Remaining loose items are still open: Default template UI, version tree UI, Projects KLE/stats page, danger styling, browser validation, and final checkpoint.
+
 ## 2026-06-21: qmk-viz layer ownership correction
 
 Goal: keep layer editing inside the Editor page while making the Layouts page a read-only preview/browser for named layouts.

@@ -47,7 +47,7 @@ The scope expanded before pause:
 2. [x] Add initial layout version types, clone helpers, normalize helpers, save-version action, and load-version action in `App.tsx`.
 3. [x] Add initial confirmation dialogs for project/layout deletion and attach `danger-button` classes.
 4. [x] Install the first split target as `qmk-viz/src/lib/appModel.ts`.
-5. [ ] Finish the `App.tsx` split by importing from `src/lib/appModel.ts` and deleting duplicate local helper/type definitions.
+5. [x] Finish the `App.tsx` split by importing from `src/lib/appModel.ts` and deleting duplicate local helper/type definitions.
 6. [ ] Move QMK action/keycode constants and event-to-keycode helpers out of `App.tsx`.
 7. [ ] Move `PreviewKeycap` and reusable keyboard key rendering helpers out of `App.tsx`.
 8. [ ] Move React Flow version graph construction/rendering out of `App.tsx`.
@@ -68,11 +68,13 @@ The scope expanded before pause:
 - Undo is session-local and immediate; confirmation still matters for destructive project/layout removal because those actions remove larger containers.
 - Default layout should not be modeled as a tag, property, or selected version of a normal layout. It is a project-level read-only bootstrap document.
 - The current `App.tsx` size is now a real delivery risk. Further feature work should start by finishing the helper split, not by adding more JSX or state handlers to the same file.
+- The first extraction boundary is stable: project/layout/default-template model helpers now live in `qmk-viz/src/lib/appModel.ts`, and `App.tsx` imports them instead of duplicating that logic.
 
 # Work Log
 
 - [x] 2026-06-21 02:31 - Created plan after adding the graph dependency and before changing the layout data model.
 - [x] 2026-06-21 02:43 - Paused implementation at the user's request and recorded the expanded scope, WIP files, and unfinished work.
+- [x] 2026-06-21 02:50 - Reconciled `App.tsx` with `src/lib/appModel.ts`; `just viz-build` passes again.
 
 # Paused State
 
@@ -85,10 +87,13 @@ Current uncommitted files:
 - `qmk-viz/src/lib/appModel.ts`: new extracted app-model helper module created, but `App.tsx` has not yet been rewired to import it.
 - `.agents-plans/epic-1 2026-06-21 qmk-viz-editor-refinements/plan-6 2026-06-21 layout-version-tree-and-safe-deletes.md`: this active plan.
 
-Known risk:
+Resolved WIP risk:
 
-- The checkout is paused mid-refactor and should be assumed not build-clean until `App.tsx` is reconciled with `src/lib/appModel.ts`.
-- `just viz-build` has not been run after the `appModel.ts` extraction started.
+- `App.tsx` is reconciled with `src/lib/appModel.ts`.
+- `just viz-build` passes after the split.
+
+Remaining risk:
+
 - Browser validation has not been run for the version tree, Default template, Projects-page stats, or delete confirmations.
 
 # Unfinished Work

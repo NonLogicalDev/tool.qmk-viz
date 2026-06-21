@@ -55,6 +55,15 @@ export function newEntityId(prefix: string): string {
   return globalThis.crypto?.randomUUID?.() ?? `${prefix}-${Date.now()}`;
 }
 
+export function formatVersionDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
+}
+
 export function createLayoutVersion(document: KeymapDocument, parentId: string | null, label: string, createdAt = new Date().toISOString()): SavedLayoutVersion {
   return {
     id: newEntityId("layout-version"),
