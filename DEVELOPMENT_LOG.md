@@ -263,3 +263,26 @@ Validation:
 - In-app browser validation: `Capture` + `Control` filled `KC_LCTL`.
 - In-app browser validation: Dance composer wrote `TD(DANCE_0)` and one `@DANCES` row; undo/redo removed/restored both the selected key action and support row.
 - In-app browser validation: adding a layer changed both tabs and TSV layer count; undo/redo removed/restored the layer.
+
+## 2026-06-21: qmk-viz top-level undo/redo icons
+
+Goal: move Undo/Redo out of the selected-key editor card and make them top-level app controls.
+
+What did not work:
+
+- Text Undo/Redo buttons inside the selected-key button row made the app-wide history feature look scoped to the selected key.
+- Keeping history controls near `Apply raw`, `Transparent`, and `No-op` visually mixed global state navigation with key-edit operations.
+
+Changes made:
+
+- Moved the existing app-wide `undoApp()` and `redoApp()` controls into the header.
+- Replaced text buttons with compact SVG icon buttons using the same `data-testid` hooks and disabled/title behavior.
+- Removed the old selected-key-card Undo/Redo buttons.
+- Added a small header history toolbar style that wraps cleanly beside the keyboard/layout selectors.
+
+Validation:
+
+- `just viz-build` passed after the React/CSS changes.
+- In-app browser validation: exactly one `undo-action` and one `redo-action` exist, both inside `.history-controls`.
+- In-app browser validation: no Undo/Redo text buttons remain in `.key-editor-card .button-row`.
+- In-app browser validation: editing `LT00` to `KC_F13`, pressing the header Undo icon, and pressing the header Redo icon correctly changed the selected key and history disabled states.

@@ -487,6 +487,34 @@ export function App() {
           </p>
         </div>
         <div className="hero-controls">
+          <div className="history-controls" aria-label="History">
+            <button
+              aria-label="Undo"
+              data-testid="undo-action"
+              disabled={!canUndo}
+              onClick={undoApp}
+              title={canUndo ? "Undo last app change" : "No changes to undo"}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M9 7H5v4" />
+                <path d="M5 11c2.2-3.4 5.6-5 9.4-4.2 3.1.6 5.4 3.2 5.6 6.4.2 3.8-2.7 7-6.5 7-2.2 0-4.1-1-5.3-2.6" />
+              </svg>
+            </button>
+            <button
+              aria-label="Redo"
+              data-testid="redo-action"
+              disabled={!canRedo}
+              onClick={redoApp}
+              title={canRedo ? "Redo app change" : "No changes to redo"}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M15 7h4v4" />
+                <path d="M19 11c-2.2-3.4-5.6-5-9.4-4.2-3.1.6-5.4 3.2-5.6 6.4-.2 3.8 2.7 7 6.5 7 2.2 0 4.1-1 5.3-2.6" />
+              </svg>
+            </button>
+          </div>
           <label>
             Keyboard model
             <select value={model.id} disabled>
@@ -706,24 +734,6 @@ export function App() {
                 type="button"
               >
                 No-op
-              </button>
-              <button
-                data-testid="undo-action"
-                disabled={!canUndo}
-                onClick={undoApp}
-                title={canUndo ? "Undo last app change" : "No changes to undo"}
-                type="button"
-              >
-                Undo
-              </button>
-              <button
-                data-testid="redo-action"
-                disabled={!canRedo}
-                onClick={redoApp}
-                title={canRedo ? "Redo app change" : "No changes to redo"}
-                type="button"
-              >
-                Redo
               </button>
             </div>
             <p className="editor-status" data-testid="editor-status" role="status">{statusMessage}</p>
