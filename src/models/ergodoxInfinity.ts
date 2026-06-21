@@ -98,7 +98,7 @@ export const ergodoxInfinity: KeyboardModel = {
   source: "keyboard-layout.json + layout_nonlogical-01.tsv",
   width: maxCoordinate(keys, "x", "width") + stagePadding * 2,
   height: maxCoordinate(keys, "y", "height") + stagePadding * 2,
-  unit: 42,
+  unit: 60,
   padding: stagePadding,
   keys,
   layouts: {

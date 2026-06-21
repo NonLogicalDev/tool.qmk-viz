@@ -1,15 +1,38 @@
+import type { BehaviorSlots } from "./actions";
+
 export type TsvLayer = {
   name: string;
   rows: string[][];
+};
+
+export type TsvDance = {
+  name: string;
+  slots: BehaviorSlots;
+};
+
+export type TsvExtKey = {
+  name: string;
+  kind: string;
+  value: string;
+  notes: string;
+};
+
+export type TsvDocument = {
+  layers: TsvLayer[];
+  dances: TsvDance[];
+  extKeys: TsvExtKey[];
 };
 
 export const BORDER = "+";
 export const MISSING = "#";
 export const TRANSPARENT = "~";
 
-export function parseLayoutTsv(source: string): TsvLayer[] {
+export function parseLayoutDocumentTsv(source: string): TsvDocument {
   const layers: TsvLayer[] = [];
-  let current: TsvLayer | undefined;
+  const dances: TsvDance[] = [];
+  const extKeys: TsvExtKey[] = [];
+  let currentLayer: TsvLayer | undefined;
+  let section: "layer" | "dances" | "extkeys" | undefined;
 
   for (const rawLine of source.split(/\r?\n/)) {
     if (!rawLine.trim()) {
@@ -20,29 +43,110 @@ export function parseLayoutTsv(source: string): TsvLayer[] {
     const first = row[0];
 
     if (first?.startsWith("@LAYER/")) {
-      current = { name: first.slice("@LAYER/".length), rows: [] };
-      layers.push(current);
+      currentLayer = { name: first.slice("@LAYER/".length), rows: [] };
+      section = "layer";
+      layers.push(currentLayer);
       continue;
     }
 
-    if (!current) {
-      throw new Error("TSV key rows must appear after an @LAYER/<NAME> marker.");
+    if (first === "@DANCES") {
+      currentLayer = undefined;
+      section = "dances";
+      continue;
     }
 
-    current.rows.push(row);
+    if (first === "@EXTKEYS") {
+      currentLayer = undefined;
+      section = "extkeys";
+      continue;
+    }
+
+    if (section === "layer" && currentLayer) {
+      currentLayer.rows.push(row);
+      continue;
+    }
+
+    if (section === "dances") {
+      if (first?.toUpperCase() === "NAME") {
+        continue;
+      }
+
+      if (first) {
+        dances.push({
+          name: first,
+          slots: {
+            tap: row[1] ?? "",
+            hold: row[2] ?? "",
+            doubleTap: row[3] ?? "",
+            tapHold: row[4] ?? ""
+          }
+        });
+      }
+      continue;
+    }
+
+    if (section === "extkeys") {
+      if (first?.toUpperCase() === "NAME") {
+        continue;
+      }
+
+      if (first) {
+        extKeys.push({
+          name: first,
+          kind: row[1] ?? "",
+          value: row[2] ?? "",
+          notes: row[3] ?? ""
+        });
+      }
+      continue;
+    }
+
+    throw new Error("TSV rows must appear after @LAYER/<NAME>, @DANCES, or @EXTKEYS.");
   }
 
   if (layers.length === 0) {
     throw new Error("No @LAYER/<NAME> sections found.");
   }
 
-  return layers;
+  return { layers, dances, extKeys };
+}
+
+export function parseLayoutTsv(source: string): TsvLayer[] {
+  return parseLayoutDocumentTsv(source).layers;
+}
+
+export function serializeLayoutDocumentTsv(document: TsvDocument): string {
+  const sections = document.layers.map((layer) => (
+    [`@LAYER/${layer.name}`, ...layer.rows.map((row) => row.join("\t"))].join("\n")
+  ));
+
+  if (document.extKeys.length > 0) {
+    sections.push([
+      "@EXTKEYS",
+      ["NAME", "KIND", "VALUE", "NOTES"].join("\t"),
+      ...document.extKeys.map((key) => [key.name, key.kind, key.value, key.notes].join("\t"))
+    ].join("\n"));
+  }
+
+  if (document.dances.length > 0) {
+    sections.push([
+      "@DANCES",
+      ["NAME", "TAP", "HOLD", "DOUBLE_TAP", "TAP_HOLD"].join("\t"),
+      ...document.dances.map((dance) => [
+        dance.name,
+        dance.slots.tap,
+        dance.slots.hold,
+        dance.slots.doubleTap,
+        dance.slots.tapHold
+      ].join("\t"))
+    ].join("\n"));
+  }
+
+  return sections.join("\n");
 }
 
 export function serializeLayoutTsv(layers: TsvLayer[]): string {
-  return layers
-    .map((layer) => [`@LAYER/${layer.name}`, ...layer.rows.map((row) => row.join("\t"))].join("\n"))
-    .join("\n");
+  return serializeLayoutDocumentTsv({ layers, dances: [], extKeys: [] });
 }
 
 export function updateCell(layers: TsvLayer[], layerName: string, row: number, col: number, value: string): TsvLayer[] {

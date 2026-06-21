@@ -1,5 +1,75 @@
 # Development Log
 
+## 2026-06-21: qmk-viz keyboard-first dense editor pass
+
+Goal: keep the keyboard viewer as the primary surface, dynamically fit key identifiers, and make the rest of the UI denser without losing hierarchy.
+
+What worked:
+
+- Installed `@chenglou/pretext` in `qmk-viz/` and used its `prepareWithSegments`, `measureNaturalWidth`, and `layout` APIs to measure labels before rendering them.
+- Added browser-measured dynamic key label fitting with a max font size and step-down behavior for both primary identifiers and bottom action-type labels.
+- Kept the keyboard viewer full width and increased the display unit to `60`, which makes the KLE-sourced geometry readable while still avoiding horizontal overflow at the 1440px in-app browser viewport.
+- Condensed the global header into a compact toolbar while preserving the model/layout selectors.
+- Merged selected-key context and manual identifier editing into one compact card.
+- Made the action composer contextual: plain/mod-tap actions show keycode fields, layer actions show layer fields, layer-tap shows both, and transparent shows no input fields.
+- Expanded the TSV viewer into a full-width bottom card so the tabular output has enough horizontal room.
+- Replaced large pill-style buttons with smaller, lower-radius controls.
+
+What did not work:
+
+- The old side-by-side editor layout wasted width that the keyboard needed.
+- Fixed CSS font sizes worked for common labels but did not handle long identifiers consistently.
+- A first size-bucket approach was too blunt; the better fit is to calculate the largest usable font size per label.
+- The generic composer with the same two fields for every action type made simple actions and layer actions harder to understand.
+- Keeping the TSV viewer in a normal card column made the output feel cramped and visually over-important beside the composer.
+
+Validation:
+
+- `just viz-build` passed after the Pretext, layout, composer, and density changes.
+- In-app browser desktop viewport `1440x950`: all 76 keycaps visible, keyboard panel had no horizontal overflow, and page `scrollWidth == clientWidth == 1440`.
+- In-app browser label measurement: `clippedPrimary == 0` and `clippedSecondary == 0`.
+- In-app browser editor layout: selected-key and composer cards render as the compact upper dock; export card spans the full editor width.
+- In-app browser interaction check: composing `LT(NAVI,KC_SPC)` updated the selected key, action input, status message, and TSV output.
+
+## 2026-06-21: qmk-viz behavior-slot preview and undo pass
+
+Goal: make the selected key editor closer to the Oryx mental model while keeping the existing TSV/QMK pipeline honest.
+
+What worked:
+
+- Added a graphical mini keycap preview for the raw QMK identifier field.
+- Added a graphical mini keycap preview for the generated behavior-slot action.
+- Added an undo stack for key edits. Undo restores the last edited layer/key cell, reselects that key, and updates the TSV output.
+- Kept a raw QMK identifier input for full power users who know the exact string they want.
+- Replaced the old macro dropdown with four behavior slots:
+  - when tapped
+  - when held
+  - when double tapped
+  - when tapped and held
+- Parsed existing identifiers back into behavior slots where possible. For example, `LT(NAVI,KC_SPC)` becomes tapped `KC_SPC` and held `NAVI`.
+- Generated compile-ready QMK identifiers for the simple cases the current one-cell TSV format can represent: plain key, momentary layer, layer-tap, and mod-tap.
+
+What did not work:
+
+- A full Oryx-style four-behavior model cannot honestly compile through the current TSV format, because each key cell currently stores exactly one QMK identifier.
+- Double-tap and tap-then-hold need generated QMK support such as custom keycodes, tap dance, or per-key state handling. Pretending those fit into a single TSV identifier would produce misleading UI.
+- VIA-style dynamic editing and arbitrary tap-dance/custom logic are different capability layers. The visual editor can collect intent, but QMK still needs generated C code for advanced behavior.
+
+Validation:
+
+- `just viz-build` passed after the behavior-slot, graphical-preview, raw-input, and undo changes.
+- In-app browser desktop viewport `1440x950`: all four behavior fields rendered, both previews rendered as keycaps, no key label clipping, and no horizontal overflow.
+- In-app browser interaction check: tapped `KC_SPC` plus held `NAVI` generated `LT(NAVI,KC_SPC)` and applied it to the selected key/TSV output.
+- In-app browser interaction check: raw input `HYPR_T(KC_ESC)` applied directly and rendered the mini keycap as `Esc hold Hyper`.
+- In-app browser interaction check: undo restored the previous `LT(NAVI,KC_SPC)` value and removed the raw `HYPR_T(KC_ESC)` from TSV.
+- In-app browser interaction check: setting a double-tap slot disabled `Use generated` and displayed the custom-QMK/tap-dance limitation instead of writing a fake TSV identifier.
+
+Next likely architecture:
+
+- Keep TSV as the low-level raw keymap interchange.
+- Add a richer behavior schema if we want true Oryx-style editing.
+- Extend `scripts/render-layout.py` or add a sibling generator that emits both `layout_selected.h` and custom QMK C for behavior slots that need more than one QMK identifier.
+
 ## 2026-06-21: qmk-viz in-app browser validation and fit pass
 
 Goal: make `qmk-viz` usable as a visual TSV editor for the Ergodox Infinity layout and validate it through the Codex in-app browser.
@@ -158,3 +228,38 @@ Validation:
 - In-app browser desktop viewport `1440x950`: all 76 keycaps visible, no horizontal overflow (`scrollWidth == clientWidth == 956`).
 - In-app browser `SYMB` layer check: 43 transparent keycaps used dashed ghost styling, with `.key-primary` hidden and no full `transparent` label visible.
 - In-app browser screenshot confirmed transparent cells now recede while active labels stay scannable.
+
+## 2026-06-21: qmk-viz app-wide editing, dances, and raw key capture
+
+Goal: turn the visual editor into a practical layout authoring surface with app-wide undo/redo, editable layers, Oryx-like tap-dance modeling, and a raw-input capture button for common QMK identifiers.
+
+What did not work:
+
+- Key-only undo was too narrow once layer add/remove/reorder and generated dance rows were introduced. A single user action can now change both the selected key and generated support tables, so undo needs to snapshot the full TSV document.
+- Per-dance `@DANCE/<name>` sections made the TSV format harder to paste into sheets and conflicted with the greenfield direction. The canonical shape is now one `@DANCES` table.
+- Enabling `TAP_DANCE_ENABLE = yes` without any dances caused QMK's `quantum/keymap_introspection.c` to fail because it still expects a global `tap_dance_actions` array.
+- A copied temp-script probe for `render-layout.py` did not work because the script intentionally resolves the keymap directory from `__file__`.
+
+Changes made:
+
+- Added a `Capture` button beside the selected key raw QMK identifier field.
+- Capture mode listens for the next keydown globally and writes a draft identifier such as `KC_A`, `KC_LCTL`, `KC_ENT`, `KC_LEFT`, or punctuation keycodes without immediately changing the layout.
+- Converted undo/redo to bounded app-wide TSV document snapshots so raw edits, generated actions, layer edits, and generated support rows undo together.
+- Added layer add/remove/rename/reorder controls with tabs rendered as `$index: $name`.
+- Split the action composer into Simple and Dance modes.
+- Made Dance mode emit `TD(DANCE_N)` in the keymap and a single row in `@DANCES` with `NAME`, `TAP`, `HOLD`, `DOUBLE_TAP`, and `TAP_HOLD` columns.
+- Added `@EXTKEYS` table parsing/rendering for future custom keycodes and aliases.
+- Updated `scripts/render-layout.py` to generate `layout_selected_extras.h` with custom keycode enums, alias defines, and tap-dance support.
+- Added a generated dummy `tap_dance_actions` array when no `@DANCES` rows exist so the keymap still compiles with `TAP_DANCE_ENABLE` enabled.
+
+Validation:
+
+- `just viz-build` passed after the React/TypeScript changes.
+- `just use-layout nonlogical-01` regenerated `layout_selected.h`, `layout_selected.txt`, and `layout_selected_extras.h`.
+- Import-based renderer probe passed with a temporary TSV containing both `@EXTKEYS` and `@DANCES`.
+- `just build nonlogical-01` initially failed because `tap_dance_actions` was undeclared when the default TSV had no dances.
+- After the dummy generated tap-dance array fix, `just build nonlogical-01` passed and produced `input_club_ergodox_infinity_monster.bin`.
+- In-app browser validation: `Capture` + `A` filled `KC_A` as draft only; `Apply raw` changed the selected key; undo restored the original key; redo restored `KC_A`.
+- In-app browser validation: `Capture` + `Control` filled `KC_LCTL`.
+- In-app browser validation: Dance composer wrote `TD(DANCE_0)` and one `@DANCES` row; undo/redo removed/restored both the selected key action and support row.
+- In-app browser validation: adding a layer changed both tabs and TSV layer count; undo/redo removed/restored the layer.
