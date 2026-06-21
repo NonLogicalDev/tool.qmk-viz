@@ -1,5 +1,54 @@
 # Development Log
 
+## 2026-06-21: qmk-viz layout history, Default template, and project marker preview
+
+Goal: finish the paused qmk-viz pass by making Layouts a read-only history/template surface, making destructive actions safer, and rendering the Projects page as a keyboard marker preview instead of raw KLE JSON.
+
+What worked:
+
+- Split the remaining non-UI helpers out of `App.tsx`:
+  - `qmk-viz/src/lib/appModel.ts` owns project/layout/default-template normalization, import/export, version creation, and KLE-model reconciliation.
+  - `qmk-viz/src/lib/qmkActions.ts` owns simple composer action metadata and key-capture conversion.
+  - `qmk-viz/src/components/PreviewKeycap.tsx` owns graphical key previews.
+  - `qmk-viz/src/components/LayoutVersionTree.tsx` owns the React Flow version tree.
+- Added a project-level read-only Default layout template:
+  - New layouts copy from Default by value.
+  - Saving the current layout as Default replaces only the project template.
+  - Default remains separate from normal named layouts and is not represented as a tag.
+- Added per-layout saved versions:
+  - `Save Version` creates a dated child of the currently active version.
+  - Loading an older version makes the next save fork from that node.
+  - Layouts renders the saved-version graph with `@xyflow/react`.
+- Added destructive-action safety:
+  - Project and layout delete controls use danger styling.
+  - Project and layout delete handlers both require `window.confirm(...)`.
+- Reworked the Projects page so it shows:
+  - per-project layout/version/key stats
+  - a visual keyboard marker preview using the current KLE model
+  - a KLE download action instead of displaying raw KLE JSON inline
+- Preserved the Default template timestamp when a full project file is re-imported.
+
+What did not work:
+
+- Raw KLE JSON on the Projects page was technically useful but product-wrong. The project page should answer "what keyboard model is this project using?" visually; raw KLE belongs behind download/import/export flows.
+- Browser automation reached the delete-confirm path, but the in-app tab became unstable before a clean dismissed-dialog assertion could be captured. The source still has explicit `window.confirm(...)` guards for both destructive handlers.
+- `App.tsx` is smaller than before, but it still contains page orchestration and many handlers. Future large qmk-viz work should continue splitting page components instead of adding more JSX to `App.tsx`.
+
+Validation:
+
+- `just viz-build` passed after the helper extraction and version-tree work.
+- `just viz-build` passed after the Default-template and Projects marker-preview work.
+- In-app browser validation at `http://localhost:5174/` confirmed:
+  - top navigation order is `Projects`, `KLE Model`, `Layouts`, `Editor`, `Export`
+  - Editor renders 76 keys
+  - Projects renders project stats and a 76-key marker preview
+  - Projects no longer renders the raw KLE textarea
+  - Layouts renders Default controls, selected/default preview source tabs, the version tree, and 76-key read-only previews
+  - `Save Version` increments version nodes
+  - `Save Current as Default` switches the preview to Default
+  - `New Layout` creates a layout from the Default template
+  - browser console had no errors before the confirm-dialog instability
+
 ## 2026-06-21: qmk-viz paused WIP for layout history, Default template, and App split
 
 Goal: stop implementation immediately and preserve the current plan, scope, and unfinished work before turning the loose qmk-viz items into a proper goal.

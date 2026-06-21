@@ -168,7 +168,8 @@ export function createKeyboardProject(
   name: string,
   model: KeyboardModel,
   layouts: SavedLayout[],
-  defaultLayoutDocument?: KeymapDocument
+  defaultLayoutDocument?: KeymapDocument,
+  defaultLayoutUpdatedAt?: string
 ): SavedKeyboardProject {
   const safeLayouts = layouts.length > 0 ? layouts : [createLayout("Default Layout", createBlankKeymapDocument(model))];
   const defaultDocument = defaultLayoutDocument
@@ -179,7 +180,7 @@ export function createKeyboardProject(
     id: newEntityId("keyboard-project"),
     name,
     model: sanitizeKeyboardModel(model),
-    defaultLayout: createSavedDefaultLayout(defaultDocument),
+    defaultLayout: createSavedDefaultLayout(defaultDocument, defaultLayoutUpdatedAt),
     layouts: safeLayouts.map(cloneSavedLayout),
     activeLayoutId: safeLayouts[0].id,
     updatedAt: new Date().toISOString()
@@ -361,5 +362,11 @@ export function parseProjectFile(raw: unknown, fallbackSource: string): SavedKey
     ? typedProject.name
     : model.name;
 
-  return createKeyboardProject(name, model, layouts, typedProject.defaultLayout?.document);
+  return createKeyboardProject(
+    name,
+    model,
+    layouts,
+    typedProject.defaultLayout?.document,
+    typeof typedProject.defaultLayout?.updatedAt === "string" ? typedProject.defaultLayout.updatedAt : undefined
+  );
 }

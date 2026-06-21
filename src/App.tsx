@@ -16,6 +16,7 @@ import {
 import { serializeKeyboardModelKle, serializeLayerKle } from "./lib/kleExport";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "./lib/textFit";
 import { LayoutVersionTree } from "./components/LayoutVersionTree";
+import { KeyboardModelPreview } from "./components/KeyboardModelPreview";
 import { PreviewKeycap, actionTypeLabel } from "./components/PreviewKeycap";
 import {
   KEYBOARD_PROJECTS_STORAGE_KEY,
@@ -25,9 +26,11 @@ import {
   createLayout,
   createLayoutVersion,
   defaultKeyboardProject,
+  formatVersionDate,
   loadKeyboardProjects,
   parseLayoutUpload,
   parseProjectFile,
+  reconcileDefaultLayoutToModel,
   reconcileSavedLayoutToModel,
   safeFileSlug,
   sanitizeKeyboardModel,
@@ -52,6 +55,7 @@ type BehaviorField = {
 };
 
 type ComposerMode = "simple" | "dance";
+type LayoutPreviewSource = "layout" | "default";
 
 type AppPage = "editor" | "projects" | "model" | "layouts" | "export";
 
@@ -122,11 +126,20 @@ export function App() {
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
   const [isCapturingKey, setIsCapturingKey] = useState(false);
+  const [layoutPreviewSource, setLayoutPreviewSource] = useState<LayoutPreviewSource>("layout");
 
   const activeKeyboardProject = keyboardProjects.find((project) => project.id === activeKeyboardProjectId) ?? keyboardProjects[0];
   const availableLayouts = activeKeyboardProject.layouts;
   const activeSavedLayout = availableLayouts.find((layout) => layout.id === activeLayoutId) ?? availableLayouts[0];
   const activeLayoutVersion = activeSavedLayout.versions.find((version) => version.id === activeSavedLayout.activeVersionId) ?? activeSavedLayout.versions[0];
+  const defaultLayoutDocument = activeKeyboardProject.defaultLayout.document;
+  const projectStats = useMemo(() => keyboardProjects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    layoutCount: project.layouts.length,
+    versionCount: project.layouts.reduce((total, layout) => total + layout.versions.length, 0),
+    keyCount: project.model.keys.length
+  })), [keyboardProjects]);
   const foundLayerIndex = layers.findIndex((layer) => layer.name === activeLayerName);
   const activeLayerIndex = foundLayerIndex >= 0 ? foundLayerIndex : 0;
   const activeLayer = layers[activeLayerIndex] ?? layers[0];
@@ -138,6 +151,10 @@ export function App() {
     dances,
     extKeys
   }), [dances, extKeys, layers]);
+  const previewDocument = layoutPreviewSource === "default" ? defaultLayoutDocument : keymapDocument;
+  const previewLayers = previewDocument.layers.length > 0 ? previewDocument.layers : layers;
+  const previewLayer = previewLayers.find((layer) => layer.name === activeLayerName) ?? previewLayers[0] ?? layers[0];
+  const previewLayerIndex = Math.max(0, previewLayers.findIndex((layer) => layer.name === previewLayer.name));
   const jsonOutput = useMemo(() => serializeKeymapExport(model, keymapDocument, {
     keyboardProjectId: activeKeyboardProjectId,
     keyboardProjectName: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
@@ -416,7 +433,12 @@ export function App() {
   }
 
   function duplicateKeyboardProject() {
-    const project = createKeyboardProject(`${keyboardProjectNameDraft || "Keyboard Project"} copy`, model, availableLayouts);
+    const project = createKeyboardProject(
+      `${keyboardProjectNameDraft || "Keyboard Project"} copy`,
+      model,
+      availableLayouts,
+      activeKeyboardProject.defaultLayout.document
+    );
     setKeyboardProjects((current) => [...current, project]);
     loadKeyboardProjectObject(project);
     setStatusMessage(`Duplicated keyboard project as ${project.name}.`);
@@ -442,11 +464,11 @@ export function App() {
 
   function createBlankLayoutForActiveProject() {
     recordHistory();
-    const layout = createLayout(
-      uniqueLayoutName("New Layout", availableLayouts),
-      createBlankKeymapDocument(model)
-    );
     const baseProject = projectWithEditorState();
+    const layout = createLayout(
+      uniqueLayoutName("New Layout", baseProject.layouts),
+      baseProject.defaultLayout.document
+    );
     const project = {
       ...baseProject,
       layouts: [...baseProject.layouts, layout],
@@ -457,7 +479,8 @@ export function App() {
       item.id === project.id ? project : item
     )));
     loadLayoutObject(project, layout, { resetHistory: false });
-    setStatusMessage(`Created layout ${layout.name}.`);
+    setLayoutPreviewSource("layout");
+    setStatusMessage(`Created layout ${layout.name} from the Default template.`);
   }
 
   function duplicateLayout() {
@@ -565,6 +588,26 @@ export function App() {
     setStatusMessage(`Loaded ${nextLayout.name} ${version.label}; the next saved version will fork from it.`);
   }
 
+  function saveCurrentLayoutAsDefault() {
+    recordHistory();
+    const now = new Date().toISOString();
+    const baseProject = projectWithEditorState();
+    const project = {
+      ...baseProject,
+      defaultLayout: {
+        document: cloneKeymapDocument(keymapDocument),
+        updatedAt: now
+      },
+      updatedAt: now
+    };
+
+    setKeyboardProjects((current) => current.map((item) => (
+      item.id === project.id ? project : item
+    )));
+    setLayoutPreviewSource("default");
+    setStatusMessage(`Saved ${layoutNameDraft || activeSavedLayout.name} as the Default template for new layouts.`);
+  }
+
   async function updateActiveKeyboardModel(file: File) {
     const raw = JSON.parse(await file.text()) as unknown;
     const importedModel = buildKeyboardModelFromKle(raw, { source: file.name });
@@ -580,6 +623,7 @@ export function App() {
       ...baseProject,
       name: importedModel.name,
       model: importedModel,
+      defaultLayout: reconcileDefaultLayoutToModel(baseProject.defaultLayout, importedModel),
       layouts: nextLayouts,
       activeLayoutId: nextLayout.id,
       updatedAt: new Date().toISOString()
@@ -1202,6 +1246,39 @@ export function App() {
                 <button data-testid="download-full-project" onClick={downloadFullProject} type="button">Full Project</button>
               </div>
             </div>
+            <div className="editor-card admin-card project-stats-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Project stats</p>
+                  <h2>Layouts and versions</h2>
+                </div>
+              </div>
+              <div className="project-stat-list" data-testid="project-stats">
+                {projectStats.map((project) => (
+                  <button
+                    className={project.id === activeKeyboardProjectId ? "active" : ""}
+                    key={project.id}
+                    onClick={() => loadKeyboardProject(project.id)}
+                    type="button"
+                  >
+                    <strong>{project.name}</strong>
+                    <span>{project.layoutCount} layouts</span>
+                    <span>{project.versionCount} versions</span>
+                    <span>{project.keyCount} keys</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="editor-card admin-card project-model-preview-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Associated KLE model</p>
+                  <h2>Marker preview</h2>
+                </div>
+                <button data-testid="projects-download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
+              </div>
+              <KeyboardModelPreview model={model} />
+            </div>
           </div>
         </section>
       )}
@@ -1350,6 +1427,24 @@ export function App() {
                 </button>
               </div>
             </div>
+            <div className="editor-card admin-card default-layout-card">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Default layout</p>
+                  <h2>Read-only bootstrap</h2>
+                </div>
+                <span className="metric-pill">{defaultLayoutDocument.layers.length} layers</span>
+              </div>
+              <p>
+                New layouts are copied from this project-level Default template. It is separate from named
+                layouts and cannot be edited directly.
+              </p>
+              <p className="template-updated">Updated {formatVersionDate(activeKeyboardProject.defaultLayout.updatedAt)}</p>
+              <div className="button-row">
+                <button data-testid="save-default-layout" onClick={saveCurrentLayoutAsDefault} type="button">Save Current as Default</button>
+                <button data-testid="preview-default-layout" onClick={() => setLayoutPreviewSource("default")} type="button">Preview Default</button>
+              </div>
+            </div>
             <div className="editor-card admin-card version-tree-card">
               <div className="section-header">
                 <div>
@@ -1368,14 +1463,32 @@ export function App() {
               <div className="section-header">
                 <div>
                   <p className="eyebrow">Read-only preview</p>
-                  <h2>{activeLayerIndex}: {activeLayer.name}</h2>
+                  <h2>{layoutPreviewSource === "default" ? "Default" : layoutNameDraft} / {previewLayerIndex}: {previewLayer.name}</h2>
                 </div>
-                <span className="metric-pill">{layers.length} layers</span>
+                <span className="metric-pill">{previewLayers.length} layers</span>
+              </div>
+              <div className="preview-source-tabs" aria-label="Preview source">
+                <button
+                  className={layoutPreviewSource === "layout" ? "active" : ""}
+                  data-testid="preview-selected-layout"
+                  onClick={() => setLayoutPreviewSource("layout")}
+                  type="button"
+                >
+                  Selected Layout
+                </button>
+                <button
+                  className={layoutPreviewSource === "default" ? "active" : ""}
+                  data-testid="preview-default-template"
+                  onClick={() => setLayoutPreviewSource("default")}
+                  type="button"
+                >
+                  Default
+                </button>
               </div>
               <div className="preview-layer-tabs" aria-label="Preview layer">
-                {layers.map((layer, index) => (
+                {previewLayers.map((layer, index) => (
                   <button
-                    className={layer.name === activeLayer.name ? "active" : ""}
+                    className={layer.name === previewLayer.name ? "active" : ""}
                     key={`${layer.name}-${index}`}
                     onClick={() => {
                       setActiveLayerName(layer.name);
@@ -1387,13 +1500,13 @@ export function App() {
                   </button>
                 ))}
               </div>
-              <div className="layout-preview-viewport" aria-label={`${layoutNameDraft} ${activeLayer.name} read-only preview`}>
+              <div className="layout-preview-viewport" aria-label={`${layoutPreviewSource === "default" ? "Default" : layoutNameDraft} ${previewLayer.name} read-only preview`}>
                 <div
                   className="keyboard-stage read-only-stage"
                   style={{ width: model.width * model.unit, height: model.height * model.unit }}
                 >
                   {model.keys.map((key) => {
-                    const action = selectedKeycode(activeLayer, key.slot);
+                    const action = selectedKeycode(previewLayer, key.slot);
                     const details = describeAction(action);
                     const keyWidth = key.width * model.unit;
                     const actionType = actionTypeLabel(details);

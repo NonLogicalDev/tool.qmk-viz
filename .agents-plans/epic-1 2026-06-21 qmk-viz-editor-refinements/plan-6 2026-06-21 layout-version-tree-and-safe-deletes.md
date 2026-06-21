@@ -1,6 +1,6 @@
 ---
 date: 2026-06-21
-status: in-progress
+status: complete
 subject: layout-version-tree-and-safe-deletes
 ---
 
@@ -15,7 +15,7 @@ Layouts now have their own page with read-only preview. The next product step is
 The scope expanded before pause:
 
 - Top bar order should be `Projects -> KLE Model -> Layouts -> Editor -> Export`.
-- Projects page should render the currently associated KLE file and show project/layout/version stats.
+- Projects page should render the currently associated KLE model as a visual marker preview and show project/layout/version stats.
 - Any normal layout should be savable as the special Default layout for the project.
 - Default must be its own read-only bootstrap template, not a tag or marker on an existing normal layout.
 - `App.tsx` is too large for safe continued edits and should be split before more UI work.
@@ -51,16 +51,16 @@ The scope expanded before pause:
 6. [x] Move QMK action/keycode constants and event-to-keycode helpers out of `App.tsx`.
 7. [x] Move `PreviewKeycap` and reusable keyboard key rendering helpers out of `App.tsx`.
 8. [x] Move React Flow version graph construction/rendering out of `App.tsx`.
-9. [ ] Add project-level `defaultLayout` state fully through create/load/normalize/import/export/KLE-reconcile flows.
-10. [ ] Make `New Layout` copy from the read-only project Default layout template.
-11. [ ] Add a Layouts-page action to save the current normal layout as the project Default template.
-12. [ ] Render the special read-only Default layout separately from normal layouts.
+9. [x] Add project-level `defaultLayout` state fully through create/load/normalize/import/export/KLE-reconcile flows.
+10. [x] Make `New Layout` copy from the read-only project Default layout template.
+11. [x] Add a Layouts-page action to save the current normal layout as the project Default template.
+12. [x] Render the special read-only Default layout separately from normal layouts.
 13. [x] Render the layout version tree in Layouts with React Flow.
-14. [ ] Add CSS danger styling for destructive buttons.
-15. [ ] Add Projects-page KLE source preview and project/layout/version stats.
-16. [ ] Update `DEVELOPMENT_LOG.md`.
-17. [ ] Validate with `just viz-build` and in-app browser checks.
-18. [ ] Checkpoint the completed pass.
+14. [x] Add CSS danger styling for destructive buttons.
+15. [x] Add Projects-page keyboard marker preview and project/layout/version stats.
+16. [x] Update `DEVELOPMENT_LOG.md`.
+17. [x] Validate with `just viz-build` and in-app browser checks.
+18. [x] Checkpoint the completed pass.
 
 # Learning Log
 
@@ -70,6 +70,9 @@ The scope expanded before pause:
 - The current `App.tsx` size is now a real delivery risk. Further feature work should start by finishing the helper split, not by adding more JSX or state handlers to the same file.
 - The first extraction boundary is stable: project/layout/default-template model helpers now live in `qmk-viz/src/lib/appModel.ts`, and `App.tsx` imports them instead of duplicating that logic.
 - `qmk-viz/src/lib/qmkActions.ts`, `qmk-viz/src/components/PreviewKeycap.tsx`, and `qmk-viz/src/components/LayoutVersionTree.tsx` now own the second extraction boundary.
+- The Projects page should render the keyboard model visually with marker IDs, not raw KLE JSON. Raw KLE remains available through the download action.
+- The Default template is copied by value into new layouts; it is not selected, tagged, or renamed from a normal layout.
+- Full project re-import should preserve the Default template timestamp as well as the template document, so the read-only Default metadata round-trips cleanly.
 
 # Work Log
 
@@ -77,33 +80,31 @@ The scope expanded before pause:
 - [x] 2026-06-21 02:43 - Paused implementation at the user's request and recorded the expanded scope, WIP files, and unfinished work.
 - [x] 2026-06-21 02:50 - Reconciled `App.tsx` with `src/lib/appModel.ts`; `just viz-build` passes again.
 - [x] 2026-06-21 12:12 - Extracted QMK action helpers, preview keycap rendering, and version tree rendering; `just viz-build` passes.
+- [x] 2026-06-21 12:24 - Added project Default template flows, Projects marker preview/stats, danger styling, and browser/build validation.
+- [x] 2026-06-21 12:27 - Preserved Default template `updatedAt` on full project re-import, updated the development log, reran `just viz-build`, and ran `git diff --check`.
 
-# Paused State
+# Closeout State
 
-Last clean checkpoint before this WIP: `d002e03 2026-06-21T09:30:00Z :: checkpoint :: qmk-viz layers stay in editor`.
+Last clean checkpoint before this plan: `d002e03 2026-06-21T09:30:00Z :: checkpoint :: qmk-viz layers stay in editor`.
 
-Current uncommitted files:
+Checkpoint sequence for this plan:
 
-- `qmk-viz/package.json` and `qmk-viz/package-lock.json`: `@xyflow/react` dependency added.
-- `qmk-viz/src/App.tsx`: partially implements versioned layout storage/actions, topbar order, delete confirmation handlers, and a first project `defaultLayout` type addition.
-- `qmk-viz/src/lib/appModel.ts`: new extracted app-model helper module created, but `App.tsx` has not yet been rewired to import it.
-- `.agents-plans/epic-1 2026-06-21 qmk-viz-editor-refinements/plan-6 2026-06-21 layout-version-tree-and-safe-deletes.md`: this active plan.
+- `937e612 2026-06-21T09:51:15Z :: checkpoint :: qmk-viz WIP builds after appModel split`
+- `d0710ee 2026-06-21T19:13:30Z :: checkpoint :: qmk-viz extracts helpers and renders version tree`
 
-Resolved WIP risk:
+Resolved implementation state:
 
 - `App.tsx` is reconciled with `src/lib/appModel.ts`.
-- `just viz-build` passes after the split.
+- QMK action helpers, preview keycap rendering, version tree rendering, and project marker preview rendering now live outside `App.tsx`.
+- `just viz-build` passes after the completed pass.
 
-Remaining risk:
+Validation notes:
 
-- Browser validation has not been run for the version tree, Default template, Projects-page stats, or delete confirmations.
+- `just viz-build` passes after the full pass.
+- `git diff --check` passes after the full pass.
+- In-app browser confirmed top nav order, editor 76-key rendering, Projects stats, visual marker preview with 76 keys, Layouts Default controls, version tree rendering, Save Version incrementing version nodes, Save Current as Default switching preview to Default, and New Layout increasing layout count.
+- Delete confirmation source is explicit through `window.confirm(...)` in both project and layout delete handlers; browser interaction reached the confirm path, but the test tab became unstable before a clean dismissed-state assertion could be captured.
 
 # Unfinished Work
 
-- Finish the `App.tsx` split and get the app compiling again.
-- Complete the project-level read-only Default template model and UI.
-- Complete version tree UI rendering and fork/save behavior.
-- Complete Projects page KLE source preview and stats.
-- Complete danger button styling and confirmation-dialog validation.
-- Update `DEVELOPMENT_LOG.md` once the implementation shape is stable.
-- Run `just viz-build`, browser validation, `git diff --check`, and then checkpoint.
+N/A
