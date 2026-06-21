@@ -14,6 +14,12 @@
   --modifier: #dce9ff;
   --special: #ffe7ca;
   --shadow: 0 18px 50px rgb(54 47 35 / 14%);
+  --control-bg: #fff;
+  --control-bg-hover: #fff9ee;
+  --control-height: 30px;
+  --control-radius: 7px;
+  --control-padding: 7px 9px;
+  --control-font-size: 0.72rem;
 }
 
 * {
@@ -174,16 +180,24 @@ code {
 
 .project-actions button,
 .file-import {
-  background: #fff;
+  align-items: center;
+  background: var(--control-bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--control-radius);
   color: var(--ink);
   cursor: pointer;
-  font-size: 0.72rem;
+  font-size: var(--control-font-size);
   font-weight: 850;
+  justify-content: center;
   line-height: 1;
-  min-height: 30px;
-  padding: 8px 9px;
+  min-height: var(--control-height);
+  padding: var(--control-padding);
+}
+
+.project-actions button:hover:not(:disabled),
+.file-import:hover {
+  background: var(--control-bg-hover);
+  border-color: rgb(0 120 168 / 28%);
 }
 
 .project-actions button:disabled {
@@ -403,6 +417,7 @@ textarea {
 .preview-layer-tabs button:focus-visible,
 .keycap:focus-visible,
 .history-controls button:focus-visible,
+.project-stat-list button:focus-visible,
 .project-actions button:focus-visible,
 .file-import:focus-within,
 .page-actions button:focus-visible,
@@ -416,15 +431,22 @@ textarea {
 .button-row button,
 .generated button,
 .raw-input-row button {
-  background: #fff;
+  background: var(--control-bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--control-radius);
   color: var(--ink);
   cursor: pointer;
-  font-size: 0.76rem;
+  font-size: var(--control-font-size);
   font-weight: 800;
   line-height: 1;
-  padding: 7px 10px;
+  min-height: var(--control-height);
+  padding: var(--control-padding);
+}
+
+.button-row button:hover:not(:disabled),
+.raw-input-row button:hover:not(:disabled) {
+  background: var(--control-bg-hover);
+  border-color: rgb(0 120 168 / 28%);
 }
 
 .button-row button:disabled,
@@ -436,7 +458,6 @@ textarea {
   cursor: not-allowed;
 }
 
-.button-row button:first-child,
 .generated button {
   background: var(--ink);
   border-color: var(--ink);
@@ -489,7 +510,6 @@ textarea {
   color: #fff;
 }
 
-.button-row button:first-child:disabled,
 .generated button:disabled {
   background: #e8e1d5;
   border-color: #ded5c6;
@@ -756,20 +776,33 @@ textarea {
 
 .page-actions button,
 .page-actions .file-import {
-  background: #fff;
+  background: var(--control-bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--control-radius);
   color: var(--ink);
   cursor: pointer;
-  font-size: 0.74rem;
+  font-size: var(--control-font-size);
   font-weight: 850;
-  min-height: 32px;
-  padding: 8px 10px;
+  min-height: var(--control-height);
+  padding: var(--control-padding);
+}
+
+.page-actions button:hover:not(:disabled),
+.page-actions .file-import:hover {
+  background: var(--control-bg-hover);
+  border-color: rgb(0 120 168 / 28%);
 }
 
 .page-actions button:first-child {
   background: var(--ink);
   border-color: var(--ink);
+  color: #fff;
+}
+
+.page-actions button:first-child:hover:not(:disabled),
+.generated button:hover:not(:disabled) {
+  background: #141620;
+  border-color: #141620;
   color: #fff;
 }
 
@@ -812,6 +845,7 @@ textarea {
 .model-facts {
   display: grid;
   gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
 }
 
@@ -845,16 +879,21 @@ textarea {
 
 .project-stat-list button {
   align-items: center;
-  background: #f8f3ea;
+  background: #fffdf7;
   border: 1px solid rgb(217 210 196 / 78%);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--muted);
   cursor: pointer;
   display: grid;
-  gap: 6px;
-  grid-template-columns: minmax(0, 1.5fr) repeat(3, auto);
-  padding: 8px 10px;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(58px, auto));
+  padding: 8px;
   text-align: left;
+}
+
+.project-stat-list button:hover {
+  border-color: rgb(0 120 168 / 30%);
+  box-shadow: 0 8px 22px rgb(54 47 35 / 8%);
 }
 
 .project-stat-list button.active {
@@ -863,17 +902,40 @@ textarea {
   color: var(--ink);
 }
 
-.project-stat-list strong {
+.project-stat-name {
   color: var(--ink);
+  font-size: 0.78rem;
+  letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .project-stat-list span {
-  font-size: 0.7rem;
-  font-weight: 850;
-  white-space: nowrap;
+  align-items: center;
+  background: rgb(241 237 227 / 76%);
+  border: 1px solid rgb(217 210 196 / 64%);
+  border-radius: 8px;
+  display: grid;
+  justify-items: center;
+  min-width: 58px;
+  padding: 5px 6px;
+}
+
+.project-stat-list span strong {
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.project-stat-list span em {
+  color: var(--muted);
+  font-size: 0.56rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .project-model-preview-card {
@@ -1093,6 +1155,7 @@ textarea {
 
 .button-row,
 .generated {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -1301,5 +1364,9 @@ textarea {
 
   .page-actions {
     justify-content: start;
+  }
+
+  .model-facts {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,5 +1,45 @@
 # Development Log
 
+## 2026-06-21: qmk-viz project polish and KLE-backed layout export
+
+Goal: clean up qmk-viz project-page controls, make project metadata easier to scan, and make the layout JSON export carry the KLE keyboard model used to produce the layout.
+
+What worked:
+
+- Collapsed project backup into one `Download Project` button beside `Import Project`.
+- Removed the duplicate backup card and duplicate `Full Project` action.
+- Removed the `Full Project` button from the Export page so project backup has one obvious home.
+- Standardized ordinary buttons and file-import labels around compact control variables.
+- Stopped first-child buttons in arbitrary rows from becoming primary actions just because of DOM position.
+- Restyled project stats as compact stat cards while keeping them clickable for project switching.
+- Replaced the low-value keyboard model `Source` fact with `Keys`, keeping `Canvas` and `Author`.
+- Added `keyboard.kle` to layout JSON export so the layout file carries the original KLE model.
+- Removed the derived `keyboard.keys` array from layout JSON export after adding KLE, avoiding duplicate geometry sources.
+
+What did not work:
+
+- A separate Backup card made the Projects page noisier and duplicated the project download affordance.
+- Export-page `Full Project` mixed backup/import concerns into the keymap-template export flow.
+- The first shared-button CSS pass still allowed mixed file-label/button rows to stretch a button taller than the baseline. Setting shared control rows to `align-items: center` fixed that.
+- Keeping both `keyboard.kle` and `keyboard.keys` in layout JSON would create two geometry sources. KLE is the canonical user-editable keyboard model, so derived placement should be rebuilt from it.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan found no stale `download-full-project`, Backup heading, or project-page `Source` fact.
+- In-app browser validation at `http://localhost:5176/` confirmed:
+  - Projects page actions are `Create Project`, `Import Project`, `Download Project`
+  - exactly one `download-project` control exists
+  - no `download-full-project` controls exist on Projects or Export
+  - no Backup section text is present on Projects
+  - model facts are `Keys`, `Canvas`, and `Author`
+  - compact mixed controls measure 30-32px tall with the same 7px radius and font sizing
+  - Export JSON parses
+  - Export JSON `keyboard` keys are `id`, `name`, `source`, and `kle`
+  - Export JSON includes `keyboard.kle`, omits `keyboard.keys`, and preserves three layout layers
+  - browser console has no errors
+
 ## 2026-06-21: qmk-viz folds KLE model into Projects
 
 Goal: remove the standalone `KLE Model` top-level page, make KLE model management part of project configuration, and keep keyboard editor/viewer surfaces as full-width primary page surfaces.

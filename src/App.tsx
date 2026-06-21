@@ -1183,6 +1183,7 @@ export function App() {
                   type="file"
                 />
               </label>
+              <button data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
             </div>
           </div>
           <div className="admin-grid two-column">
@@ -1232,22 +1233,6 @@ export function App() {
             <div className="editor-card admin-card">
               <div className="section-header">
                 <div>
-                  <p className="eyebrow">Backup</p>
-                  <h2>Full project file</h2>
-                </div>
-              </div>
-              <p>
-                A full project export contains the KLE model plus every named layout. Use it as the portable
-                backup and re-import format.
-              </p>
-              <div className="button-row">
-                <button data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
-                <button data-testid="download-full-project" onClick={downloadFullProject} type="button">Full Project</button>
-              </div>
-            </div>
-            <div className="editor-card admin-card">
-              <div className="section-header">
-                <div>
                   <p className="eyebrow">Keyboard model</p>
                   <h2>{model.name}</h2>
                 </div>
@@ -1255,8 +1240,8 @@ export function App() {
               </div>
               <dl className="model-facts" data-testid="model-readout">
                 <div>
-                  <dt>Source</dt>
-                  <dd>{model.source}</dd>
+                  <dt>Keys</dt>
+                  <dd>{model.keys.length}</dd>
                 </div>
                 <div>
                   <dt>Canvas</dt>
@@ -1307,10 +1292,10 @@ export function App() {
                     onClick={() => loadKeyboardProject(project.id)}
                     type="button"
                   >
-                    <strong>{project.name}</strong>
-                    <span>{project.layoutCount} layouts</span>
-                    <span>{project.versionCount} versions</span>
-                    <span>{project.keyCount} keys</span>
+                    <strong className="project-stat-name">{project.name}</strong>
+                    <span><strong>{project.layoutCount}</strong><em>layouts</em></span>
+                    <span><strong>{project.versionCount}</strong><em>versions</em></span>
+                    <span><strong>{project.keyCount}</strong><em>keys</em></span>
                   </button>
                 ))}
               </div>
@@ -1540,7 +1525,6 @@ export function App() {
               <button onClick={copyJson} type="button">Copy JSON</button>
               <button data-testid="download-layout-json" onClick={downloadJson} type="button">Layout JSON</button>
               <button data-testid="download-layer-kle" onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
-              <button data-testid="download-full-project" onClick={downloadFullProject} type="button">Full Project</button>
             </div>
           </div>
           <div className="editor-card export-card">
@@ -1557,7 +1541,7 @@ export function App() {
               spellCheck={false}
             />
             <p>
-              Layout JSON is the `keymap.c` template input. Full Project JSON is the backup/import format.
+              Layout JSON is the `keymap.c` template input and includes the KLE model used for the keyboard.
               Project KLE preserves the uploaded keyboard geometry and slot IDs; Layer KLE adds the active layer labels.
             </p>
           </div>

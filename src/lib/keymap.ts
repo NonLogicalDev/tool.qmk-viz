@@ -32,17 +32,7 @@ export type KeymapExport = {
     id: string;
     name: string;
     source: string;
-    keys: Array<{
-      id: string;
-      legend: string;
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      rotation: number;
-      rotationX: number;
-      rotationY: number;
-    }>;
+    kle: KeyboardModel["kle"];
   };
   layout: {
     id: string;
@@ -139,17 +129,7 @@ export function serializeKeymapExport(
       id: model.id,
       name: model.name,
       source: model.source,
-      keys: model.keys.map((key) => ({
-        id: key.slot,
-        legend: key.legend,
-        x: key.x,
-        y: key.y,
-        width: key.width,
-        height: key.height,
-        rotation: key.rotation,
-        rotationX: key.rotationX,
-        rotationY: key.rotationY
-      }))
+      kle: model.kle
     },
     layout: {
       id: options.layoutId,
