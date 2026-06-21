@@ -103,7 +103,7 @@ export const ergodoxInfinity: KeyboardModel = {
   source: "keyboard-layout.json + layout_nonlogical-01.tsv",
   width: 19.6,
   height: 8.7,
-  unit: 58,
+  unit: 46,
   keys: buildKeys(),
   layouts: {
     "nonlogical-01": nonlogical01,

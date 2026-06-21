@@ -22,7 +22,6 @@
 
 body {
   margin: 0;
-  min-width: 1120px;
   min-height: 100vh;
 }
 
@@ -39,7 +38,7 @@ code {
 }
 
 .app-shell {
-  padding: 34px;
+  padding: clamp(18px, 3vw, 34px);
 }
 
 .hero {
@@ -81,7 +80,7 @@ code {
   box-shadow: var(--shadow);
   display: grid;
   gap: 14px;
-  min-width: 360px;
+  min-width: min(360px, 100%);
   padding: 18px;
 }
 
@@ -106,9 +105,10 @@ textarea {
 }
 
 .workspace {
+  align-items: start;
   display: grid;
   gap: 24px;
-  grid-template-columns: minmax(900px, 1fr) 390px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
   margin: 0 auto;
   max-width: 1500px;
 }
@@ -126,7 +126,8 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 30px;
   box-shadow: var(--shadow);
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 20px;
 }
 
@@ -160,6 +161,7 @@ textarea {
 }
 
 .keyboard-stage {
+  margin: 8px auto 0;
   position: relative;
   transform-origin: top left;
 }
@@ -175,7 +177,7 @@ textarea {
   grid-template-rows: 1fr auto auto;
   justify-items: center;
   overflow: hidden;
-  padding: 7px;
+  padding: 5px;
   position: absolute;
   text-align: center;
   transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
@@ -212,14 +214,14 @@ textarea {
 
 .key-primary {
   align-self: end;
-  font-size: 1.02rem;
+  font-size: clamp(0.78rem, 1vw, 1rem);
   font-weight: 850;
   line-height: 1;
 }
 
 .key-secondary {
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: clamp(0.5rem, 0.72vw, 0.62rem);
   line-height: 1.1;
   margin-top: 4px;
 }
@@ -227,7 +229,7 @@ textarea {
 .key-slot {
   color: rgb(34 36 51 / 42%);
   font-family: "SF Mono", "Menlo", monospace;
-  font-size: 0.56rem;
+  font-size: clamp(0.46rem, 0.62vw, 0.54rem);
   font-weight: 800;
   margin-top: 2px;
 }
@@ -235,6 +237,9 @@ textarea {
 .editor-panel {
   display: grid;
   gap: 16px;
+  align-self: start;
+  position: sticky;
+  top: 18px;
 }
 
 .editor-card {
@@ -301,4 +306,23 @@ textarea {
   color: var(--muted);
   font-size: 0.85rem;
   margin: 0;
+}
+
+@media (max-width: 1180px) {
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero-controls {
+    width: 100%;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-panel {
+    position: static;
+  }
 }

@@ -7,7 +7,7 @@ const keyLabels: Record<string, string> = {
   KC_DOT: ".",
   KC_DOWN: "↓",
   KC_END: "End",
-  KC_ENT: "Enter",
+  KC_ENT: "Ent",
   KC_ESC: "Esc",
   KC_GRV: "`",
   KC_HOME: "Home",
@@ -84,12 +84,12 @@ export function describeAction(identifier: string): ActionDetails {
 
   const momentary = value.match(/^MO\(([^)]+)\)$/);
   if (momentary) {
-    return { primary: momentary[1], secondary: "momentary layer", tone: "layer" };
+    return { primary: momentary[1], secondary: "momentary", tone: "layer" };
   }
 
   const toggle = value.match(/^(TG|TT)\(([^)]+)\)$/);
   if (toggle) {
-    return { primary: toggle[2], secondary: toggle[1] === "TT" ? "tap-toggle layer" : "toggle layer", tone: "layer" };
+    return { primary: toggle[2], secondary: toggle[1] === "TT" ? "tap-toggle" : "toggle", tone: "layer" };
   }
 
   const modTap = value.match(/^([A-Z_]+)\(([^)]+)\)$/);
