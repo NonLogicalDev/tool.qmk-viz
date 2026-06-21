@@ -26,7 +26,6 @@ import {
   createLayout,
   createLayoutVersion,
   defaultKeyboardProject,
-  formatVersionDate,
   loadKeyboardProjects,
   parseLayoutUpload,
   parseProjectFile,
@@ -1317,14 +1316,15 @@ export function App() {
         <section className="page-panel">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">Named layouts</p>
-              <h1>{layoutNameDraft}</h1>
+              <p className="eyebrow">Layout library</p>
+              <h1>Layouts</h1>
               <p>Manage layout files and preview the selected layout without editing keys or layers here.</p>
             </div>
             <div className="page-actions">
-              <button data-testid="new-layout" onClick={createBlankLayoutForActiveProject} type="button">New Layout</button>
+              <button data-testid="new-layout" onClick={createBlankLayoutForActiveProject} type="button">Create Layout</button>
+              <button data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate Layout</button>
               <label className="file-import">
-                Upload Layout
+                Import Layout
                 <input
                   data-testid="layout-upload"
                   accept="application/json,.json"
@@ -1340,13 +1340,14 @@ export function App() {
                   type="file"
                 />
               </label>
+              <button data-testid="download-layout" onClick={downloadJson} type="button">Download Layout</button>
             </div>
           </div>
           <div className="admin-grid layout-page-grid">
-            <div className="editor-card admin-card">
+            <div className="editor-card admin-card active-layout-card">
               <div className="section-header">
                 <div>
-                  <p className="eyebrow">Named layout</p>
+                  <p className="eyebrow">Active layout</p>
                   <h2>{layoutNameDraft}</h2>
                 </div>
                 <span className="metric-pill">{availableLayouts.length} layouts</span>
@@ -1375,7 +1376,7 @@ export function App() {
               </label>
               <div className="button-row">
                 <button data-testid="save-layout-version" onClick={saveLayoutVersion} type="button">Save Version</button>
-                <button data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate</button>
+                <button data-testid="save-default-layout" onClick={saveCurrentLayoutAsDefault} type="button">Save as Default</button>
                 <button
                   className="danger-button"
                   data-testid="delete-layout"
@@ -1385,24 +1386,6 @@ export function App() {
                 >
                   Delete
                 </button>
-              </div>
-            </div>
-            <div className="editor-card admin-card default-layout-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Default layout</p>
-                  <h2>Read-only bootstrap</h2>
-                </div>
-                <span className="metric-pill">{defaultLayoutDocument.layers.length} layers</span>
-              </div>
-              <p>
-                New layouts are copied from this project-level Default template. It is separate from named
-                layouts and cannot be edited directly.
-              </p>
-              <p className="template-updated">Updated {formatVersionDate(activeKeyboardProject.defaultLayout.updatedAt)}</p>
-              <div className="button-row">
-                <button data-testid="save-default-layout" onClick={saveCurrentLayoutAsDefault} type="button">Save Current as Default</button>
-                <button data-testid="preview-default-layout" onClick={() => setLayoutPreviewSource("default")} type="button">Preview Default</button>
               </div>
             </div>
             <div className="editor-card admin-card version-tree-card">

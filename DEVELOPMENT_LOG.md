@@ -1,5 +1,40 @@
 # Development Log
 
+## 2026-06-21: qmk-viz Layouts action language cleanup
+
+Goal: make the Layouts page action language consistent, put the active layout controls at the top, and remove the oversized Default layout section.
+
+What worked:
+
+- Changed the Layouts page header actions to `Create Layout`, `Duplicate Layout`, `Import Layout`, and `Download Layout`.
+- Moved the duplicate action into the Layouts page header so the core layout actions live together.
+- Renamed the first Layouts card to `Active layout`, matching the Projects page `Active project` structure.
+- Put `Active layout` first, then the full-width read-only keyboard preview, then supporting version-tree details.
+- Replaced the standalone Default layout card with a single `Save as Default` button inside the Active layout card.
+- Kept `Save Version` and destructive layout delete inside the Active layout card, because those operate on the selected layout state rather than file import/export.
+- Wired `Download Layout` to the existing layout JSON download path.
+
+What did not work:
+
+- The old mix of `New Layout`, card-level `Duplicate`, and `Upload Layout` made related layout actions look like different concepts.
+- A standalone Default layout section was too heavy for a bootstrapping action now that the read-only preview tabs already expose the Default layout.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan found no stale visible `New Layout`, `Upload Layout`, `Preview Default`, `Default layout`, `Read-only bootstrap`, `template-updated`, or `formatVersionDate` references.
+- In-app browser validation at `http://localhost:5176/` confirmed:
+  - Layouts page actions are `Create Layout`, `Duplicate Layout`, `Import Layout`, and `Download Layout`
+  - `Duplicate Layout` exists once in the page header and no longer exists in the active-layout card
+  - `Download Layout` exists once
+  - `Active layout` is the first card
+  - the full-width read-only preview renders below `Active layout`
+  - the version tree renders below the preview
+  - `Save as Default` exists as a single button in the Active layout card
+  - the standalone Default section is gone
+  - browser console has no errors.
+
 ## 2026-06-21: qmk-viz KLE marker label cleanup
 
 Goal: simplify the Ergodox Infinity KLE model so key labels are plain marker IDs such as `LT03` instead of multiline KLE legend strings like `\n\n\n\n\n\nLT03`.
