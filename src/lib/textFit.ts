@@ -16,6 +16,10 @@ type FitOptions = {
 
 const widthCache = new Map<string, number>();
 
+// Match the keycap CSS content box instead of the outer key width.
+const primaryKeyLabelInset = 20;
+const secondaryKeyLabelInset = 18;
+
 function measuredWidth(text: string, font: string): number {
   const cacheKey = `${font}\n${text}`;
   const cached = widthCache.get(cacheKey);
@@ -65,7 +69,7 @@ function fitText(text: string, maxWidth: number, options: FitOptions): TextFit {
 }
 
 export function fitPrimaryKeyLabel(text: string, keyWidth: number): TextFit {
-  return fitText(text, keyWidth - 16, {
+  return fitText(text, keyWidth - primaryKeyLabelInset, {
     fontWeight: 820,
     maxFontSize: 10.5,
     minFontSize: 5.5,
@@ -75,7 +79,7 @@ export function fitPrimaryKeyLabel(text: string, keyWidth: number): TextFit {
 }
 
 export function fitSecondaryKeyLabel(text: string, keyWidth: number): TextFit {
-  return fitText(text, keyWidth - 18, {
+  return fitText(text, keyWidth - secondaryKeyLabelInset, {
     fontWeight: 760,
     maxFontSize: 7,
     minFontSize: 4.5,

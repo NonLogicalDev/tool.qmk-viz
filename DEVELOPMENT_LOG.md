@@ -1,5 +1,27 @@
 # Development Log
 
+## 2026-06-21: qmk-viz key label clipping fix
+
+Goal: stop compact key labels such as `Space` from rendering as ellipsized text like `Spa...`.
+
+What worked:
+
+- Used the in-app browser to measure rendered `.key-primary` and `.key-secondary` labels by `scrollWidth` vs `clientWidth`.
+- Found the fit calculation was using the outer key width minus 16px, while CSS left the primary label with about 18px less than the outer key width before browser rounding.
+- Made primary label fitting more conservative so compact thumb keys scale down before CSS ellipsis can activate.
+
+What did not work:
+
+- Relying only on Pretext's predicted width was not enough because the rendered DOM box was slightly narrower than the width passed to the fit helper.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- In-app browser scan on the Editor page found 76 keycaps and no labels where `scrollWidth > clientWidth`.
+- In-app browser scan on the Layouts preview found 76 read-only keycaps and no labels where `scrollWidth > clientWidth`.
+- `Space` now renders at `9.75px` on the compact thumb key instead of ellipsizing.
+
 ## 2026-06-21: qmk-viz layout history, Default template, and project marker preview
 
 Goal: finish the paused qmk-viz pass by making Layouts a read-only history/template surface, making destructive actions safer, and rendering the Projects page as a keyboard marker preview instead of raw KLE JSON.
