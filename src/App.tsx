@@ -42,6 +42,7 @@ import {
   composeModTapAction,
   composeSimpleAction,
   modTapActions,
+  parseSimpleComposerAction,
   qmkKeycodeFromEvent,
   simpleComposerActions,
   type SimpleComposerKind
@@ -62,10 +63,17 @@ type RenameDialog = {
   value: string;
 };
 
-type PasteJsonKind = "project" | "kle" | "layout";
+type PasteJsonKind = "kle";
 
 type PasteJsonDialog = {
   kind: PasteJsonKind;
+  value: string;
+};
+
+type JsonEditKind = "project" | "layout";
+
+type JsonEditDialog = {
+  kind: JsonEditKind;
   value: string;
 };
 
@@ -104,7 +112,15 @@ const layerPalette = [
   "#7c5cc4",
   "#00866b",
   "#c24f87",
-  "#5067c7"
+  "#5067c7",
+  "#d14a72",
+  "#2f8f83",
+  "#d47d00",
+  "#4f7fdb",
+  "#8a6a17",
+  "#b457c7",
+  "#37733f",
+  "#9f4d2c"
 ];
 
 const simpleKeycodeMods = [
@@ -115,20 +131,23 @@ const simpleKeycodeMods = [
 ];
 
 const pasteJsonLabels: Record<PasteJsonKind, { eyebrow: string; title: string; placeholder: string }> = {
-  project: {
-    eyebrow: "Import project",
-    title: "Paste qmk-viz project JSON",
-    placeholder: "{\n  \"kind\": \"qmk-viz-project\",\n  \"project\": { ... }\n}"
-  },
   kle: {
     eyebrow: "Update KLE model",
     title: "Paste KLE JSON",
     placeholder: "[\n  { \"name\": \"Keyboard Name\" },\n  [ ... ]\n]"
+  }
+};
+
+const jsonEditLabels: Record<JsonEditKind, { eyebrow: string; title: string; help: string }> = {
+  project: {
+    eyebrow: "Project JSON",
+    title: "Edit current project JSON",
+    help: "Save replaces the active project with the edited qmk-viz project JSON."
   },
   layout: {
-    eyebrow: "Import layout",
-    title: "Paste layout JSON",
-    placeholder: "{\n  \"layout\": {\n    \"name\": \"Layout name\",\n    \"layers\": [ ... ]\n  }\n}"
+    eyebrow: "Layout JSON",
+    title: "Edit current layout JSON",
+    help: "Save replaces the active layout document with the edited layout JSON and preserves its version tree."
   }
 };
 
@@ -188,6 +207,7 @@ export function App() {
   const [selectedVersionNameDraft, setSelectedVersionNameDraft] = useState(initialVersion?.name ?? "");
   const [model, setModel] = useState<KeyboardModel>(initialKeyboardProject.model);
   const [layers, setLayers] = useState<KeymapLayer[]>(() => cloneKeymapDocument(initialLayout.document).layers);
+  const [layerColors, setLayerColors] = useState<Record<string, string>>(() => cloneKeymapDocument(initialLayout.document).layerColors ?? {});
   const [activeLayerName, setActiveLayerName] = useState(layers[0]?.name ?? "BASE");
   const [layerNameDraft, setLayerNameDraft] = useState(layers[0]?.name ?? "BASE");
   const [selectedSlot, setSelectedSlot] = useState(model.keys[0]?.slot ?? "");
@@ -195,6 +215,7 @@ export function App() {
   const [draftAction, setDraftAction] = useState("");
   const [behaviorSlots, setBehaviorSlots] = useState<BehaviorSlots>(() => parseActionToBehaviorSlots(""));
   const [composerMode, setComposerMode] = useState<ComposerMode>("simple");
+  const [syncComposerWithSelection, setSyncComposerWithSelection] = useState(false);
   const [simpleKind, setSimpleKind] = useState<SimpleComposerKind>("plain");
   const [simpleRawAction, setSimpleRawAction] = useState("KC_NO");
   const [simpleKeycode, setSimpleKeycode] = useState("KC_SPC");
@@ -217,6 +238,7 @@ export function App() {
   const [renameDialog, setRenameDialog] = useState<RenameDialog | null>(null);
   const [createLayoutNameDraft, setCreateLayoutNameDraft] = useState<string | null>(null);
   const [pasteJsonDialog, setPasteJsonDialog] = useState<PasteJsonDialog | null>(null);
+  const [jsonEditDialog, setJsonEditDialog] = useState<JsonEditDialog | null>(null);
 
   const activeKeyboardProject = keyboardProjects.find((project) => project.id === activeKeyboardProjectId) ?? keyboardProjects[0];
   const availableLayouts = activeKeyboardProject.layouts;
@@ -233,16 +255,17 @@ export function App() {
   const activeLayerIndex = foundLayerIndex >= 0 ? foundLayerIndex : 0;
   const activeLayer = layers[activeLayerIndex] ?? layers[0];
   const layerColorMap = useMemo(() => Object.fromEntries(
-    layers.map((layer, index) => [layer.name, layerPalette[index % layerPalette.length]])
-  ), [layers]);
+    layers.map((layer, index) => [layer.name, layerColors[layer.name] ?? layerPalette[index % layerPalette.length]])
+  ), [layerColors, layers]);
   const selectedKey = model.keys.find((key) => key.slot === selectedSlot) ?? model.keys[0];
   const currentAction = selectedKey ? selectedKeycode(activeLayer, selectedKey.slot) : TRANSPARENT;
   const keymapDocument = useMemo<KeymapDocument>(() => ({
     version: 1,
     layers,
     dances,
-    extKeys
-  }), [dances, extKeys, layers]);
+    extKeys,
+    layerColors
+  }), [dances, extKeys, layerColors, layers]);
   const jsonOutput = useMemo(() => serializeKeymapExport(model, keymapDocument, {
     keyboardProjectId: activeKeyboardProjectId,
     keyboardProjectName: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
@@ -312,6 +335,7 @@ export function App() {
     setSelectedVersionNameDraft((layout.versions.find((version) => version.id === layout.activeVersionId) ?? layout.versions[0])?.name ?? "");
     setModel(project.model);
     setLayers(document.layers);
+    setLayerColors(document.layerColors ?? {});
     setDances(document.dances);
     setExtKeys(document.extKeys);
     setActiveLayerName(nextLayerName);
@@ -348,15 +372,19 @@ export function App() {
       ? saved.selectedSlot
       : saved.project.model.keys[0]?.slot ?? "";
 
-    setKeyboardProjects((current) => current.map((project) => (
-      project.id === saved.project.id ? saved.project : project
-    )));
+    setKeyboardProjects((current) => {
+      const hasSnapshotProject = current.some((project) => project.id === saved.project.id);
+      return hasSnapshotProject
+        ? current.map((project) => project.id === saved.project.id ? saved.project : project)
+        : [...current, saved.project];
+    });
     setActiveKeyboardProjectId(saved.project.id);
     setActiveLayoutId(layout.id);
     setKeyboardProjectNameDraft(saved.project.name);
     setLayoutNameDraft(layout.name);
     setModel(saved.project.model);
     setLayers(document.layers);
+    setLayerColors(document.layerColors ?? {});
     setDances(document.dances);
     setExtKeys(document.extKeys);
     setActiveLayerName(nextLayerName);
@@ -642,6 +670,14 @@ export function App() {
     setLayers((current) => current.map((layer, index) => (
       index === activeLayerIndex ? { ...layer, name: nextName } : layer
     )));
+    setLayerColors((current) => {
+      const next = { ...current };
+      if (current[activeLayer.name]) {
+        next[nextName] = current[activeLayer.name];
+      }
+      delete next[activeLayer.name];
+      return next;
+    });
     setActiveLayerName(nextName);
     setLayerNameDraft(nextName);
     setStatusMessage(`Renamed layer ${activeLayerIndex} to ${nextName}.`);
@@ -674,9 +710,23 @@ export function App() {
     const nextName = nextLayers[nextIndex]?.name ?? nextLayers[0].name;
     recordHistory();
     setLayers(nextLayers);
+    setLayerColors((current) => {
+      const next = { ...current };
+      delete next[activeLayer.name];
+      return next;
+    });
     setActiveLayerName(nextName);
     setLayerNameDraft(nextName);
     setStatusMessage(`Removed layer ${activeLayerIndex}: ${activeLayer.name}.`);
+  }
+
+  function setActiveLayerColor(color: string) {
+    recordHistory();
+    setLayerColors((current) => ({
+      ...current,
+      [activeLayer.name]: color
+    }));
+    setStatusMessage(`Set ${activeLayer.name} color to ${color}.`);
   }
 
   function moveActiveLayer(delta: -1 | 1) {
@@ -1141,6 +1191,22 @@ export function App() {
     setPasteJsonDialog({ kind, value: "" });
   }
 
+  function currentProjectFileJson() {
+    const projectFile: ProjectFile = {
+      version: 1,
+      kind: "qmk-viz-project",
+      project: projectWithEditorState()
+    };
+    return JSON.stringify(projectFile, null, 2);
+  }
+
+  function openJsonEditDialog(kind: JsonEditKind) {
+    setJsonEditDialog({
+      kind,
+      value: kind === "project" ? currentProjectFileJson() : jsonOutput
+    });
+  }
+
   function submitPasteJsonDialog(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!pasteJsonDialog) return;
@@ -1153,16 +1219,63 @@ export function App() {
 
     try {
       const raw = JSON.parse(pasted) as unknown;
-      if (pasteJsonDialog.kind === "project") {
-        importFullProjectFromJson(raw, "pasted-project.json");
-      } else if (pasteJsonDialog.kind === "kle") {
+      if (pasteJsonDialog.kind === "kle") {
         updateActiveKeyboardModelFromJson(raw, "pasted-kle.json");
-      } else {
-        uploadLayoutFromJson(raw, "Pasted Layout");
       }
       setPasteJsonDialog(null);
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "Failed to import pasted JSON.");
+    }
+  }
+
+  function submitJsonEditDialog(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!jsonEditDialog) return;
+
+    const edited = jsonEditDialog.value.trim();
+    if (!edited) {
+      setStatusMessage("JSON editor is empty.");
+      return;
+    }
+
+    try {
+      const raw = JSON.parse(edited) as unknown;
+      recordHistory();
+
+      if (jsonEditDialog.kind === "project") {
+        const project = parseProjectFile(raw, "edited-project.json");
+        setKeyboardProjects((current) => [
+          ...current.filter((item) => item.id !== activeKeyboardProjectId && item.id !== project.id),
+          project
+        ]);
+        loadKeyboardProjectObject(project, project.activeLayoutId, { resetHistory: false, selectedSlot, activeLayerName });
+        setStatusMessage(`Saved edited project JSON for ${project.name}.`);
+      } else {
+        const parsedLayout = parseLayoutUpload(raw, model, layoutNameDraft || "Edited Layout");
+        const now = new Date().toISOString();
+        const baseProject = projectWithEditorState();
+        const existingLayout = baseProject.layouts.find((layout) => layout.id === activeLayoutId) ?? baseProject.layouts[0];
+        const nextLayout = cloneSavedLayout({
+          ...existingLayout,
+          name: parsedLayout.name,
+          document: cloneKeymapDocument(parsedLayout.document),
+          updatedAt: now
+        }, model);
+        const project = {
+          ...baseProject,
+          layouts: baseProject.layouts.map((layout) => layout.id === activeLayoutId ? nextLayout : layout),
+          activeLayoutId: nextLayout.id,
+          updatedAt: now
+        };
+
+        setKeyboardProjects((current) => current.map((item) => item.id === project.id ? project : item));
+        loadLayoutObject(project, nextLayout, { resetHistory: false, selectedSlot, activeLayerName });
+        setStatusMessage(`Saved edited layout JSON for ${nextLayout.name}.`);
+      }
+
+      setJsonEditDialog(null);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Failed to save edited JSON.");
     }
   }
 
@@ -1185,12 +1298,7 @@ export function App() {
   }
 
   function downloadFullProject() {
-    const projectFile: ProjectFile = {
-      version: 1,
-      kind: "qmk-viz-project",
-      project: projectWithEditorState()
-    };
-    downloadText(JSON.stringify(projectFile, null, 2), `${safeFileSlug(keyboardProjectNameDraft, "qmk-viz-project")}.qmk-viz-project.json`);
+    downloadText(currentProjectFileJson(), `${safeFileSlug(keyboardProjectNameDraft, "qmk-viz-project")}.qmk-viz-project.json`);
   }
 
   function downloadProjectKle() {
@@ -1221,6 +1329,27 @@ export function App() {
   const canUndo = undoStack.length > 0;
   const canRedo = redoStack.length > 0;
 
+  function syncComposerFromAction(action: string) {
+    const cleanAction = action.trim();
+    const tapDanceName = cleanAction.match(/^TD\(([^)]+)\)$/)?.[1] ?? (/^DANCE_\d+$/.test(cleanAction) ? cleanAction : "");
+
+    if (tapDanceName && dances[tapDanceName]) {
+      setComposerMode("dance");
+      setDanceName(tapDanceName);
+      setBehaviorSlots(dances[tapDanceName]);
+      return;
+    }
+
+    const parsed = parseSimpleComposerAction(cleanAction);
+    setComposerMode("simple");
+    setSimpleKind(parsed.kind);
+    setSimpleRawAction(parsed.rawAction);
+    setSimpleKeycode(parsed.keycode);
+    setSimpleKeycodeModifiers(parsed.keycodeModifiers);
+    setSimpleLayer(parsed.layer);
+    setModTapModifier(parsed.modTapModifier);
+  }
+
   useEffect(() => {
     localStorage.setItem(KEYBOARD_PROJECTS_STORAGE_KEY, JSON.stringify(keyboardProjects));
   }, [keyboardProjects]);
@@ -1235,11 +1364,10 @@ export function App() {
 
   useEffect(() => {
     setDraftAction(currentAction);
-    const parsedSlots = parseActionToBehaviorSlots(currentAction);
-    setBehaviorSlots(parsedSlots);
-    if (parsedSlots.tap) setSimpleKeycode(parsedSlots.tap);
-    if (parsedSlots.hold) setSimpleLayer(parsedSlots.hold);
-  }, [currentAction, activeLayer.name, selectedKey.slot]);
+    if (syncComposerWithSelection) {
+      syncComposerFromAction(currentAction);
+    }
+  }, [currentAction, activeLayer.name, selectedKey.slot, syncComposerWithSelection, dances]);
 
   useEffect(() => {
     setLayerNameDraft(activeLayer.name);
@@ -1385,7 +1513,7 @@ export function App() {
                     type="file"
                   />
                 </label>
-                <button className="action-import" data-icon="{}" data-testid="paste-layout-json" onClick={() => openPasteJsonDialog("layout")} type="button">Paste Layout JSON</button>
+                <button className="action-rename" data-icon="{}" data-testid="edit-layout-json" onClick={() => openJsonEditDialog("layout")} type="button">Edit Layout JSON</button>
                 <button className="action-export" data-icon="⇡" data-testid="download-layout" onClick={downloadJson} type="button">Download Layout</button>
                 <button className="action-rename" data-icon="✎" data-testid="rename-layout" onClick={openLayoutRenameDialog} type="button">Rename Layout</button>
                 <button className="action-default" data-icon="★" data-testid="save-default-layout" onClick={saveCurrentLayoutAsDefault} type="button">Save as Default</button>
@@ -1474,6 +1602,22 @@ export function App() {
               >
                 Remove
               </button>
+            </div>
+            <div className="layer-color-picker" aria-label={`Color for ${activeLayer.name}`}>
+              <span>Color</span>
+              <div className="layer-color-swatches">
+                {layerPalette.map((color) => (
+                  <button
+                    aria-label={`Set ${activeLayer.name} color to ${color}`}
+                    className={layerColorMap[activeLayer.name] === color ? "active" : ""}
+                    data-testid={`layer-color-${color.replace("#", "")}`}
+                    key={color}
+                    onClick={() => setActiveLayerColor(color)}
+                    style={{ backgroundColor: color }}
+                    type="button"
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1655,7 +1799,18 @@ export function App() {
                 <p className="eyebrow">Action composer</p>
                 <h2>{composerMode === "dance" ? "Dance composer" : "Simple composer"}</h2>
               </div>
-              <code className={composerMode === "dance" ? "needs-code" : ""}>{generatedAction}</code>
+              <div className="composer-heading-actions">
+                <label className="composer-sync-toggle">
+                  <input
+                    checked={syncComposerWithSelection}
+                    data-testid="sync-composer-selection"
+                    onChange={(event) => setSyncComposerWithSelection(event.target.checked)}
+                    type="checkbox"
+                  />
+                  Follow selected
+                </label>
+                <code className={composerMode === "dance" ? "needs-code" : ""}>{generatedAction}</code>
+              </div>
             </div>
             <div className="composer-mode-tabs" role="tablist" aria-label="Composer mode">
               <button
@@ -2127,7 +2282,7 @@ export function App() {
                   type="file"
                 />
               </label>
-              <button className="action-import" data-icon="{}" data-testid="paste-project-json" onClick={() => openPasteJsonDialog("project")} type="button">Paste Project JSON</button>
+              <button className="action-rename" data-icon="{}" data-testid="edit-project-json" onClick={() => openJsonEditDialog("project")} type="button">Edit Project JSON</button>
               <button className="action-export" data-icon="⇡" data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
             </div>
           </div>
@@ -2280,6 +2435,42 @@ export function App() {
         </section>
       )}
 
+      {jsonEditDialog && (
+        <div className="modal-backdrop" role="presentation">
+          <form
+            className="rename-modal paste-json-modal"
+            aria-labelledby="edit-json-modal-title"
+            onSubmit={submitJsonEditDialog}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="section-header">
+              <div>
+                <p className="eyebrow">{jsonEditLabels[jsonEditDialog.kind].eyebrow}</p>
+                <h2 id="edit-json-modal-title">{jsonEditLabels[jsonEditDialog.kind].title}</h2>
+              </div>
+            </div>
+            <label>
+              JSON
+              <textarea
+                autoFocus
+                data-testid="edit-json-input"
+                value={jsonEditDialog.value}
+                onChange={(event) => setJsonEditDialog((current) => (
+                  current ? { ...current, value: event.target.value } : current
+                ))}
+                spellCheck={false}
+              />
+            </label>
+            <p className="modal-help">{jsonEditLabels[jsonEditDialog.kind].help}</p>
+            <div className="button-row rename-modal-actions">
+              <button className="action-save" data-icon="✓" data-testid="save-edit-json" type="submit">Save JSON</button>
+              <button className="action-disable" data-icon="×" data-testid="close-edit-json" onClick={() => setJsonEditDialog(null)} type="button">Close</button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {pasteJsonDialog && (
         <div className="modal-backdrop" role="presentation">
           <form
@@ -2309,8 +2500,8 @@ export function App() {
               />
             </label>
             <div className="button-row rename-modal-actions">
-              <button className="action-import" data-icon="{}" data-testid="submit-paste-json" type="submit">Import JSON</button>
-              <button className="action-disable" data-icon="×" onClick={() => setPasteJsonDialog(null)} type="button">Cancel</button>
+              <button className="action-import" data-icon="{}" data-testid="submit-paste-json" type="submit">Update KLE</button>
+              <button className="action-disable" data-icon="×" onClick={() => setPasteJsonDialog(null)} type="button">Close</button>
             </div>
           </form>
         </div>

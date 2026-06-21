@@ -180,7 +180,8 @@ export function createDefaultDocument(): KeymapDocument {
     version: 1,
     layers: ergodoxInfinityDefaultLayers.map((layer) => ({ name: layer.name, keys: { ...layer.keys } })),
     dances: {},
-    extKeys: []
+    extKeys: [],
+    layerColors: {}
   };
 }
 
@@ -376,6 +377,7 @@ export function parseLayoutUpload(raw: unknown, model: KeyboardModel, fallbackNa
   const typedLayout = layout as {
     name?: unknown;
     layers: KeymapLayer[];
+    layerColors?: unknown;
     dances?: unknown;
     extKeys?: unknown;
   };
@@ -390,7 +392,10 @@ export function parseLayoutUpload(raw: unknown, model: KeyboardModel, fallbackNa
       : {},
     extKeys: Array.isArray(typedLayout.extKeys)
       ? typedLayout.extKeys.map((key) => ({ ...key })) as ExtKey[]
-      : []
+      : [],
+    layerColors: typeof typedLayout.layerColors === "object" && typedLayout.layerColors !== null
+      ? typedLayout.layerColors as Record<string, string>
+      : {}
   }, model);
   const name = typeof typedLayout.name === "string" && typedLayout.name.trim()
     ? typedLayout.name.trim()
@@ -422,15 +427,27 @@ export function parseProjectFile(raw: unknown, fallbackSource: string): SavedKey
   });
   const sourceLayouts = Array.isArray(typedProject.layouts) ? typedProject.layouts : [];
   const layouts = sourceLayouts.map((layout, index) => normalizeLoadedLayout(layout, model, index));
+  const safeLayouts = layouts.length > 0 ? layouts : [createLayout("Default Layout", createBlankKeymapDocument(model), model)];
   const name = typeof typedProject.name === "string" && typedProject.name.trim()
     ? typedProject.name
     : model.name;
+  const updatedAt = typeof typedProject.updatedAt === "string" ? typedProject.updatedAt : new Date().toISOString();
+  const activeLayoutId = typeof typedProject.activeLayoutId === "string" && safeLayouts.some((layout) => layout.id === typedProject.activeLayoutId)
+    ? typedProject.activeLayoutId
+    : safeLayouts[0].id;
 
-  return createKeyboardProject(
+  return {
+    id: typeof typedProject.id === "string" ? typedProject.id : newEntityId("keyboard-project"),
     name,
-    model,
-    layouts,
-    typedProject.defaultLayout?.document,
-    typeof typedProject.defaultLayout?.updatedAt === "string" ? typedProject.defaultLayout.updatedAt : undefined
-  );
+    model: sanitizeKeyboardModel(model),
+    defaultLayout: normalizeLoadedDefaultLayout(
+      typedProject.defaultLayout,
+      model,
+      safeLayouts[0].document,
+      updatedAt
+    ),
+    layouts: safeLayouts,
+    activeLayoutId,
+    updatedAt
+  };
 }

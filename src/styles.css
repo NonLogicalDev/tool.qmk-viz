@@ -422,6 +422,43 @@ textarea {
   justify-content: end;
 }
 
+.layer-color-picker {
+  align-items: center;
+  display: flex;
+  flex: 0 1 280px;
+  gap: 7px;
+  justify-content: flex-end;
+  min-width: 220px;
+}
+
+.layer-color-picker > span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.layer-color-swatches {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(8, 16px);
+}
+
+.layer-color-swatches button {
+  border: 2px solid rgb(255 255 255 / 80%);
+  border-radius: 5px;
+  box-shadow: 0 0 0 1px rgb(34 36 51 / 14%);
+  cursor: pointer;
+  height: 16px;
+  padding: 0;
+  width: 16px;
+}
+
+.layer-color-swatches button.active {
+  box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px rgb(255 255 255 / 88%);
+}
+
 .layer-tabs button:focus-visible,
 .app-nav button:focus-visible,
 .context-chip:focus-visible,
@@ -744,13 +781,19 @@ textarea {
 
 .key-primary {
   align-self: center;
+  display: -webkit-box;
   font-weight: 820;
   line-height: 1;
   max-width: calc(100% - 4px);
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: normal;
+  text-overflow: clip;
+  text-transform: none;
+  white-space: normal;
+  word-break: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .key-secondary {
@@ -1515,6 +1558,36 @@ button[data-icon]::before,
   min-height: 0;
 }
 
+.composer-heading-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: end;
+  max-width: 60%;
+}
+
+.composer-sync-toggle {
+  align-items: center;
+  background: rgb(241 237 227 / 78%);
+  border: 1px solid rgb(217 210 196 / 74%);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: row;
+  font-size: 0.64rem;
+  font-weight: 850;
+  gap: 5px;
+  min-height: 24px;
+  padding: 2px 8px;
+}
+
+.composer-sync-toggle input {
+  margin: 0;
+  min-height: 0;
+}
+
 .generated {
   align-items: center;
   justify-content: space-between;
@@ -1553,6 +1626,10 @@ button[data-icon]::before,
 .section-header code {
   font-size: 0.72rem;
   max-width: 48%;
+}
+
+.composer-heading-actions code {
+  max-width: 260px;
 }
 
 .section-header code.needs-code {

@@ -20,6 +20,7 @@ export type KeymapDocument = {
   layers: KeymapLayer[];
   dances: Record<string, BehaviorSlots>;
   extKeys: ExtKey[];
+  layerColors?: Record<string, string>;
 };
 
 export type KeymapExport = {
@@ -37,6 +38,7 @@ export type KeymapExport = {
   layout: {
     id: string;
     name: string;
+    layerColors: Record<string, string>;
     layers: Array<{
       name: string;
       keys: Record<string, string>;
@@ -58,11 +60,14 @@ export function createBlankKeymapDocument(model: KeyboardModel, layerName = "BAS
       keys: Object.fromEntries(model.keys.map((key) => [key.slot, TRANSPARENT]))
     }],
     dances: {},
-    extKeys: []
+    extKeys: [],
+    layerColors: {}
   };
 }
 
 export function reconcileKeymapDocumentToModel(document: KeymapDocument, model: KeyboardModel): KeymapDocument {
+  const layerNames = new Set(document.layers.map((layer) => layer.name));
+
   return {
     version: 1,
     layers: document.layers.map((layer) => ({
@@ -74,7 +79,10 @@ export function reconcileKeymapDocumentToModel(document: KeymapDocument, model: 
     dances: Object.fromEntries(
       Object.entries(document.dances).map(([name, slots]) => [name, { ...slots }])
     ),
-    extKeys: document.extKeys.map((key) => ({ ...key }))
+    extKeys: document.extKeys.map((key) => ({ ...key })),
+    layerColors: Object.fromEntries(
+      Object.entries(document.layerColors ?? {}).filter(([layerName]) => layerNames.has(layerName))
+    )
   };
 }
 
@@ -85,7 +93,8 @@ export function cloneKeymapDocument(document: KeymapDocument): KeymapDocument {
     dances: Object.fromEntries(
       Object.entries(document.dances).map(([name, slots]) => [name, { ...slots }])
     ),
-    extKeys: document.extKeys.map((key) => ({ ...key }))
+    extKeys: document.extKeys.map((key) => ({ ...key })),
+    layerColors: { ...(document.layerColors ?? {}) }
   };
 }
 
@@ -134,6 +143,7 @@ export function serializeKeymapExport(
     layout: {
       id: options.layoutId,
       name: options.layoutName,
+      layerColors: { ...(document.layerColors ?? {}) },
       layers: document.layers.map((layer) => ({
         name: layer.name,
         keys: Object.fromEntries(

@@ -82,13 +82,15 @@ const modTapLabels: Record<string, string> = {
 const modifierWrapperLabels: Record<string, string> = {
   LALT: "Alt",
   LCTL: "Ctrl",
-  LGUI: "Cmd",
+  LGUI: "Gui",
   LSFT: "Shift",
-  RALT: "Right Alt",
-  RCTL: "Right Ctrl",
-  RGUI: "Cmd",
-  RSFT: "Right Shift"
+  RALT: "RAlt",
+  RCTL: "RCtrl",
+  RGUI: "Gui",
+  RSFT: "RShift"
 };
+
+const chordBreak = "\u200B";
 
 export type ActionDetails = {
   primary: string;
@@ -200,6 +202,30 @@ function parseFunctionCall(value: string): { name: string; args: string[] } | un
   return { name: match[1], args: splitFunctionArgs(body) };
 }
 
+function stripRedundantParens(value: string): string {
+  let clean = value.trim();
+
+  while (clean.startsWith("(") && clean.endsWith(")")) {
+    let depth = 0;
+    let closesAtEnd = false;
+
+    for (let index = 0; index < clean.length; index += 1) {
+      const char = clean[index];
+      if (char === "(") depth += 1;
+      if (char === ")") depth -= 1;
+      if (depth === 0) {
+        closesAtEnd = index === clean.length - 1;
+        break;
+      }
+    }
+
+    if (!closesAtEnd) break;
+    clean = clean.slice(1, -1).trim();
+  }
+
+  return clean;
+}
+
 function functionValidation(name: string, args: string[]): ActionDetails["validation"] {
   const expectedArgs: Record<string, number> = {
     LT: 2,
@@ -256,9 +282,21 @@ function flattenModifierWrapper(value: string): { base: string; labels: string[]
 
   const nested = flattenModifierWrapper(call.args[0]);
   return {
-    base: nested?.base ?? call.args[0],
+    base: nested?.base ?? stripRedundantParens(call.args[0]),
     labels: [modifierWrapperLabels[call.name], ...(nested?.labels ?? [])]
   };
+}
+
+function displayModifierChord(value: string): string | undefined {
+  const flattened = flattenModifierWrapper(value);
+  if (!flattened) return undefined;
+
+  const base = displayKeycode(flattened.base);
+  return [...flattened.labels, base].filter(Boolean).join(`+${chordBreak}`);
+}
+
+function displayActionPrimary(identifier: string): string {
+  return displayModifierChord(identifier) ?? displayKeycode(identifier);
 }
 
 function actionDownStatement(value: string, fallback: string): string {
@@ -363,7 +401,7 @@ tap_dance_action_t tap_dance_actions[] = {
 }
 
 export function displayKeycode(identifier: string): string {
-  const value = identifier.trim();
+  const value = stripRedundantParens(identifier);
   if (!value) return "";
   if (value === "~" || value === "KC_TRNS") return "~";
   if (keyLabels[value]) return keyLabels[value];
@@ -400,7 +438,7 @@ export function describeAction(identifier: string): ActionDetails {
   if (functionCall?.name === "LT") {
     const [layer, tap] = functionCall.args;
     return {
-      primary: displayKeycode(tap ?? ""),
+      primary: displayActionPrimary(tap ?? ""),
       secondary: `${layer ?? "layer"} on hold`,
       tone: "layer",
       layer,
@@ -426,7 +464,7 @@ export function describeAction(identifier: string): ActionDetails {
 
   if (functionCall?.name && modTapLabels[functionCall.name]) {
     return {
-      primary: displayKeycode(functionCall.args[0] ?? ""),
+      primary: displayActionPrimary(functionCall.args[0] ?? ""),
       secondary: `hold ${modTapLabels[functionCall.name]}`,
       tone: "modifier",
       validation: functionValidation(functionCall.name, functionCall.args)
@@ -434,10 +472,8 @@ export function describeAction(identifier: string): ActionDetails {
   }
 
   if (functionCall?.name && modifierWrapperLabels[functionCall.name]) {
-    const flattened = flattenModifierWrapper(value);
     return {
-      primary: displayKeycode(flattened?.base ?? functionCall.args[0] ?? ""),
-      secondary: `with ${flattened?.labels.join(" + ") ?? modifierWrapperLabels[functionCall.name]}`,
+      primary: displayModifierChord(value) ?? displayKeycode(functionCall.args[0] ?? ""),
       tone: "modifier",
       validation: functionValidation(functionCall.name, functionCall.args)
     };

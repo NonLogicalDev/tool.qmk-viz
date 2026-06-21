@@ -1,5 +1,47 @@
 # Development Log
 
+## 2026-06-21: qmk-viz terse chord labels and composer selection isolation
+
+Goal: make modifier-wrapper keys read like user-facing shortcuts, prevent editor-key selection from mutating Action Composer state by default, add an explicit composer sync toggle, replace Project/Layout paste JSON with edit/save JSON modals, and persist layer colors from a fixed palette.
+
+What worked:
+
+- Nested modifier wrappers now render as compact chords on keycaps, e.g. `LGUI(LSFT(KC_5))` displays as `Gui+Shift+5`.
+- Redundant extra parentheses around base keycodes are stripped before display, so malformed-looking inputs like `LGUI(LSFT((KC_5)))` still display cleanly.
+- Chord labels carry soft break points after `+` and primary key text can wrap to three lines.
+- Primary key labels opt out of uppercase inheritance so modifier names preserve `Gui+Shift+5` casing.
+- Selecting a keyboard key now updates only the selected-key raw editor. It no longer rehydrates Simple/Dance composer fields from the selected key.
+- Added a `Follow selected` toggle in Action Composer. When enabled, selected-key mappings are unparsed into Simple composer controls where possible.
+- Known tap dances referenced by `TD(name)` or `DANCE_N` sync into Dance composer if their dance entry exists.
+- Unknown or unsupported complex expressions fall back to Raw QMK mode rather than being forced into a lossy structured composer state.
+- Replaced Project/Layout paste JSON buttons with Edit JSON modals that open the current JSON, then Save or Close.
+- Layout JSON save replaces the active layout document while preserving the layout version tree.
+- Project JSON save replaces the active project and keeps undo/redo able to restore a previous project even if the edited JSON changes its ID.
+- Added `layerColors` layout metadata and a compact 16-color palette in the layer toolbar.
+- Layer tab dots, layer action dots, layout export JSON, and project backup JSON all use persisted layer colors when set.
+
+What did not work:
+
+- One-line fitting with ellipsis hid useful shortcut information and made `LGUI(LSFT(...))` look like a raw implementation detail.
+- Allowing arbitrary `overflow-wrap: anywhere` created bad breaks such as orphaned `+5`.
+- Coupling selected-key parsing to the composer caused double-wrapped output when clicking a key that already had modifiers while modifier checkboxes were still enabled.
+- Treating Project/Layout JSON as one-shot paste/import did not fit the new workflow; users need to inspect and edit the current JSON in place.
+- Derived-only layer colors were not enough once color became user-controlled; colors needed to become layout metadata.
+- Browser console retained stale hot-reload errors from earlier development iterations, so runtime validation used fresh DOM checks after reload rather than treating old console history as current failure.
+
+Validation:
+
+- `just viz-build` passed.
+- `git diff --check` passed.
+- Source scan confirmed no stale `Paste Project JSON`, `Paste Layout JSON`, `modifierWrapperActions`, `layerComposerKinds`, or `isCapturingKey` references remain.
+- In-app browser validation at `http://localhost:5174/` confirmed:
+  - `LGUI(LSFT((KC_5)))` displays on the key as `Gui+Shift+5` with normal casing
+  - composer sync off preserves scratch composer state while selecting keys
+  - composer sync on imports selected `LGUI(LSFT(KC_5))` as `KC_5` plus Shift and Gui modifiers
+  - selecting a layer color updates the active layer tab dot
+  - edited layout JSON includes `layerColors` and saves/close cleanly
+  - edited project JSON opens as a full `qmk-viz-project` file and saves/close cleanly
+
 ## 2026-06-21: qmk-viz paste imports, compact composer, and editable support data
 
 Goal: make import/edit flows faster and denser: paste JSON directly, keep project stats compact, show and edit support data, improve complex action rendering, and let composer output feed either a key or an extra key alias.

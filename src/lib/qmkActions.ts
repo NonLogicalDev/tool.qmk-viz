@@ -37,6 +37,15 @@ export const modTapActions = [
   { value: "MEH_T", label: "Meh" }
 ];
 
+export type ParsedSimpleComposerAction = {
+  kind: SimpleComposerKind;
+  rawAction: string;
+  keycode: string;
+  keycodeModifiers: string[];
+  layer: string;
+  modTapModifier: string;
+};
+
 const eventKeyAliases: Record<string, string> = {
   " ": "KC_SPC",
   Enter: "KC_ENT",
@@ -82,6 +91,101 @@ const eventCodeAliases: Record<string, string> = {
   Semicolon: "KC_SCLN",
   Slash: "KC_SLSH"
 };
+
+const wrapperToModifier: Record<string, string> = {
+  LALT: "alt",
+  RALT: "alt",
+  LCTL: "ctrl",
+  RCTL: "ctrl",
+  LGUI: "gui",
+  RGUI: "gui",
+  LSFT: "shift",
+  RSFT: "shift"
+};
+
+const modifierOrder = ["shift", "ctrl", "alt", "gui"];
+
+function cleanAction(value: string): string {
+  return value.trim();
+}
+
+function splitFunctionArgs(value: string): string[] {
+  const args: string[] = [];
+  let depth = 0;
+  let start = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (char === "," && depth === 0) {
+      args.push(cleanAction(value.slice(start, index)));
+      start = index + 1;
+    }
+  }
+
+  args.push(cleanAction(value.slice(start)));
+  return args;
+}
+
+function parseFunctionCall(value: string): { name: string; args: string[] } | undefined {
+  const match = value.match(/^([A-Z0-9_]+)\((.*)\)$/);
+  if (!match) return undefined;
+
+  const body = match[2];
+  let depth = 0;
+  for (const char of body) {
+    if (char === "(") depth += 1;
+    if (char === ")") {
+      depth -= 1;
+      if (depth < 0) return undefined;
+    }
+  }
+  if (depth !== 0) return undefined;
+
+  return { name: match[1], args: splitFunctionArgs(body) };
+}
+
+function stripRedundantParens(value: string): string {
+  let clean = cleanAction(value);
+
+  while (clean.startsWith("(") && clean.endsWith(")")) {
+    let depth = 0;
+    let closesAtEnd = false;
+
+    for (let index = 0; index < clean.length; index += 1) {
+      const char = clean[index];
+      if (char === "(") depth += 1;
+      if (char === ")") depth -= 1;
+      if (depth === 0) {
+        closesAtEnd = index === clean.length - 1;
+        break;
+      }
+    }
+
+    if (!closesAtEnd) break;
+    clean = clean.slice(1, -1).trim();
+  }
+
+  return clean;
+}
+
+function unwrapKeycodeModifiers(value: string): { keycode: string; modifiers: string[] } {
+  let current = cleanAction(value);
+  const modifiers: string[] = [];
+
+  while (current) {
+    const call = parseFunctionCall(current);
+    const modifier = call?.name ? wrapperToModifier[call.name] : undefined;
+    if (!call || !modifier || call.args.length !== 1) break;
+
+    modifiers.push(modifier);
+    current = cleanAction(call.args[0]);
+  }
+
+  const uniqueModifiers = modifierOrder.filter((modifier) => modifiers.includes(modifier));
+  return { keycode: stripRedundantParens(current) || "KC_NO", modifiers: uniqueModifiers };
+}
 
 function modifierKeycode(event: KeyboardEvent): string {
   const side = event.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT ? "R" : "L";
@@ -139,4 +243,68 @@ export function composeSimpleAction(kind: SimpleComposerKind, keycode: string, l
 
 export function composeModTapAction(keycode: string, modifier: string): string {
   return `${modifier || "CTL_T"}(${keycode.trim() || "KC_ESC"})`;
+}
+
+export function parseSimpleComposerAction(action: string): ParsedSimpleComposerAction {
+  const clean = cleanAction(action) || "KC_NO";
+  const base = {
+    kind: "raw" as SimpleComposerKind,
+    rawAction: clean,
+    keycode: "KC_SPC",
+    keycodeModifiers: [] as string[],
+    layer: "SYMB",
+    modTapModifier: "CTL_T"
+  };
+
+  if (clean === "~" || clean === "KC_TRNS") {
+    return { ...base, kind: "transparent", rawAction: "~" };
+  }
+
+  const call = parseFunctionCall(clean);
+
+  if (call?.name === "LT" && call.args.length === 2) {
+    const unwrapped = unwrapKeycodeModifiers(call.args[1]);
+    return {
+      ...base,
+      kind: "lt",
+      rawAction: clean,
+      keycode: unwrapped.keycode,
+      keycodeModifiers: unwrapped.modifiers,
+      layer: call.args[0] || "SYMB"
+    };
+  }
+
+  if ((call?.name === "MO" || call?.name === "TG" || call?.name === "TT") && call.args.length === 1) {
+    return {
+      ...base,
+      kind: call.name.toLowerCase() as SimpleComposerKind,
+      rawAction: clean,
+      layer: call.args[0] || "SYMB"
+    };
+  }
+
+  if (call?.name && modTapActions.some((candidate) => candidate.value === call.name) && call.args.length === 1) {
+    const unwrapped = unwrapKeycodeModifiers(call.args[0]);
+    return {
+      ...base,
+      kind: "mod_tap",
+      rawAction: clean,
+      keycode: unwrapped.keycode,
+      keycodeModifiers: unwrapped.modifiers,
+      modTapModifier: call.name
+    };
+  }
+
+  const unwrapped = unwrapKeycodeModifiers(clean);
+  if (unwrapped.keycode !== clean || unwrapped.modifiers.length > 0 || !call) {
+    return {
+      ...base,
+      kind: "plain",
+      rawAction: clean,
+      keycode: unwrapped.keycode,
+      keycodeModifiers: unwrapped.modifiers
+    };
+  }
+
+  return base;
 }
