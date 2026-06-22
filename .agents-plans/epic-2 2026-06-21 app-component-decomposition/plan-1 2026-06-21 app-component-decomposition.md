@@ -52,7 +52,7 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 15. [x] Reduce `App.tsx` app-store imports/destructuring to shell-owned state only.
 16. [x] Build and browser-validate editor flows.
 17. [x] Update `DEVELOPMENT_LOG.md`.
-18. [ ] Checkpoint.
+18. [x] Checkpoint.
 
 # Learning Log
 
@@ -88,6 +88,7 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 - [x] 2026-06-21 23:24 - Repaired the first generated hook after discovering the initial extraction matched an effect cleanup return instead of the component render return.
 - [x] 2026-06-21 23:24 - Build passed and in-app browser validation covered editor load, key selection, layout actions, composer picker, and clean console errors.
 - [x] 2026-06-21 23:24 - Updated `DEVELOPMENT_LOG.md` for the Editor page extraction.
+- [x] 2026-06-21 23:25 - Checkpointed the Editor page extraction: `7aaac61`.
 
 # Unfinished Work
 
