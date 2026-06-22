@@ -1,5 +1,48 @@
 # Development Log
 
+## 2026-06-21: qmk-viz UI validation and polish
+
+Goal: validate that the standalone qmk-viz app runs and make a systematic polish pass over the visible UI controls without changing the data model.
+
+What worked:
+
+- `just build` passed before and after UI polish.
+- The Vite dev server ran on `http://127.0.0.1:5181/`.
+- Direct HTTP validation confirmed the dev server returned HTTP 200 and served the Vite app shell.
+- Source/test-hook audit covered:
+  - top navigation, context chips, and undo/redo controls
+  - editor layout selector and create/duplicate/import/edit/download/rename/default/delete actions
+  - keyboard layer tabs, layer toolbar, color palette, keycaps, selection, and drag-swap affordances
+  - selected-key raw editor, capture, transparent/no-op/apply/swap actions
+  - Simple and Dance composers
+  - support data tables for dances, macros, and aliases
+  - version save/rename/delete controls and version tree
+  - Projects page create/import/edit/download/select/rename/duplicate/delete and KLE upload/edit/download controls
+  - Export page copy/download controls and read-only JSON output
+  - JSON edit, create layout, and rename modals
+- Added a compact global status strip so Project and Export actions report success/failure outside the Editor side panel.
+- Download actions now report the filename that was downloaded.
+- Copy JSON now reports clipboard success or failure.
+- Export page buttons and Project KLE header button now use the same compact action styles and icons as the rest of the app.
+- Disabled file-import labels now stay visually disabled instead of being recolored by the later import action rule.
+- Context chips, keycaps, color swatches, JSON output, and JSON validation messages now expose clearer accessibility labels or live-region behavior.
+- Section-header buttons now have normalized base, hover, disabled, and focus styling.
+
+What did not work:
+
+- In-app Browser automation could connect to the browser session, but `tab.goto("http://127.0.0.1:5181/")` timed out and reset the control session.
+- Retrying with `http://localhost:5181/` also timed out and reset the control session.
+- After both navigation attempts, the selected in-app browser tab remained on `about:blank`, even though the local Vite server responded correctly.
+- Because of that browser-control failure, this pass used direct server checks, TypeScript/Vite builds, `git diff --check`, and source/test-hook audits instead of completed visual click-through validation.
+- Vite still reports the existing warning that the built JavaScript chunk is larger than 500 kB after minification.
+
+Validation:
+
+- `curl -I http://127.0.0.1:5181/` returned HTTP 200.
+- `curl -s http://127.0.0.1:5181/` returned the Vite HTML app shell.
+- `git diff --check` passed.
+- `just build` passed after polish.
+
 ## 2026-06-21: qmk-viz repository extraction
 
 Goal: split qmk-viz out of the parent keyboard repository into its own local repository while preserving qmk-viz history and moving qmk-viz agent plans with it.

@@ -1432,7 +1432,12 @@ export function App() {
   }
 
   async function copyJson() {
-    await navigator.clipboard.writeText(jsonOutput);
+    try {
+      await navigator.clipboard.writeText(jsonOutput);
+      setStatusMessage("Copied layout JSON to clipboard.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Could not copy layout JSON to clipboard.");
+    }
   }
 
   function downloadText(content: string, filename: string) {
@@ -1450,11 +1455,15 @@ export function App() {
       setStatusMessage("Create or import a layout before downloading layout JSON.");
       return;
     }
-    downloadText(jsonOutput, `${safeFileSlug(layoutNameDraft, "qmk-layout")}.json`);
+    const filename = `${safeFileSlug(layoutNameDraft, "qmk-layout")}.json`;
+    downloadText(jsonOutput, filename);
+    setStatusMessage(`Downloaded ${filename}.`);
   }
 
   function downloadFullProject() {
-    downloadText(currentProjectFileJson(), `${safeFileSlug(keyboardProjectNameDraft, "qmk-viz-project")}.qmk-viz-project.json`);
+    const filename = `${safeFileSlug(keyboardProjectNameDraft, "qmk-viz-project")}.qmk-viz-project.json`;
+    downloadText(currentProjectFileJson(), filename);
+    setStatusMessage(`Downloaded ${filename}.`);
   }
 
   function downloadProjectKle() {
@@ -1462,7 +1471,9 @@ export function App() {
       setStatusMessage("Upload or edit a KLE model before downloading Project KLE.");
       return;
     }
-    downloadText(serializeKeyboardModelKle(model), `${safeFileSlug(keyboardProjectNameDraft, "keyboard")}.kle.json`);
+    const filename = `${safeFileSlug(keyboardProjectNameDraft, "keyboard")}.kle.json`;
+    downloadText(serializeKeyboardModelKle(model), filename);
+    setStatusMessage(`Downloaded ${filename}.`);
   }
 
   function downloadActiveLayerKle() {
@@ -1470,7 +1481,9 @@ export function App() {
       setStatusMessage("Create or import a layout before downloading Layer KLE.");
       return;
     }
-    downloadText(serializeLayerKle(model, activeLayer), `${safeFileSlug(layoutNameDraft, "layout")}-${safeFileSlug(activeLayer.name, "layer")}.kle.json`);
+    const filename = `${safeFileSlug(layoutNameDraft, "layout")}-${safeFileSlug(activeLayer.name, "layer")}.kle.json`;
+    downloadText(serializeLayerKle(model, activeLayer), filename);
+    setStatusMessage(`Downloaded ${filename}.`);
   }
 
   const simpleAction = simpleComposerActions.find((action) => action.kind === simpleKind) ?? simpleComposerActions[0];
@@ -1591,15 +1604,33 @@ export function App() {
           ))}
         </nav>
         <div className="context-strip" aria-label="Current context">
-          <button className="context-chip" onClick={() => setActivePage("projects")} type="button">
+          <button
+            aria-label={`Open Projects page for ${keyboardProjectNameDraft || activeKeyboardProject.name}`}
+            className="context-chip"
+            onClick={() => setActivePage("projects")}
+            title="Open Projects"
+            type="button"
+          >
             <span>Project</span>
             <strong>{keyboardProjectNameDraft || activeKeyboardProject.name}</strong>
           </button>
-          <button className="context-chip" onClick={() => setActivePage("editor")} type="button">
+          <button
+            aria-label={`Open Editor page for ${layoutNameDraft || activeSavedLayout?.name || "no layout"}`}
+            className="context-chip"
+            onClick={() => setActivePage("editor")}
+            title="Open Editor"
+            type="button"
+          >
             <span>Layout</span>
             <strong>{layoutNameDraft || activeSavedLayout?.name || "No layout"}</strong>
           </button>
-          <button className="context-chip" onClick={() => setActivePage("projects")} type="button">
+          <button
+            aria-label={model ? `Open Projects page for keyboard model with ${model.keys.length} keys` : "Open Projects page to configure KLE model"}
+            className="context-chip"
+            onClick={() => setActivePage("projects")}
+            title="Open Projects"
+            type="button"
+          >
             <span>Model</span>
             <strong>{model ? `${model.keys.length} keys` : "No KLE"}</strong>
           </button>
@@ -1633,6 +1664,7 @@ export function App() {
           </button>
         </div>
       </header>
+      <p className="global-status" data-testid="global-status" role="status" aria-live="polite" aria-atomic="true">{statusMessage}</p>
 
       {activePage === "editor" && (
         <section className="workspace editor-workspace">
@@ -1663,7 +1695,12 @@ export function App() {
               <div className="button-row editor-layout-actions">
                 <button className="action-create" data-icon="+" data-testid="new-layout" disabled={!model} onClick={openCreateLayoutDialog} type="button">Create Layout</button>
                 <button className="action-copy" data-icon="⧉" data-testid="duplicate-layout" disabled={!activeSavedLayout} onClick={duplicateLayout} type="button">Duplicate Layout</button>
-                <label className={`file-import action-import ${!model ? "disabled" : ""}`} data-icon="⇣">
+                <label
+                  aria-disabled={!model}
+                  className={`file-import action-import ${!model ? "disabled" : ""}`}
+                  data-icon="⇣"
+                  title={model ? "Import a layout JSON file" : "Add a KLE model before importing layouts"}
+                >
                   Import Layout
                   <input
                     data-testid="layout-upload"
@@ -1800,11 +1837,13 @@ export function App() {
                 {layerPalette.map((color) => (
                   <button
                     aria-label={`Set ${activeLayer.name} color to ${color}`}
+                    aria-pressed={layerColorMap[activeLayer.name] === color}
                     className={layerColorMap[activeLayer.name] === color ? "active" : ""}
                     data-testid={`layer-color-${color.replace("#", "")}`}
                     key={color}
                     onClick={() => setActiveLayerColor(color)}
                     style={{ backgroundColor: color }}
+                    title={`Set ${activeLayer.name} color to ${color}`}
                     type="button"
                   />
                 ))}
@@ -1847,6 +1886,7 @@ export function App() {
                   onDragOver={handleKeyDragOver}
                   onDrop={(event) => handleKeyDrop(key, event)}
                   onDragEnd={() => handleKeyDragEnd(key)}
+                  aria-label={`${key.slot} on ${activeLayer.name}: ${action}`}
                   aria-pressed={key.slot === selectedSlot}
                   style={{
                     left: (key.x + model.paddingX) * model.unit,
@@ -1992,7 +2032,7 @@ export function App() {
                 {swapSourceSlot ? "Cancel swap" : "Start swap"}
               </button>
             </div>
-            <p className="editor-status" data-testid="editor-status" role="status">{statusMessage}</p>
+            <p className="editor-status" data-testid="editor-status">{statusMessage}</p>
             </div>
 
             <div className="editor-card composer-card">
@@ -2475,7 +2515,7 @@ export function App() {
             </div>
             <div className="page-actions">
               <button className="action-create" data-icon="+" data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
-              <label className="file-import action-import" data-icon="⇣">
+              <label className="file-import action-import" data-icon="⇣" title="Import a full qmk-viz project JSON backup">
                 Import Project
                 <input
                   data-testid="project-upload"
@@ -2576,7 +2616,7 @@ export function App() {
                   : "This project has no keyboard model yet. Upload a KLE file or edit KLE JSON to define the key IDs."}
               </p>
               <div className="button-row">
-                <label className="file-import action-import" data-icon="⇣">
+                <label className="file-import action-import" data-icon="⇣" title="Upload or replace the active project's KLE JSON model">
                   Upload/Update KLE
                   <input
                     data-testid="keyboard-upload"
@@ -2625,9 +2665,9 @@ export function App() {
               <p>Use Layout JSON for templating. Use KLE exports for visual previews or model portability.</p>
             </div>
             <div className="page-actions">
-              <button onClick={copyJson} type="button">Copy JSON</button>
-              <button data-testid="download-layout-json" disabled={!model || !activeSavedLayout} onClick={downloadJson} type="button">Layout JSON</button>
-              <button data-testid="download-layer-kle" disabled={!model || !activeSavedLayout} onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
+              <button className="action-copy" data-icon="⧉" data-testid="copy-json" onClick={copyJson} type="button">Copy JSON</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-layout-json" disabled={!model || !activeSavedLayout} onClick={downloadJson} type="button">Layout JSON</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-layer-kle" disabled={!model || !activeSavedLayout} onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
             </div>
           </div>
           <div className="editor-card export-card">
@@ -2636,9 +2676,10 @@ export function App() {
                 <p className="eyebrow">Current layout JSON</p>
                 <h2>{keyboardProjectNameDraft} / {layoutNameDraft || "No layout"}</h2>
               </div>
-              <button data-testid="download-project-kle" disabled={!model} onClick={downloadProjectKle} type="button">Project KLE</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-project-kle" disabled={!model} onClick={downloadProjectKle} type="button">Project KLE</button>
             </div>
             <textarea
+              aria-label="Current layout JSON export"
               readOnly
               value={jsonOutput}
               spellCheck={false}
@@ -2680,6 +2721,7 @@ export function App() {
             </label>
             <p className="modal-help">{jsonEditLabels[jsonEditDialog.kind].help}</p>
             <p
+              aria-live="polite"
               className={`action-validation ${jsonEditValidation.ok ? "ok" : "warning"}`}
               data-testid="edit-json-validation"
             >

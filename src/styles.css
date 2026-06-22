@@ -69,6 +69,23 @@ code {
   z-index: 10;
 }
 
+.global-status {
+  background: rgb(255 253 247 / 76%);
+  border: 1px solid rgb(217 210 196 / 72%);
+  border-radius: 999px;
+  color: #696356;
+  font-size: 0.72rem;
+  font-weight: 720;
+  line-height: 1.25;
+  margin: -4px auto 0;
+  max-width: 1680px;
+  overflow: hidden;
+  padding: 6px 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
 .brand-lockup {
   display: grid;
   gap: 1px;
@@ -475,8 +492,10 @@ textarea {
 .history-controls button:focus-visible,
 .project-stat-list button:focus-visible,
 .project-actions button:focus-visible,
+.layer-color-swatches button:focus-visible,
 .file-import:focus-within,
 .page-actions button:focus-visible,
+.section-header > button:focus-visible,
 .button-row button:focus-visible,
 .generated button:focus-visible,
 .raw-input-row button:focus-visible {
@@ -965,8 +984,8 @@ button[data-icon]::before,
   color: #4b4590;
 }
 
-.action-import:not(:disabled),
-.file-import.action-import {
+button.action-import:not(:disabled),
+.file-import.action-import:not(.disabled) {
   background: #eef7fb;
   border-color: rgb(0 120 168 / 30%);
   color: #075f85;
@@ -1051,6 +1070,39 @@ button[data-icon]::before,
   background: #ffe0d5;
   border-color: var(--accent-2);
   color: #84230f;
+}
+
+.file-import.disabled,
+.file-import.action-import.disabled {
+  background: #e8e1d5;
+  border-color: #ded5c6;
+  color: #a59c8d;
+  cursor: not-allowed;
+}
+
+.section-header > button {
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: var(--control-font-size);
+  font-weight: 850;
+  line-height: 1;
+  min-height: var(--control-height);
+  padding: var(--control-padding);
+}
+
+.section-header > button:hover:not(:disabled) {
+  background: var(--control-bg-hover);
+  border-color: rgb(0 120 168 / 28%);
+}
+
+.section-header > button:disabled {
+  background: #e8e1d5;
+  border-color: #ded5c6;
+  color: #a59c8d;
+  cursor: not-allowed;
 }
 
 .admin-grid {
