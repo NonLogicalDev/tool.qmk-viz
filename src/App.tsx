@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ComponentProps, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { Toaster, toast } from "sonner";
 import "sonner/dist/styles.css";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "./lib/actions";
@@ -18,6 +18,9 @@ import {
 import { serializeKeyboardModelKle, serializeLayerKle } from "./lib/kleExport";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "./lib/textFit";
 import { AppTopbar, type AppPage } from "./components/AppTopbar";
+import { ActionMenu } from "./components/ActionMenu";
+import { CreateLayoutModal, JsonEditModal, KleHelpModal, RenameModal } from "./components/AppModals";
+import { ContextPicker, type ContextPickerOption } from "./components/ContextPicker";
 import { LayoutVersionTree } from "./components/LayoutVersionTree";
 import { PreviewKeycap, actionTypeLabel } from "./components/PreviewKeycap";
 import { ProjectBrowserModal, type ProjectBrowserItem, type ProjectBrowserTab } from "./components/ProjectBrowserModal";
@@ -32,8 +35,6 @@ import {
   createKeyboardProject,
   createLayout,
   createLayoutVersion,
-  loadExampleProjects,
-  loadKeyboardProjects,
   parseLayoutUpload,
   parseProjectFile,
   parseWorkspaceFile,
@@ -61,6 +62,14 @@ import {
   simpleComposerActions,
   type SimpleComposerKind
 } from "./lib/qmkActions";
+import {
+  useAppStore,
+  type CaptureTarget,
+  type ComposerMode,
+  type JsonEditDialog,
+  type JsonEditKind,
+  type RenameDialog
+} from "./stores/appStore";
 
 type BehaviorField = {
   id: keyof BehaviorSlots;
@@ -69,36 +78,12 @@ type BehaviorField = {
   help: string;
 };
 
-type ComposerMode = "simple" | "dance";
-
-type RenameDialog = {
-  kind: "project" | "layout";
-  value: string;
-};
-
-type JsonEditKind = "project" | "layout" | "kle";
-
-type JsonEditDialog = {
-  kind: JsonEditKind;
-  value: string;
-};
-
 type JsonValidation = {
   ok: boolean;
   message: string;
 };
 
-type CaptureTarget = "raw" | "simple";
-
 type ExtKeyTableKind = "macro" | "alias";
-
-type ContextPickerId = "top-project" | "top-layout" | "editor-layout" | "simple-kind" | "mod-tap-modifier" | "simple-layer";
-
-type ContextPickerOption = {
-  value: string;
-  label: string;
-  meta: string;
-};
 
 type AppSnapshot = {
   project: SavedKeyboardProject | null;
@@ -143,24 +128,6 @@ const simpleKeycodeMods = [
   { id: "alt", label: "Alt", wrapper: "LALT" },
   { id: "gui", label: "Gui", wrapper: "LGUI" }
 ];
-
-const jsonEditLabels: Record<JsonEditKind, { eyebrow: string; title: string; help: string }> = {
-  project: {
-    eyebrow: "Project JSON",
-    title: "Edit current project JSON",
-    help: "Save replaces the active project with the edited qmk-viz project JSON."
-  },
-  layout: {
-    eyebrow: "Layout JSON",
-    title: "Edit current layout JSON",
-    help: "Save replaces the active layout document with the edited layout JSON and preserves its version tree."
-  },
-  kle: {
-    eyebrow: "KLE JSON",
-    title: "Edit current KLE JSON",
-    help: "Save replaces the active keyboard model, reconciles matching key IDs, and keeps the project name unchanged."
-  }
-};
 
 function normalizeLayerName(value: string, fallback: string): string {
   const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
@@ -240,68 +207,113 @@ function rewriteLayerReference(action: string, fromLayer: string, toLayer: strin
 
 export function App() {
   const keyboardViewportRef = useRef<HTMLDivElement | null>(null);
-  const contextPickerSearchRef = useRef<HTMLInputElement | null>(null);
-  const [keyboardProjects, setKeyboardProjects] = useState<SavedKeyboardProject[]>(loadKeyboardProjects);
-  const [exampleProjects] = useState<SavedKeyboardProject[]>(loadExampleProjects);
-  const initialKeyboardProject = keyboardProjects[0] ?? null;
-  const initialLayout = activeLayoutFor(initialKeyboardProject);
-  const initialDocument = initialLayout ? cloneKeymapDocument(initialLayout.document) : createEmptyKeymapDocument();
-  const [activePage, setActivePage] = useState<AppPage>(initialKeyboardProject ? "editor" : "projects");
-  const [activeKeyboardProjectId, setActiveKeyboardProjectId] = useState(initialKeyboardProject?.id ?? "");
-  const [activeLayoutId, setActiveLayoutId] = useState(initialLayout?.id ?? "");
-  const initialVersion = initialLayout?.versions.find((version) => version.id === initialLayout.activeVersionId) ?? initialLayout?.versions[0];
-  const [keyboardProjectNameDraft, setKeyboardProjectNameDraft] = useState(initialKeyboardProject?.name ?? "");
-  const [keymapTemplateDraft, setKeymapTemplateDraft] = useState(normalizeKeymapTemplate(initialKeyboardProject?.keymapTemplate));
-  const [layoutNameDraft, setLayoutNameDraft] = useState(initialLayout?.name ?? "");
-  const [versionNameDraft, setVersionNameDraft] = useState("");
-  const [selectedVersionNameDraft, setSelectedVersionNameDraft] = useState(initialVersion?.name ?? "");
-  const [model, setModel] = useState<KeyboardModel | null>(initialKeyboardProject?.model ?? null);
-  const [layers, setLayers] = useState<KeymapLayer[]>(() => initialDocument.layers);
-  const [layerColors, setLayerColors] = useState<Record<string, string>>(() => initialDocument.layerColors ?? {});
-  const [activeLayerName, setActiveLayerName] = useState(layers[0]?.name ?? "BASE");
-  const [layerNameDraft, setLayerNameDraft] = useState(layers[0]?.name ?? "BASE");
-  const [selectedSlot, setSelectedSlot] = useState(model?.keys[0]?.slot ?? "");
-  const [swapSourceSlot, setSwapSourceSlot] = useState<string | null>(null);
-  const [draftAction, setDraftAction] = useState("");
-  const [behaviorSlots, setBehaviorSlots] = useState<BehaviorSlots>(() => parseActionToBehaviorSlots(""));
-  const [composerMode, setComposerMode] = useState<ComposerMode>("simple");
-  const [syncComposerWithSelection, setSyncComposerWithSelection] = useState(false);
-  const [simpleKind, setSimpleKind] = useState<SimpleComposerKind>("plain");
-  const [simpleRawAction, setSimpleRawAction] = useState("KC_NO");
-  const [simpleKeycode, setSimpleKeycode] = useState("KC_SPC");
-  const [simpleKeycodeModifiers, setSimpleKeycodeModifiers] = useState<string[]>([]);
-  const [simpleLayer, setSimpleLayer] = useState("SYMB");
-  const [modTapModifier, setModTapModifier] = useState("CTL_T");
-  const [extraKeyNameDraft, setExtraKeyNameDraft] = useState("KK_CUSTOM");
-  const [danceName, setDanceName] = useState("DANCE_0");
-  const [dances, setDances] = useState<Record<string, BehaviorSlots>>(() => ({ ...initialDocument.dances }));
-  const [extKeys, setExtKeys] = useState<ExtKey[]>(() => initialDocument.extKeys.map((key) => ({ ...key })));
-  const [editingDanceName, setEditingDanceName] = useState<string | null>(null);
-  const [danceDraftName, setDanceDraftName] = useState("DANCE_0");
-  const [danceDraftSlots, setDanceDraftSlots] = useState<BehaviorSlots>({ tap: "", hold: "", doubleTap: "", tapHold: "" });
-  const [editingExtKeyName, setEditingExtKeyName] = useState<string | null>(null);
-  const [extKeyDraft, setExtKeyDraft] = useState<ExtKey>({ name: "KK_CUSTOM", kind: "alias", value: "KC_NO", notes: "" });
-  const [statusMessage, setStatusMessageState] = useState("");
-  const [undoStack, setUndoStack] = useState<string[]>([]);
-  const [redoStack, setRedoStack] = useState<string[]>([]);
-  const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null);
-  const [renameDialog, setRenameDialog] = useState<RenameDialog | null>(null);
-  const [createLayoutNameDraft, setCreateLayoutNameDraft] = useState<string | null>(null);
-  const [jsonEditDialog, setJsonEditDialog] = useState<JsonEditDialog | null>(null);
-  const [projectSearchDraft, setProjectSearchDraft] = useState("");
-  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
-  const [projectBrowserTab, setProjectBrowserTab] = useState<ProjectBrowserTab>("projects");
-  const [projectBrowserPage, setProjectBrowserPage] = useState(0);
-  const [exportPreviewTab, setExportPreviewTab] = useState<ExportPreviewTab>("keymap");
-  const [showKleHelp, setShowKleHelp] = useState(false);
-  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
-  const [openContextPicker, setOpenContextPicker] = useState<ContextPickerId | null>(null);
-  const [contextPickerSearch, setContextPickerSearch] = useState("");
-  const [contextPickerActiveIndex, setContextPickerActiveIndex] = useState(0);
-  const [keyboardViewportSize, setKeyboardViewportSize] = useState(() => ({
-    width: 0,
-    screenHeight: typeof window === "undefined" ? 900 : window.innerHeight
-  }));
+  const {
+    activeKeyboardProjectId,
+    activeLayerName,
+    activeLayoutId,
+    activePage,
+    behaviorSlots,
+    captureTarget,
+    composerMode,
+    createLayoutNameDraft,
+    danceDraftName,
+    danceDraftSlots,
+    danceName,
+    dances,
+    draftAction,
+    editingDanceName,
+    editingExtKeyName,
+    exampleProjects,
+    exportPreviewTab,
+    extraKeyNameDraft,
+    extKeyDraft,
+    extKeys,
+    jsonEditDialog,
+    keyboardProjectNameDraft,
+    keyboardProjects,
+    keyboardViewportSize,
+    keymapTemplateDraft,
+    layerColors,
+    layerNameDraft,
+    layers,
+    layoutNameDraft,
+    modTapModifier,
+    model,
+    openActionMenuId,
+    openContextPicker,
+    projectBrowserPage,
+    projectBrowserTab,
+    projectSearchDraft,
+    redoStack,
+    renameDialog,
+    selectedSlot,
+    selectedVersionNameDraft,
+    showKleHelp,
+    showProjectBrowser,
+    simpleKeycode,
+    simpleKeycodeModifiers,
+    simpleKind,
+    simpleLayer,
+    simpleRawAction,
+    statusMessage,
+    swapSourceSlot,
+    syncComposerWithSelection,
+    undoStack,
+    versionNameDraft,
+    setActiveKeyboardProjectId,
+    setActiveLayerName,
+    setActiveLayoutId,
+    setActivePage,
+    setBehaviorSlots,
+    setCaptureTarget,
+    setComposerMode,
+    setCreateLayoutNameDraft,
+    setDanceDraftName,
+    setDanceDraftSlots,
+    setDanceName,
+    setDances,
+    setDraftAction,
+    setEditingDanceName,
+    setEditingExtKeyName,
+    setExportPreviewTab,
+    setExtraKeyNameDraft,
+    setExtKeyDraft,
+    setExtKeys,
+    setJsonEditDialog,
+    setKeyboardProjectNameDraft,
+    setKeyboardProjects,
+    setKeyboardViewportSize,
+    setKeymapTemplateDraft,
+    setLayerColors,
+    setLayerNameDraft,
+    setLayers,
+    setLayoutNameDraft,
+    setModTapModifier,
+    setModel,
+    setOpenActionMenuId,
+    setOpenContextPicker,
+    setContextPickerActiveIndex,
+    setContextPickerSearch,
+    setProjectBrowserPage,
+    setProjectBrowserTab,
+    setProjectSearchDraft,
+    setRedoStack,
+    setRenameDialog,
+    setSelectedSlot,
+    setSelectedVersionNameDraft,
+    setShowKleHelp,
+    setShowProjectBrowser,
+    setSimpleKeycode,
+    setSimpleKeycodeModifiers,
+    setSimpleKind,
+    setSimpleLayer,
+    setSimpleRawAction,
+    setStatusMessage: setStatusMessageState,
+    setSwapSourceSlot,
+    setSyncComposerWithSelection,
+    setUndoStack,
+    setVersionNameDraft
+  } = useAppStore();
 
   const activeKeyboardProject = keyboardProjects.find((project) => project.id === activeKeyboardProjectId) ?? null;
   const availableLayouts = activeKeyboardProject?.layouts ?? [];
@@ -1844,165 +1856,8 @@ export function App() {
     setContextPickerActiveIndex(0);
   }
 
-  function openContextPickerMenu(id: ContextPickerId) {
-    setOpenActionMenuId(null);
-    setOpenContextPicker((current) => current === id ? null : id);
-    setContextPickerSearch("");
-    setContextPickerActiveIndex(0);
-  }
-
-  function selectContextPickerOption(value: string, onSelect: (value: string) => void) {
-    onSelect(value);
-    closeContextPicker();
-  }
-
-  function filteredContextPickerOptions(options: ContextPickerOption[]) {
-    const query = contextPickerSearch.trim().toLowerCase();
-    if (!query) return options;
-    return options.filter((option) => (
-      option.label.toLowerCase().includes(query) ||
-      option.meta.toLowerCase().includes(query)
-    ));
-  }
-
-  function handleContextPickerKeyDown(
-    event: ReactKeyboardEvent,
-    filteredOptions: ContextPickerOption[],
-    onSelect: (value: string) => void
-  ) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeContextPicker();
-      return;
-    }
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setContextPickerActiveIndex((current) => (
-        filteredOptions.length === 0 ? 0 : (current + 1) % filteredOptions.length
-      ));
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setContextPickerActiveIndex((current) => (
-        filteredOptions.length === 0 ? 0 : (current - 1 + filteredOptions.length) % filteredOptions.length
-      ));
-      return;
-    }
-
-    if (event.key === "Enter") {
-      const safeActiveIndex = filteredOptions.length > 0
-        ? Math.min(contextPickerActiveIndex, filteredOptions.length - 1)
-        : 0;
-      const option = filteredOptions[safeActiveIndex];
-      if (option) {
-        event.preventDefault();
-        selectContextPickerOption(option.value, onSelect);
-      }
-    }
-  }
-
-  function renderContextPicker(options: {
-    id: ContextPickerId;
-    label: string;
-    value: string;
-    emptyLabel: string;
-    choices: ContextPickerOption[];
-    disabled: boolean;
-    onSelect: (value: string) => void;
-    className?: string;
-    triggerTestId?: string;
-    searchTestId?: string;
-    optionTestId?: string;
-  }) {
-    const { id, label, value, emptyLabel, choices, disabled, onSelect, className = "", triggerTestId, searchTestId, optionTestId } = options;
-    const isOpen = openContextPicker === id;
-    const filteredOptions = filteredContextPickerOptions(choices);
-    const selectedOption = choices.find((option) => option.value === value);
-    const safeActiveIndex = filteredOptions.length > 0
-      ? Math.min(contextPickerActiveIndex, filteredOptions.length - 1)
-      : 0;
-    const activeOptionId = `${id}-context-option-${safeActiveIndex}`;
-    const triggerLabel = selectedOption?.label ?? emptyLabel;
-    const triggerMeta = selectedOption?.meta ?? (disabled ? "Unavailable" : "Choose one");
-    const triggerId = triggerTestId ?? `${id}-picker-trigger`;
-    const searchId = searchTestId ?? `${id}-picker-search`;
-    const optionId = optionTestId ?? `${id}-picker-option`;
-
-    return (
-      <div className={`context-picker ${className}`.trim()} data-context-picker-root>
-        <span className="context-picker-label">{label}</span>
-        <button
-          aria-controls={`${id}-context-listbox`}
-          aria-expanded={isOpen}
-          aria-haspopup="listbox"
-          className="context-picker-trigger"
-          data-testid={triggerId}
-          disabled={disabled}
-          onClick={() => openContextPickerMenu(id)}
-          onKeyDown={(event) => {
-            if (disabled) return;
-            if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              openContextPickerMenu(id);
-            }
-          }}
-          type="button"
-        >
-          <strong>{triggerLabel}</strong>
-          <small>{triggerMeta}</small>
-        </button>
-        {isOpen && (
-          <div className="context-picker-popover" onKeyDown={(event) => handleContextPickerKeyDown(event, filteredOptions, onSelect)}>
-            <input
-              aria-activedescendant={filteredOptions.length > 0 ? activeOptionId : undefined}
-              aria-controls={`${id}-context-listbox`}
-              aria-label={`Filter ${label.toLowerCase()} list`}
-              className="context-picker-search"
-              data-testid={searchId}
-              onChange={(event) => {
-                setContextPickerSearch(event.target.value);
-                setContextPickerActiveIndex(0);
-              }}
-              placeholder={`Search ${label.toLowerCase()}...`}
-              ref={contextPickerSearchRef}
-              role="combobox"
-              value={contextPickerSearch}
-            />
-            <div className="context-picker-options" id={`${id}-context-listbox`} role="listbox">
-              {filteredOptions.length > 0 ? filteredOptions.map((option, index) => {
-                const isActive = index === safeActiveIndex;
-                const isSelected = option.value === value;
-                return (
-                  <button
-                    aria-selected={isSelected}
-                    className={`context-picker-option ${isActive ? "active" : ""} ${isSelected ? "selected" : ""}`.trim()}
-                    data-context-picker-active={isActive ? "true" : undefined}
-                    data-testid={optionId}
-                    id={`${id}-context-option-${index}`}
-                    key={option.value}
-                    onClick={() => selectContextPickerOption(option.value, onSelect)}
-                    onMouseEnter={() => setContextPickerActiveIndex(index)}
-                    role="option"
-                    type="button"
-                  >
-                    <span className="context-picker-option-main">
-                      <strong>{option.label}</strong>
-                      {isSelected && <em>selected</em>}
-                    </span>
-                    <small>{option.meta}</small>
-                  </button>
-                );
-              }) : (
-                <div className="context-picker-empty">No matches</div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  function renderContextPicker(options: ComponentProps<typeof ContextPicker>) {
+    return <ContextPicker {...options} />;
   }
 
   function runMenuAction(action: () => void) {
@@ -2016,31 +1871,17 @@ export function App() {
     children: ReactNode,
     options: { className?: string; disabled?: boolean; icon?: string; testId?: string } = {}
   ) {
-    const isOpen = openActionMenuId === id;
-
     return (
-      <div className="action-menu" data-action-menu-root>
-        <button
-          aria-expanded={isOpen}
-          aria-haspopup="menu"
-          className={`action-menu-trigger ${options.className ?? ""}`.trim()}
-          data-icon={options.icon ?? "☰"}
-          data-testid={options.testId}
-          disabled={options.disabled}
-          onClick={() => {
-            closeContextPicker();
-            setOpenActionMenuId((current) => current === id ? null : id);
-          }}
-          type="button"
-        >
-          {label}
-        </button>
-        {isOpen && (
-          <div className="action-menu-popover" role="menu">
-            {children}
-          </div>
-        )}
-      </div>
+      <ActionMenu
+        className={options.className}
+        disabled={options.disabled}
+        icon={options.icon}
+        id={id}
+        label={label}
+        testId={options.testId}
+      >
+        {children}
+      </ActionMenu>
     );
   }
 
@@ -2111,12 +1952,6 @@ export function App() {
       setSimpleLayer(composerLayerOptions[0]);
     }
   }, [composerLayerOptions, simpleAction.fields, simpleLayer]);
-
-  useEffect(() => {
-    if (!openContextPicker) return;
-    const focusFrame = window.requestAnimationFrame(() => contextPickerSearchRef.current?.focus());
-    return () => window.cancelAnimationFrame(focusFrame);
-  }, [openContextPicker]);
 
   useEffect(() => {
     if (!openActionMenuId && !openContextPicker) return;
@@ -3232,161 +3067,39 @@ export function App() {
       )}
 
       {jsonEditDialog && (
-        <div className="modal-backdrop" role="presentation">
-          <form
-            className="rename-modal paste-json-modal"
-            aria-labelledby="edit-json-modal-title"
-            onSubmit={submitJsonEditDialog}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">{jsonEditLabels[jsonEditDialog.kind].eyebrow}</p>
-                <h2 id="edit-json-modal-title">{jsonEditLabels[jsonEditDialog.kind].title}</h2>
-              </div>
-            </div>
-            <label>
-              JSON
-              <textarea
-                autoFocus
-                data-testid="edit-json-input"
-                value={jsonEditDialog.value}
-                onChange={(event) => setJsonEditDialog((current) => (
-                  current ? { ...current, value: event.target.value } : current
-                ))}
-                spellCheck={false}
-              />
-            </label>
-            <p className="modal-help">{jsonEditLabels[jsonEditDialog.kind].help}</p>
-            <p
-              aria-live="polite"
-              className={`action-validation ${jsonEditValidation.ok ? "ok" : "warning"}`}
-              data-testid="edit-json-validation"
-            >
-              {jsonEditValidation.message}
-            </p>
-            <div className="button-row rename-modal-actions">
-              <button
-                className="action-save"
-                data-icon="✓"
-                data-testid="save-edit-json"
-                disabled={!jsonEditValidation.ok}
-                type="submit"
-              >
-                Save JSON
-              </button>
-              <button className="action-disable" data-icon="×" data-testid="close-edit-json" onClick={() => setJsonEditDialog(null)} type="button">Close</button>
-            </div>
-          </form>
-        </div>
+        <JsonEditModal
+          dialog={jsonEditDialog}
+          validation={jsonEditValidation}
+          onChange={(value) => setJsonEditDialog((current) => (
+            current ? { ...current, value } : current
+          ))}
+          onClose={() => setJsonEditDialog(null)}
+          onSubmit={submitJsonEditDialog}
+        />
       )}
 
       {createLayoutNameDraft !== null && (
-        <div className="modal-backdrop" role="presentation">
-          <form
-            className="rename-modal"
-            aria-labelledby="create-layout-modal-title"
-            onSubmit={submitCreateLayoutDialog}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">Create layout</p>
-                <h2 id="create-layout-modal-title">Layout name</h2>
-              </div>
-            </div>
-            <label>
-              Name
-              <input
-                autoFocus
-                data-testid="create-layout-modal-input"
-                value={createLayoutNameDraft}
-                onChange={(event) => setCreateLayoutNameDraft(event.target.value)}
-                spellCheck={false}
-              />
-            </label>
-            <div className="button-row rename-modal-actions">
-              <button className="action-create" data-icon="+" type="submit">Create Layout</button>
-              <button className="action-disable" data-icon="×" onClick={() => setCreateLayoutNameDraft(null)} type="button">Cancel</button>
-            </div>
-          </form>
-        </div>
+        <CreateLayoutModal
+          value={createLayoutNameDraft}
+          onChange={setCreateLayoutNameDraft}
+          onClose={() => setCreateLayoutNameDraft(null)}
+          onSubmit={submitCreateLayoutDialog}
+        />
       )}
 
       {showKleHelp && (
-        <div className="modal-backdrop" role="presentation">
-          <section
-            className="rename-modal kle-help-modal"
-            aria-labelledby="kle-help-title"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">KLE mapping help</p>
-                <h2 id="kle-help-title">How qmk-viz reads Keyboard Layout Editor JSON</h2>
-              </div>
-            </div>
-            <div className="help-content">
-              <p>
-                qmk-viz uses Keyboard Layout Editor geometry as the source of truth for key placement.
-                Each physical key must expose one stable mapping identifier.
-              </p>
-              <ol>
-                <li>Create or edit a layout at <a href="https://www.keyboard-layout-editor.com/#/" rel="noreferrer" target="_blank">keyboard-layout-editor.com</a>.</li>
-                <li>Put the qmk-viz slot ID in the center legend entry for every key you want to edit, for example <code>LT00</code>, <code>RT03</code>, <code>LC21</code>, or <code>K42</code>.</li>
-                <li>Keep each identifier unique. Duplicate IDs are rejected because one keymap slot cannot point at two physical keys.</li>
-                <li>Decorative labels can be omitted; the app renders actions from your layout JSON after the KLE model is uploaded.</li>
-                <li>If you update the KLE later, layouts survive for matching identifiers and orphaned slots are dropped during reconciliation.</li>
-              </ol>
-            </div>
-            <div className="button-row rename-modal-actions">
-              <a className="action-link action-import" data-icon="↗" href="https://www.keyboard-layout-editor.com/#/" rel="noreferrer" target="_blank">Open KLE Website</a>
-              <button className="action-disable" data-icon="×" onClick={() => setShowKleHelp(false)} type="button">Close</button>
-            </div>
-          </section>
-        </div>
+        <KleHelpModal onClose={() => setShowKleHelp(false)} />
       )}
 
       {renameDialog && (
-        <div className="modal-backdrop" role="presentation">
-          <form
-            className="rename-modal"
-            aria-labelledby="rename-modal-title"
-            onSubmit={submitRenameDialog}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">Rename {renameDialog.kind}</p>
-                <h2 id="rename-modal-title">
-                  {renameDialog.kind === "project" ? "Project name" : "Layout name"}
-                </h2>
-              </div>
-            </div>
-            <label>
-              Name
-              <input
-                autoFocus
-                data-testid="rename-modal-input"
-                value={renameDialog.value}
-                onChange={(event) => setRenameDialog((current) => (
-                  current ? { ...current, value: event.target.value } : current
-                ))}
-                spellCheck={false}
-              />
-            </label>
-            <div className="button-row rename-modal-actions">
-              <button className="action-rename" data-icon="✎" type="submit">
-                Rename {renameDialog.kind === "project" ? "Project" : "Layout"}
-              </button>
-              <button className="action-disable" data-icon="×" onClick={() => setRenameDialog(null)} type="button">Cancel</button>
-            </div>
-          </form>
-        </div>
+        <RenameModal
+          dialog={renameDialog}
+          onChange={(value) => setRenameDialog((current) => (
+            current ? { ...current, value } : current
+          ))}
+          onClose={() => setRenameDialog(null)}
+          onSubmit={submitRenameDialog}
+        />
       )}
     </main>
   );

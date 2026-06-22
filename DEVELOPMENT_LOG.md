@@ -1327,3 +1327,35 @@ Validation:
 - In-app browser validation: Project actions menu exposes Rename, Duplicate, Import, Edit JSON, Download, and Delete; KLE model menu exposes Upload/Update KLE, Edit KLE JSON, and Download KLE.
 - In-app browser validation: clean reload after the extraction produced no current console errors.
 - Architecture caveat: `App.tsx` dropped from 3,639 to 3,393 lines, but the Editor page is still the main remaining decomposition target.
+
+## 2026-06-21: qmk-viz Zustand state substrate and shared UI extraction
+
+Goal: keep breaking `App.tsx` apart and introduce Zustand so app/editor state is no longer a long wall of local `useState` declarations.
+
+What did not work:
+
+- `App.tsx` was still holding all app/editor state even after the first page extraction.
+- Moving state and rewriting every mutation handler in the same pass would make regressions hard to isolate.
+- The shared context picker and action menu implementations were still inline in `App.tsx`, even though they are reusable UI primitives.
+- Browser validation initially used stale `.keyboard-key` selectors; the current keyboard buttons are `.keycap` elements with `data-testid="key-<slot>"`.
+- Installing Zustand kept npm audit at 2 findings (1 low, 1 moderate), matching the existing dependency-audit class from earlier Monaco/Nunjucks work.
+
+Changes made:
+
+- Added `zustand` as an app dependency.
+- Added `src/stores/appStore.ts` with typed app/editor state, initial project/layout loading, and React-compatible setter actions.
+- Migrated the current app/editor `useState` declarations out of `App.tsx` and into `useAppStore()`.
+- Extracted shared `ActionMenu` into `src/components/ActionMenu.tsx`.
+- Extracted shared searchable `ContextPicker` into `src/components/ContextPicker.tsx`.
+- Extracted JSON edit, create-layout, KLE help, and rename modals into `src/components/AppModals.tsx`.
+- Kept mutation handlers in `App.tsx` for this slice; moving them into domain store actions should happen by area in later passes.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: root app, top nav, top Project/Layout pickers, context picker search/options, and action menus render after reload.
+- In-app browser validation: Project actions menu still exposes Rename, Edit Project JSON, and Delete.
+- In-app browser validation: Rename modal, KLE help modal, Project Browser modal, and Create Layout modal open correctly.
+- In-app browser validation: Layout page renders 61 keycaps using `data-testid="key-<slot>"`; selecting `key-K01` updates the selected keycap.
+- In-app browser validation: clean reload after the store/component extraction produced no current console errors.
+- Architecture caveat: `App.tsx` is down to 3,106 lines, but it still owns mutation handlers and the main Editor markup.
