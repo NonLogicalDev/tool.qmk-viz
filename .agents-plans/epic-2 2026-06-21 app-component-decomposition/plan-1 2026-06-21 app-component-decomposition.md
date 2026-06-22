@@ -58,7 +58,7 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 20. [x] Move Export page store/controller ownership into `src/pages/ExportPage.tsx`.
 21. [x] Reduce `App.tsx` page-specific destructuring and rendered action-menu construction.
 22. [x] Update `DEVELOPMENT_LOG.md`.
-23. [ ] Checkpoint.
+23. [x] Checkpoint.
 
 # Learning Log
 
@@ -99,9 +99,10 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 - [x] 2026-06-21 23:25 - Checkpointed the Editor page extraction: `7aaac61`.
 - [x] 2026-06-21 23:29 - Planned the Project page ownership slice to match the Editor page extraction without introducing a new project-domain abstraction yet.
 - [x] 2026-06-21 23:31 - Expanded the same slice to include Export page ownership after the user requested the same treatment for Export.
-- [x] 2026-06-21 23:34 - Moved Project and Export page action/state wiring into their page modules and reduced `App.tsx` to direct page mounts.
-- [x] 2026-06-21 23:36 - Build passed and in-app browser validation covered Project menus, KLE actions, Export preview tabs, downloads menu, and clean console errors.
-- [x] 2026-06-21 23:37 - Updated `DEVELOPMENT_LOG.md` for the Project and Export page ownership slice.
+- [x] 2026-06-21 23:33 - Moved Project and Export page action/state wiring into their page modules and reduced `App.tsx` to direct page mounts.
+- [x] 2026-06-21 23:33 - Build passed and in-app browser validation covered Project menus, KLE actions, Export preview tabs, downloads menu, and clean console errors.
+- [x] 2026-06-21 23:33 - Updated `DEVELOPMENT_LOG.md` for the Project and Export page ownership slice.
+- [x] 2026-06-21 23:33 - Checkpointed the Project and Export page ownership slice: `7880598`.
 
 # Unfinished Work
 
