@@ -1889,3 +1889,23 @@ Validation:
 - In-app browser validation at `320x720`: document/body scroll width equals 320px; keyboard viewport, layer toolbar, and version tree remain contained.
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
+
+## 2026-06-22: qmk-viz Ergodox starter layout name
+
+Goal: make the Input Club Ergodox Infinity example starter layout match the other default examples.
+
+What did not work:
+
+- The Ergodox starter project displayed its only layout as `Monster` while the other starter examples use `Default`.
+
+Changes made:
+
+- Renamed the Ergodox starter layout display name from `Monster` to `Default`.
+- Left stable starter IDs unchanged to avoid unnecessary fixture churn.
+
+Validation:
+
+- `jq -e` passed for all `default-projects/*.json`.
+- Starter layout name scan shows every default project layout now displays `Default`.
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.
