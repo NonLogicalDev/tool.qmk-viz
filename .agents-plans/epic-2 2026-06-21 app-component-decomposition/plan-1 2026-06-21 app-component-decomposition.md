@@ -30,6 +30,8 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 - Preserve existing test IDs and browser-visible behavior.
 - Second slice introduces a Zustand app store as the state substrate before deeper extraction. Store state first, behavior later: moving every mutation/action in the same pass would make regressions harder to isolate.
 - Keep ephemeral DOM refs and derived `useMemo` values in components for now; move persisted/editor state and React-style setters into the store.
+- Third slice should move the heavy Editor page to `src/pages/EditorPage.tsx` and have the page subscribe to its own app-store state. Avoid a prop-bag extraction that leaves `App.tsx` importing the whole store.
+- `App.tsx` should become closer to an app shell: topbar wiring, page selection, cross-page project/export actions, and modal orchestration only. Editor-local keyboard/composer/version rendering should leave the shell.
 
 # Implementation Steps
 
@@ -45,6 +47,12 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 10. [x] Build and browser-validate state-bearing flows still work.
 11. [x] Update `DEVELOPMENT_LOG.md`.
 12. [x] Checkpoint.
+13. [x] Extract the heavy Editor page into `src/pages/EditorPage.tsx`.
+14. [x] Move editor-owned store subscriptions and derived values out of `App.tsx`.
+15. [x] Reduce `App.tsx` app-store imports/destructuring to shell-owned state only.
+16. [x] Build and browser-validate editor flows.
+17. [x] Update `DEVELOPMENT_LOG.md`.
+18. [ ] Checkpoint.
 
 # Learning Log
 
@@ -58,6 +66,11 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 - Modal extraction is a useful low-risk follow-up because JSON edit, create-layout, KLE help, and rename modals are presentational wrappers around existing submit handlers.
 - Browser validation initially used stale `.keyboard-key` selectors; current keycaps are `.keycap` buttons with `data-testid="key-<slot>"`.
 - `App.tsx` dropped from 3,393 lines to 3,106 lines in the Zustand/shared-component slice.
+- A useful Editor extraction must move store reads into the page. If `App.tsx` still destructures all editor state and passes it down, the file becomes smaller but remains the owner of the wrong concerns.
+- The Editor extraction now moves the route into `src/pages/EditorPage.tsx`, with editor effects enabled only from that page. `App.tsx` no longer imports `useAppStore` directly.
+- The shared `useAppWorkspace` hook is intentionally transitional: it preserves existing behavior while decoupling the shell from direct store ownership. Follow-up work should split this controller into page/domain hooks or real store actions.
+- The first mechanical extraction failed because it matched an effect cleanup `return (` instead of the component render return. Use the explicit `<main>` render marker for any future mechanical movement from the old App body.
+- In-app browser validation should use `load`, not `networkidle`; the local browser runtime rejected `networkidle` for this page.
 
 # Work Log
 
@@ -70,9 +83,15 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 - [x] 2026-06-21 23:17 - Added Zustand, migrated app/editor state into `src/stores/appStore.ts`, extracted shared `ActionMenu` and `ContextPicker`, and extracted bottom modal markup into `AppModals`.
 - [x] 2026-06-21 23:20 - Build and in-app browser validation passed for top pickers, action menus, Project Browser, rename/KLE/create-layout modals, keycap rendering, and clean reload console errors.
 - [x] 2026-06-21 23:24 - Prepared checkpoint commit for the Zustand/shared-component slice.
+- [x] 2026-06-21 23:32 - Planned the Editor page extraction as a page-owned store subscription slice, not a prop-bag wrapper.
+- [x] 2026-06-21 23:24 - Extracted the Editor route into `EditorPage`, added a transitional workspace controller hook, and reduced `App.tsx` to a shell without direct `useAppStore` imports.
+- [x] 2026-06-21 23:24 - Repaired the first generated hook after discovering the initial extraction matched an effect cleanup return instead of the component render return.
+- [x] 2026-06-21 23:24 - Build passed and in-app browser validation covered editor load, key selection, layout actions, composer picker, and clean console errors.
+- [x] 2026-06-21 23:24 - Updated `DEVELOPMENT_LOG.md` for the Editor page extraction.
 
 # Unfinished Work
 
 - [ ] Follow-up: split Editor page and state-heavy editor subcomponents.
 - [ ] Follow-up: consider moving shared action/context picker UI into reusable components after Editor boundaries are clearer.
 - [ ] Follow-up: move mutation handlers from `App.tsx` into domain store actions by area, starting with project/layout loading and history.
+- [ ] Follow-up: split the transitional `useAppWorkspace` controller into page/domain hooks or real Zustand store actions.

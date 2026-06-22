@@ -1,5 +1,42 @@
 # Development Log
 
+## 2026-06-21: qmk-viz Editor page extraction
+
+Goal: pull the heavy Editor surface out of `App.tsx` and stop the app shell from directly importing/destructuring the full Zustand store.
+
+What worked:
+
+- Extracted the full editor route into `src/pages/EditorPage.tsx`.
+- Moved editor-owned subscriptions/effects into the editor page path:
+  - keyboard viewport measurement
+  - selected key draft sync
+  - optional composer sync from selected key
+  - selected version-name sync
+  - layer-name draft sync
+  - key-capture listener
+- Added `src/hooks/useAppWorkspace.tsx` as a transitional controller around the existing workspace/editor mutations so behavior stayed stable while `App.tsx` became a shell.
+- Added `src/lib/editorConfig.ts` for shared editor constants such as behavior fields, layer palette, keycode modifier definitions, and simple keycode modifier wrapping.
+- Reduced `src/App.tsx` from 3,106 lines to 329 lines. It now renders the topbar, page selection, project/export/modals, and delegates the editor page to `EditorPage`.
+- `App.tsx` no longer imports `useAppStore` directly.
+
+What did not work:
+
+- A first mechanical extraction matched the first cleanup `return (` inside a `useEffect` instead of the component render return. That truncated the generated controller hook and TypeScript failed with a missing closing brace.
+- Regenerating from `HEAD:src/App.tsx` with the explicit `<main>` render boundary fixed the truncation.
+- The in-app browser runtime does not support `networkidle` load-state waits, so validation used `load` plus direct DOM checks.
+- The controller hook is still large. This was accepted for this slice to avoid rewriting behavior while moving ownership boundaries; the next cleanup should split it into page/domain hooks or store actions.
+
+Validation:
+
+- `npm run build` passed.
+- In-app browser validation at `http://127.0.0.1:5182/` confirmed:
+  - editor route loads after reload with 61 keycaps
+  - selected key/action input/layout picker are present
+  - selecting `K02` updates the selected key and raw action value to `KC_2`
+  - layout actions menu opens and exposes duplicate/download actions
+  - simple composer picker opens with 8 options
+  - no current browser console errors after reload and interaction checks
+
 ## 2026-06-21: qmk-viz action menu consolidation
 
 Goal: reduce repeated button clutter by keeping primary actions visible and moving secondary/destructive/file actions into compact hamburger-style action menus.
