@@ -1857,6 +1857,7 @@ Changes made:
 - Clarified that users can either generate `keymap.c` inside qmk-viz or use the exported layout JSON with their own generator.
 - Kept KLE as the stated source of truth and avoided board-specific one-off language.
 - Updated Project page and KLE help modal copy so the interface spells out that KLE means Keyboard Layout Editor.
+- Added README positioning for users experimenting with QMK on boards where VIA is unavailable, too constrained, or less appropriate than direct firmware customization.
 
 Validation:
 

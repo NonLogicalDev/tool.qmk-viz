@@ -8,6 +8,12 @@ qmk-viz is a local-first web app for designing keyboard layouts from Keyboard La
 
 ![qmk-viz interface showing the keyboard editor, selected key, action composer, and version tree](docs/qmk-viz-interface.png)
 
+## Why This Exists
+
+Experimenting with QMK can be awkward on boards that do not support VIA, cannot fit VIA comfortably, or need firmware behavior that VIA does not expose. qmk-viz gives you a visual keymap editor without taking away the freedom to edit, template, compile, and flash your own firmware.
+
+Use it when you want the convenience of a graphical layout tool and the flexibility of owning the generated source or JSON data.
+
 ## Why Use It
 
 - **Bring your own keyboard model.** Upload or paste raw JSON exported from [Keyboard Layout Editor](https://www.keyboard-layout-editor.com/#/), and qmk-viz derives the key positions and stable key IDs from it.
