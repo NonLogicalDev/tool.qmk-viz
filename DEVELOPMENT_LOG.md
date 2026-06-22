@@ -2020,29 +2020,33 @@ Validation:
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
 
-## 2026-06-22: qmk-viz Atreus ABG layout import
+## 2026-06-22: qmk-viz Atreus and Keyboardio Atreus ABG import
 
-Goal: decode Abhinav Gupta's Chrysalis Atreus config into an additional `ABG` layout in the Atreus starter project.
+Goal: decode Abhinav Gupta's Chrysalis Atreus config into a Keyboardio-specific starter while preserving the generic QMK Atreus starter.
 
 What did not work:
 
 - The local `abhinav/home` clone existed but was stale; `origin/master` had moved from `b468aa7` to `8e8b36d`.
-- The Chrysalis export has nine 48-position layers, while the current qmk-viz Atreus KLE exposes 42 slots.
-- Source positions `29` and `30` do not have corresponding slots in the current Atreus KLE. On `BASE` these are `` KC_GRV `` and `KC_BSLS`; on `FUN` these are `KC_VOLU` and `KC_MPLY`.
+- The Chrysalis export has nine 48-position layers, while the generic qmk-viz Atreus KLE exposes 42 slots.
+- The first pass treated source positions `29` and `30` as unsupported; user clarification showed these are the two extra Keyboardio keys above `A15` and `A36`.
+- Merging those keys into the generic Atreus starter would conflate two different physical keyboards, so the correct fix was to fork a Keyboardio variant.
 - Source layers 4-8 were all transparent/blank, so importing them would add UI clutter without changing behavior.
 
 Changes made:
 
 - Read the source from `origin/master:etc/atreus/config.json` without changing the source repo working tree.
-- Added a second layout named `ABG` to `default-projects/atreus.json`.
-- Converted four meaningful source layers into qmk-viz layers: `BASE`, `SYM`, `FUN`, and `NUM`.
+- Restored `default-projects/atreus.json` to the generic 42-key Atreus starter with only its QMK `Default` layout.
+- Added `default-projects/keyboardio-atreus.json` as a separate 44-key starter.
+- Split the two large inner thumb-adjacent keys into four 1u keys by adding `A42` above `A15` and `A43` above `A36`.
+- Added `ABG` to the Keyboardio Atreus starter with four meaningful source layers: `BASE`, `SYM`, `FUN`, and `NUM`.
+- Restored the previously dropped mappings: `A42` is `` KC_GRV `` / `KC_VOLU`, and `A43` is `KC_BSLS` / `KC_MPLY` on the relevant ABG layers.
 - Converted Chrysalis `ShiftTo #1/#2/#3` entries to `MO(SYM)`, `MO(FUN)`, and `MO(NUM)`.
 - Converted HID and consumer keycodes into QMK identifiers, including media keys and shifted symbol aliases.
-- Preserved the existing Atreus default layout and kept it as the active layout.
 
 Validation:
 
-- `ABG` has four layers with 42 mapped slots each.
+- Generic Atreus has 42 KLE IDs and one `Default` layout.
+- Keyboardio Atreus has 44 KLE IDs, a 44-key `Default` layout, and a 44-key `ABG` layout.
 - All `default-projects/*.json` files parse with `jq`.
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
