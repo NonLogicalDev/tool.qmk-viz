@@ -1298,3 +1298,32 @@ Validation:
 - In-app browser validation: sticky action bar is present and uses `position: sticky`.
 - In-app browser validation: Downloads menu contains Keymap C, Layout JSON, Layer KLE, and Project KLE.
 - Architecture caveat: `App.tsx` still needs broader decomposition. This pass only prevents the new Export feature from further growing the inline page markup.
+
+## 2026-06-21: qmk-viz app decomposition epic, slice 1
+
+Goal: make `App.tsx` stop acting as the entire app by moving low-risk page/chrome surfaces into named components under a separate decomposition epic.
+
+What did not work:
+
+- `App.tsx` still owned header chrome, Project page markup, Project Browser modal markup, Export wiring, Editor markup, state orchestration, and shared render helpers.
+- The first browser validation pass hit a stale HMR runtime error from an intermediate state where `appPages` had moved but the hot-reloaded module still referenced it.
+- Browser role lookup did not reliably find the `Project actions` action-menu trigger, so relying only on visible button text made validation brittle.
+
+Changes made:
+
+- Created `.agents-plans/epic-2 2026-06-21 app-component-decomposition/plan-1 2026-06-21 app-component-decomposition.md`.
+- Extracted top app chrome into `src/components/AppTopbar.tsx`.
+- Extracted Project page markup into `src/pages/ProjectPage.tsx`.
+- Extracted Project Browser modal markup and browser item/tab types into `src/components/ProjectBrowserModal.tsx`.
+- Kept app state, persistence, mutation handlers, context picker rendering, and action menu rendering in `App.tsx` for this slice.
+- Added stable `project-actions-menu` and `model-actions-menu` test IDs for extracted Project page validation.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: top nav renders `Project`, `Layout`, and `Export`; top Project/Layout pickers and undo/redo controls render once.
+- In-app browser validation: Project nav opens the Project page; `Project Browser`, `Create Project`, model readout, and KLE actions are present.
+- In-app browser validation: Project Browser opens, `My Projects`/`Examples` tabs render, examples tab shows three example rows, and `Create Project -> From Example` opens the browser on `Examples`.
+- In-app browser validation: Project actions menu exposes Rename, Duplicate, Import, Edit JSON, Download, and Delete; KLE model menu exposes Upload/Update KLE, Edit KLE JSON, and Download KLE.
+- In-app browser validation: clean reload after the extraction produced no current console errors.
+- Architecture caveat: `App.tsx` dropped from 3,639 to 3,393 lines, but the Editor page is still the main remaining decomposition target.

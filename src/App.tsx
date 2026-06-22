@@ -17,10 +17,12 @@ import {
 } from "./lib/keymap";
 import { serializeKeyboardModelKle, serializeLayerKle } from "./lib/kleExport";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "./lib/textFit";
+import { AppTopbar, type AppPage } from "./components/AppTopbar";
 import { LayoutVersionTree } from "./components/LayoutVersionTree";
-import { KeyboardModelPreview } from "./components/KeyboardModelPreview";
 import { PreviewKeycap, actionTypeLabel } from "./components/PreviewKeycap";
+import { ProjectBrowserModal, type ProjectBrowserItem, type ProjectBrowserTab } from "./components/ProjectBrowserModal";
 import { ExportPage, type ExportPreviewTab } from "./pages/ExportPage";
+import { ProjectPage } from "./pages/ProjectPage";
 import {
   KEYBOARD_PROJECTS_STORAGE_KEY,
   activeLayoutFor,
@@ -90,14 +92,6 @@ type CaptureTarget = "raw" | "simple";
 
 type ExtKeyTableKind = "macro" | "alias";
 
-type AppPage = "editor" | "projects" | "export";
-
-type AppPageDefinition = {
-  id: AppPage;
-  label: string;
-  description: string;
-};
-
 type ContextPickerId = "top-project" | "top-layout" | "editor-layout" | "simple-kind" | "mod-tap-modifier" | "simple-layer";
 
 type ContextPickerOption = {
@@ -106,30 +100,12 @@ type ContextPickerOption = {
   meta: string;
 };
 
-type ProjectBrowserTab = "projects" | "examples";
-
-type ProjectBrowserItem = {
-  id: string;
-  name: string;
-  layoutCount: number;
-  versionCount: number;
-  keyCount: number;
-  project: SavedKeyboardProject;
-  source: ProjectBrowserTab;
-};
-
 type AppSnapshot = {
   project: SavedKeyboardProject | null;
   activeLayoutId: string;
   activeLayerName: string;
   selectedSlot: string;
 };
-
-const appPages: AppPageDefinition[] = [
-  { id: "projects", label: "Project", description: "Project library and keyboard model" },
-  { id: "editor", label: "Layout", description: "Layouts, keyboard, and key actions" },
-  { id: "export", label: "Export", description: "JSON and KLE downloads" }
-];
 
 const projectBrowserPageSize = 6;
 
@@ -2217,111 +2193,69 @@ export function App() {
   return (
     <main className={`app-shell page-${activePage}`}>
       <Toaster closeButton position="bottom-right" richColors />
-      <header className="app-topbar">
-        <div className="brand-lockup">
-          <span className="brand-kicker">QMK-VIZ</span>
-          <strong>Keymap Studio</strong>
-        </div>
-        <nav className="app-nav" aria-label="App pages">
-          {appPages.map((page) => (
-            <button
-              aria-current={activePage === page.id ? "page" : undefined}
-              className={activePage === page.id ? "active" : ""}
-              key={page.id}
-              onClick={() => setActivePage(page.id)}
-              title={page.description}
-              type="button"
-            >
-              <span>{page.label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="context-strip" aria-label="Current context">
-          {renderContextPicker({
-            id: "top-project",
-            label: "Project",
-            value: activeKeyboardProjectId,
-            emptyLabel: "No user projects",
-            choices: projectPickerOptions,
-            disabled: keyboardProjects.length === 0,
-            onSelect: (value) => {
-              if (value !== activeKeyboardProjectId) {
-                loadKeyboardProject(value);
-              }
-            },
-            triggerTestId: "top-project-picker-trigger",
-            searchTestId: "top-project-picker-search",
-            optionTestId: "top-project-picker-option"
-          })}
-          {renderContextPicker({
-            id: "top-layout",
-            label: "Layout",
-            value: activeLayoutId,
-            emptyLabel: "No layouts",
-            choices: layoutPickerOptions,
-            disabled: !activeKeyboardProject || availableLayouts.length === 0,
-            onSelect: (value) => {
-              if (value !== activeLayoutId) {
-                loadLayout(value);
-              }
-            },
-            triggerTestId: "top-layout-picker-trigger",
-            searchTestId: "top-layout-picker-search",
-            optionTestId: "top-layout-picker-option"
-          })}
-        </div>
-        <div className="history-controls" aria-label="History">
-          <button
-            aria-label="Undo"
-            data-testid="undo-action"
-            disabled={!canUndo}
-            onClick={undoApp}
-            title={canUndo ? "Undo last app change" : "No changes to undo"}
-            type="button"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M9 7H5v4" />
-              <path d="M5 11c2.2-3.4 5.6-5 9.4-4.2 3.1.6 5.4 3.2 5.6 6.4.2 3.8-2.7 7-6.5 7-2.2 0-4.1-1-5.3-2.6" />
-            </svg>
-          </button>
-          <button
-            aria-label="Redo"
-            data-testid="redo-action"
-            disabled={!canRedo}
-            onClick={redoApp}
-            title={canRedo ? "Redo app change" : "No changes to redo"}
-            type="button"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M15 7h4v4" />
-              <path d="M19 11c-2.2-3.4-5.6-5-9.4-4.2-3.1.6-5.4 3.2-5.6 6.4-.2 3.8 2.7 7 6.5 7 2.2 0 4.1-1 5.3-2.6" />
-            </svg>
-          </button>
-          {renderActionMenu("workspace-actions", "Workspace", (
-            <>
-              <button className="action-export" data-icon="⇡" data-testid="backup-workspace" onClick={() => runMenuAction(downloadWorkspaceBackup)} role="menuitem" type="button">Backup Workspace</button>
-              <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Restore a full qmk-viz workspace backup">
-                Restore Workspace
-                <input
-                  data-testid="workspace-restore-upload"
-                  accept="application/json,.json"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                      void restoreWorkspace(file).catch((error: unknown) => {
-                        setStatusMessage(error instanceof Error ? error.message : "Failed to restore workspace backup.");
-                      });
-                    }
-                    closeActionMenus();
-                    event.target.value = "";
-                  }}
-                  type="file"
-                />
-              </label>
-            </>
-          ), { icon: "▦" })}
-        </div>
-      </header>
+      <AppTopbar
+        activePage={activePage}
+        canRedo={canRedo}
+        canUndo={canUndo}
+        layoutPicker={renderContextPicker({
+          id: "top-layout",
+          label: "Layout",
+          value: activeLayoutId,
+          emptyLabel: "No layouts",
+          choices: layoutPickerOptions,
+          disabled: !activeKeyboardProject || availableLayouts.length === 0,
+          onSelect: (value) => {
+            if (value !== activeLayoutId) {
+              loadLayout(value);
+            }
+          },
+          triggerTestId: "top-layout-picker-trigger",
+          searchTestId: "top-layout-picker-search",
+          optionTestId: "top-layout-picker-option"
+        })}
+        projectPicker={renderContextPicker({
+          id: "top-project",
+          label: "Project",
+          value: activeKeyboardProjectId,
+          emptyLabel: "No user projects",
+          choices: projectPickerOptions,
+          disabled: keyboardProjects.length === 0,
+          onSelect: (value) => {
+            if (value !== activeKeyboardProjectId) {
+              loadKeyboardProject(value);
+            }
+          },
+          triggerTestId: "top-project-picker-trigger",
+          searchTestId: "top-project-picker-search",
+          optionTestId: "top-project-picker-option"
+        })}
+        workspaceMenu={renderActionMenu("workspace-actions", "Workspace", (
+          <>
+            <button className="action-export" data-icon="⇡" data-testid="backup-workspace" onClick={() => runMenuAction(downloadWorkspaceBackup)} role="menuitem" type="button">Backup Workspace</button>
+            <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Restore a full qmk-viz workspace backup">
+              Restore Workspace
+              <input
+                data-testid="workspace-restore-upload"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void restoreWorkspace(file).catch((error: unknown) => {
+                      setStatusMessage(error instanceof Error ? error.message : "Failed to restore workspace backup.");
+                    });
+                  }
+                  closeActionMenus();
+                  event.target.value = "";
+                }}
+                type="file"
+              />
+            </label>
+          </>
+        ), { icon: "▦" })}
+        onPageChange={setActivePage}
+        onRedo={redoApp}
+        onUndo={undoApp}
+      />
 
       {activePage === "editor" && (
         <section className="workspace editor-workspace">
@@ -3166,167 +3100,79 @@ export function App() {
       )}
 
       {activePage === "projects" && (
-        <section className="page-panel project-page">
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">Project</p>
-              <h1>{keyboardProjectNameDraft || "No active project"}</h1>
-              <p>Configure the active keyboard project here. Use Project Browser when you need to switch projects or load examples.</p>
-            </div>
-            <div className="page-actions">
-              <button className="action-import" data-icon="⌘" data-testid="open-project-browser" onClick={() => openProjectBrowser("projects")} type="button">Project Browser</button>
-              {renderActionMenu("create-project-actions", "Create Project", (
-                <>
-                  <button className="action-create" data-icon="+" data-testid="new-project" onClick={() => runMenuAction(createBlankKeyboardProject)} role="menuitem" type="button">Blank Project</button>
-                  <button className="action-default" data-icon="★" data-testid="new-project-from-example" onClick={() => runMenuAction(() => openProjectBrowser("examples"))} role="menuitem" type="button">From Example</button>
-                </>
-              ), { className: "action-create", icon: "+", testId: "create-project-menu" })}
-              {renderActionMenu("project-actions", "Project actions", (
-                <>
-                  <button className="action-rename" data-icon="✎" data-testid="rename-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(openProjectRenameDialog)} role="menuitem" type="button">Rename Project</button>
-                  <button className="action-copy" data-icon="⧉" data-testid="duplicate-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(duplicateKeyboardProject)} role="menuitem" type="button">Duplicate Project</button>
-                  <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Import a full qmk-viz project JSON backup">
-                    Import Project
-                    <input
-                      data-testid="project-upload"
-                      accept="application/json,.json"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          void importFullProject(file).catch((error: unknown) => {
-                            setStatusMessage(error instanceof Error ? error.message : "Failed to import project JSON.");
-                          });
-                        }
-                        closeActionMenus();
-                        event.target.value = "";
-                      }}
-                      type="file"
-                    />
-                  </label>
-                  <button className="action-rename" data-icon="{}" data-testid="edit-project-json" disabled={!activeKeyboardProject} onClick={() => runMenuAction(() => openJsonEditDialog("project"))} role="menuitem" type="button">Edit Project JSON</button>
-                  <button className="action-export" data-icon="⇡" data-testid="download-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(downloadFullProject)} role="menuitem" type="button">Download Project</button>
-                  <button className="danger-button action-danger" data-icon="!" data-testid="delete-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(deleteKeyboardProject)} role="menuitem" type="button">Delete Project</button>
-                </>
-              ))}
-            </div>
-          </div>
-          <div className="admin-grid project-dashboard-grid">
-            <div className="editor-card admin-card active-project-overview-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Active project</p>
-                  <h2>{keyboardProjectNameDraft || "No project selected"}</h2>
-                </div>
-                <span className="metric-pill">{keyboardProjects.length} user projects</span>
-              </div>
-              {activeKeyboardProject ? (
-                <>
-                  <dl className="model-facts project-facts" data-testid="active-project-readout">
-                    <div>
-                      <dt>Layouts</dt>
-                      <dd>{activeProjectStats?.layoutCount ?? 0}</dd>
-                    </div>
-                    <div>
-                      <dt>Versions</dt>
-                      <dd>{activeProjectStats?.versionCount ?? 0}</dd>
-                    </div>
-                    <div>
-                      <dt>Keys</dt>
-                      <dd>{activeProjectStats?.keyCount ?? 0}</dd>
-                    </div>
-                  </dl>
-                  <p>
-                    Project navigation is intentionally tucked away now. Browse when switching context; stay here when editing the active project's model and metadata.
-                  </p>
-                </>
-              ) : (
-                <div className="setup-state-card inline" data-testid="project-page-empty-state">
-                  <p>No active project. Create a blank project, import a project file from Project Actions, or load an example from Project Browser.</p>
-                </div>
-              )}
-            </div>
-            <div className="editor-card admin-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Keyboard model</p>
-                  <h2>{model?.name ?? "No KLE model"}</h2>
-                </div>
-                <span className="metric-pill">{model?.keys.length ?? 0} keys</span>
-              </div>
-              <dl className="model-facts" data-testid="model-readout">
-                <div>
-                  <dt>Keys</dt>
-                  <dd>{model?.keys.length ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>Canvas</dt>
-                  <dd>{model ? `${model.width.toFixed(1)}u × ${model.height.toFixed(1)}u` : "Not configured"}</dd>
-                </div>
-                <div>
-                  <dt>Author</dt>
-                  <dd>{model?.author || "Not specified"}</dd>
-                </div>
-              </dl>
-              <p>
-                {!activeKeyboardProject
-                  ? "Create or import a project before adding a keyboard model."
-                  : model
-                  ? "Updating the KLE model is undoable. Existing layout keys survive when their slot IDs still exist in the new KLE file."
-                  : "This project has no keyboard model yet. Upload a KLE file or edit KLE JSON to define the key IDs."}
-              </p>
-              <div className="button-row">
-                {renderActionMenu("model-actions", "KLE model", (
-                  <>
-                    <label
-                      aria-disabled={!activeKeyboardProject}
-                      className={`file-import action-import ${!activeKeyboardProject ? "disabled" : ""}`}
-                      data-icon="⇣"
-                      role="menuitem"
-                      title={activeKeyboardProject ? "Upload or replace the active project's KLE JSON model" : "Create or import a project before uploading KLE"}
-                    >
-                      Upload/Update KLE
-                      <input
-                        data-testid="keyboard-upload"
-                        accept="application/json,.json"
-                        disabled={!activeKeyboardProject}
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (file) {
-                            void updateActiveKeyboardModel(file).catch((error: unknown) => {
-                              setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
-                            });
-                          }
-                          closeActionMenus();
-                          event.target.value = "";
-                        }}
-                        type="file"
-                      />
-                    </label>
-                    <button className="action-rename" data-icon="{}" data-testid="edit-kle-json" disabled={!activeKeyboardProject} onClick={() => runMenuAction(() => openJsonEditDialog("kle"))} role="menuitem" type="button">Edit KLE JSON</button>
-                    <button className="action-export" data-icon="⇡" data-testid="download-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Download KLE</button>
-                  </>
-                ), { disabled: !activeKeyboardProject && !model })}
-                <a className="action-link action-import" data-icon="↗" href="https://www.keyboard-layout-editor.com/#/" rel="noreferrer" target="_blank">Open KLE</a>
-                <button className="action-default" data-icon="?" data-testid="kle-help" onClick={() => setShowKleHelp(true)} type="button">Mapping Help</button>
-              </div>
-            </div>
-            <div className="editor-card admin-card project-model-preview-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Associated KLE model</p>
-                  <h2>Marker preview</h2>
-                </div>
-              </div>
-              {model ? (
-                <KeyboardModelPreview model={model} />
-              ) : (
-                <div className="setup-state-card inline" data-testid="project-missing-kle-preview">
-                  <p>No marker preview until a KLE model is configured.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
+        <ProjectPage
+          activeProjectStats={activeProjectStats}
+          createProjectMenu={renderActionMenu("create-project-actions", "Create Project", (
+            <>
+              <button className="action-create" data-icon="+" data-testid="new-project" onClick={() => runMenuAction(createBlankKeyboardProject)} role="menuitem" type="button">Blank Project</button>
+              <button className="action-default" data-icon="★" data-testid="new-project-from-example" onClick={() => runMenuAction(() => openProjectBrowser("examples"))} role="menuitem" type="button">From Example</button>
+            </>
+          ), { className: "action-create", icon: "+", testId: "create-project-menu" })}
+          hasActiveProject={Boolean(activeKeyboardProject)}
+          model={model}
+          modelActionsMenu={renderActionMenu("model-actions", "KLE model", (
+            <>
+              <label
+                aria-disabled={!activeKeyboardProject}
+                className={`file-import action-import ${!activeKeyboardProject ? "disabled" : ""}`}
+                data-icon="⇣"
+                role="menuitem"
+                title={activeKeyboardProject ? "Upload or replace the active project's KLE JSON model" : "Create or import a project before uploading KLE"}
+              >
+                Upload/Update KLE
+                <input
+                  data-testid="keyboard-upload"
+                  accept="application/json,.json"
+                  disabled={!activeKeyboardProject}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void updateActiveKeyboardModel(file).catch((error: unknown) => {
+                        setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
+                      });
+                    }
+                    closeActionMenus();
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+              <button className="action-rename" data-icon="{}" data-testid="edit-kle-json" disabled={!activeKeyboardProject} onClick={() => runMenuAction(() => openJsonEditDialog("kle"))} role="menuitem" type="button">Edit KLE JSON</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Download KLE</button>
+            </>
+          ), { disabled: !activeKeyboardProject && !model, testId: "model-actions-menu" })}
+          onOpenProjectBrowser={() => openProjectBrowser("projects")}
+          onShowKleHelp={() => setShowKleHelp(true)}
+          projectActionsMenu={renderActionMenu("project-actions", "Project actions", (
+            <>
+              <button className="action-rename" data-icon="✎" data-testid="rename-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(openProjectRenameDialog)} role="menuitem" type="button">Rename Project</button>
+              <button className="action-copy" data-icon="⧉" data-testid="duplicate-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(duplicateKeyboardProject)} role="menuitem" type="button">Duplicate Project</button>
+              <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Import a full qmk-viz project JSON backup">
+                Import Project
+                <input
+                  data-testid="project-upload"
+                  accept="application/json,.json"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void importFullProject(file).catch((error: unknown) => {
+                        setStatusMessage(error instanceof Error ? error.message : "Failed to import project JSON.");
+                      });
+                    }
+                    closeActionMenus();
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+              <button className="action-rename" data-icon="{}" data-testid="edit-project-json" disabled={!activeKeyboardProject} onClick={() => runMenuAction(() => openJsonEditDialog("project"))} role="menuitem" type="button">Edit Project JSON</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(downloadFullProject)} role="menuitem" type="button">Download Project</button>
+              <button className="danger-button action-danger" data-icon="!" data-testid="delete-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(deleteKeyboardProject)} role="menuitem" type="button">Delete Project</button>
+            </>
+          ), { testId: "project-actions-menu" })}
+          projectName={keyboardProjectNameDraft}
+          userProjectCount={keyboardProjects.length}
+        />
       )}
 
       {activePage === "export" && (
@@ -3356,125 +3202,33 @@ export function App() {
       )}
 
       {showProjectBrowser && (
-        <div className="modal-backdrop" role="presentation">
-          <section
-            className="rename-modal project-browser-modal"
-            aria-labelledby="project-browser-title"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">Project Browser</p>
-                <h2 id="project-browser-title">Switch projects or load examples</h2>
-              </div>
-              <button className="action-disable" data-icon="×" data-testid="close-project-browser" onClick={closeProjectBrowser} type="button">Close</button>
-            </div>
-            <div className="project-browser-tabs" role="tablist" aria-label="Project browser sections">
-              <button
-                className={projectBrowserTab === "projects" ? "active" : ""}
-                data-testid="project-browser-tab-projects"
-                onClick={() => {
-                  setProjectBrowserTab("projects");
-                  setProjectBrowserPage(0);
-                }}
-                role="tab"
-                aria-selected={projectBrowserTab === "projects"}
-                type="button"
-              >
-                My Projects <span>{keyboardProjects.length}</span>
-              </button>
-              <button
-                className={projectBrowserTab === "examples" ? "active" : ""}
-                data-testid="project-browser-tab-examples"
-                onClick={() => {
-                  setProjectBrowserTab("examples");
-                  setProjectBrowserPage(0);
-                }}
-                role="tab"
-                aria-selected={projectBrowserTab === "examples"}
-                type="button"
-              >
-                Examples <span>{exampleProjects.length}</span>
-              </button>
-            </div>
-            <label className="project-browser-search">
-              Search
-              <input
-                autoFocus
-                data-testid="project-browser-search"
-                onChange={(event) => {
-                  setProjectSearchDraft(event.target.value);
-                  setProjectBrowserPage(0);
-                }}
-                placeholder={projectBrowserTab === "projects" ? "Filter user projects" : "Filter starter templates"}
-                value={projectSearchDraft}
-              />
-            </label>
-            <div className="project-browser-list" data-testid="project-browser-list">
-              {visibleProjectBrowserItems.length > 0 ? visibleProjectBrowserItems.map((item) => {
-                const isActiveProject = item.source === "projects" && item.id === activeKeyboardProjectId;
-                return (
-                  <button
-                    className={`project-browser-row ${isActiveProject ? "active" : ""}`.trim()}
-                    data-testid={item.source === "projects" ? "project-browser-project" : "project-browser-example"}
-                    key={`${item.source}-${item.id}`}
-                    onClick={() => {
-                      if (item.source === "projects") {
-                        loadKeyboardProject(item.id);
-                        closeProjectBrowser();
-                      } else {
-                        loadExampleProject(item.project);
-                      }
-                    }}
-                    type="button"
-                  >
-                    <span className="project-browser-row-main">
-                      <strong>{item.name}</strong>
-                      <em>{isActiveProject ? "active" : item.source === "examples" ? "example" : "project"}</em>
-                    </span>
-                    <span className="project-browser-row-metrics">
-                      <span>{item.layoutCount} layouts</span>
-                      <span>{item.versionCount} versions</span>
-                      <span>{item.keyCount} keys</span>
-                    </span>
-                  </button>
-                );
-              }) : (
-                <div className="empty-support-data" data-testid="project-browser-empty">
-                  {projectBrowserTab === "projects"
-                    ? "No user projects match. Create a project or import one from Project Actions."
-                    : "No examples match that search."}
-                </div>
-              )}
-            </div>
-            <div className="project-browser-footer">
-              <span>{projectBrowserItems.length} results / page {safeProjectBrowserPage + 1} of {projectBrowserPageCount}</span>
-              <div className="button-row">
-                <button
-                  className="action-move"
-                  data-icon="←"
-                  data-testid="project-browser-prev"
-                  disabled={safeProjectBrowserPage <= 0}
-                  onClick={() => setProjectBrowserPage((page) => Math.max(0, page - 1))}
-                  type="button"
-                >
-                  Previous
-                </button>
-                <button
-                  className="action-move"
-                  data-icon="→"
-                  data-testid="project-browser-next"
-                  disabled={safeProjectBrowserPage >= projectBrowserPageCount - 1}
-                  onClick={() => setProjectBrowserPage((page) => Math.min(projectBrowserPageCount - 1, page + 1))}
-                  type="button"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
+        <ProjectBrowserModal
+          activeProjectId={activeKeyboardProjectId}
+          exampleProjectCount={exampleProjects.length}
+          items={visibleProjectBrowserItems}
+          page={safeProjectBrowserPage}
+          pageCount={projectBrowserPageCount}
+          searchDraft={projectSearchDraft}
+          tab={projectBrowserTab}
+          totalResults={projectBrowserItems.length}
+          userProjectCount={keyboardProjects.length}
+          onClose={closeProjectBrowser}
+          onNextPage={() => setProjectBrowserPage((page) => Math.min(projectBrowserPageCount - 1, page + 1))}
+          onPreviousPage={() => setProjectBrowserPage((page) => Math.max(0, page - 1))}
+          onSearchChange={(value) => {
+            setProjectSearchDraft(value);
+            setProjectBrowserPage(0);
+          }}
+          onSelectExample={loadExampleProject}
+          onSelectProject={(id) => {
+            loadKeyboardProject(id);
+            closeProjectBrowser();
+          }}
+          onTabChange={(nextTab) => {
+            setProjectBrowserTab(nextTab);
+            setProjectBrowserPage(0);
+          }}
+        />
       )}
 
       {jsonEditDialog && (
