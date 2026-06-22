@@ -15,19 +15,20 @@ export const DEFAULT_KEYMAP_TEMPLATE = `#include QMK_KEYBOARD_H
  */
 
 enum layer_names {
-{% for layer in ctx.layout.layers %}
-    {{ layer.name }}{% if not loop.last %},{% endif %}
-{% endfor %}
+{% for layer in ctx.layout.layers %}    {{ layer.name }}{% if not loop.last %},{% endif %}{{ "\n" }}{% endfor %}
 };
 
+{% if ctx.layout.customKeycodes | length %}
+enum custom_keycodes {
+{% for key in ctx.layout.customKeycodes %}    {{ key.name }}{% if loop.first %} = SAFE_RANGE{% endif %}{% if not loop.last %},{% endif %}{{ "\n" }}{% endfor %}
+};
+{% endif %}
+
+{% for key in ctx.layout.customKeyAliases %}#define {{ key.name }} {{ key.value }}{{ "\n" }}{% endfor %}
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-{% for layer in ctx.layout.layers %}
-    [{{ layer.name }}] = LAYOUT(
-{% for slot, code in layer.keys %}
-        {{ code }}{% if not loop.last %},{% endif %} // {{ slot }}
-{% endfor %}
-    ){% if not loop.last %},{% endif %}
-{% endfor %}
+{% for layer in ctx.layout.layers %}    [{{ layer.name }}] = LAYOUT(
+{% for slot, code in layer.keys %}        {{ code }}{% if not loop.last %},{% endif %} // {{ slot }}{{ "\n" }}{% endfor %}    ){% if not loop.last %},{% endif %}{{ "\n" }}{% endfor %}
 };
 `;
 

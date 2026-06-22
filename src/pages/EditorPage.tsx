@@ -982,6 +982,7 @@ export function EditorPage() {
                 <section>
                   <div className="mini-section-header">
                     <h3>Custom keycodes</h3>
+                    <span>SAFE_RANGE in template</span>
                     <button className="action-create mini-action" data-icon="+" data-testid="add-keycode" onClick={() => startNewExtKey("keycode")} type="button">Add</button>
                   </div>
                   {customKeycodeRows.length > 0 || (editingExtKeyName !== null && extKeyDraft.kind === "keycode") ? (
@@ -991,7 +992,6 @@ export function EditorPage() {
                           <tr>
                             <th>Name</th>
                             <th>Kind</th>
-                            <th>Value</th>
                             <th>Notes</th>
                             <th>Actions</th>
                           </tr>
@@ -1001,7 +1001,6 @@ export function EditorPage() {
                             <tr className="editing-row">
                               <th scope="row"><input data-testid="keycode-edit-name" value={extKeyDraft.name} onChange={(event) => setExtKeyDraft((current) => ({ ...current, name: event.target.value }))} spellCheck={false} /></th>
                               <td><code>{extKeyDraft.kind}</code></td>
-                              <td><input data-testid="keycode-edit-value" value={extKeyDraft.value} onChange={(event) => setExtKeyDraft((current) => ({ ...current, value: event.target.value }))} spellCheck={false} /></td>
                               <td><input data-testid="keycode-edit-notes" value={extKeyDraft.notes} onChange={(event) => setExtKeyDraft((current) => ({ ...current, notes: event.target.value }))} spellCheck={false} /></td>
                               <td>
                                 <div className="support-row-actions">
@@ -1012,10 +1011,9 @@ export function EditorPage() {
                             </tr>
                           )}
                           {customKeycodeRows.map((key) => (
-                            <tr key={`${key.name}-${key.kind}-${key.value}`}>
+                            <tr key={`${key.name}-${key.kind}`}>
                               <th scope="row"><code>{key.name}</code></th>
                               <td>{key.kind || "-"}</td>
-                              <td><code>{key.value || "-"}</code></td>
                               <td>{key.notes || "-"}</td>
                               <td>
                                 <div className="support-row-actions">

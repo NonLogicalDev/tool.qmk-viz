@@ -88,7 +88,7 @@ function cloneDances(dances: Record<string, BehaviorSlots>): Record<string, Beha
 function cloneExtKeys(extKeys: ExtKey[]): ExtKey[] {
   return extKeys.map((key) => ({
     ...key,
-    value: normalizeActionIdentifier(key.value)
+    value: key.kind === "keycode" ? "" : normalizeActionIdentifier(key.value)
   }));
 }
 

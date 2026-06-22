@@ -141,6 +141,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 ```
 
+Custom keycodes are name-only declarations in qmk-viz. The template assigns `SAFE_RANGE` to the first generated enum entry so layouts do not carry manual numeric values.
+
 That means a project can hold both the visual layout and the exact source-generation strategy for a specific QMK keyboard, while individual layouts stay clean JSON data.
 
 ## Local Development

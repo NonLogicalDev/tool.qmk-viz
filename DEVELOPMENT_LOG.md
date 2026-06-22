@@ -1932,3 +1932,34 @@ Validation:
 - Screenshot captured at `/private/tmp/qmk-viz-mobile-nav-tabs.png`.
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
+
+## 2026-06-22: qmk-viz custom keycode declarations
+
+Goal: improve custom keycode creation/editing so users only define keycode names; QMK enum values and `SAFE_RANGE` assignment should be handled by templates.
+
+What did not work:
+
+- The custom keycode editor reused the alias/macro support-entry shape and seeded new keycodes with `SAFE_RANGE` as a row value.
+- That made a keycode declaration look like a `#define`-style alias assignment and pushed QMK enum mechanics into user-editable layout data.
+- The first template patch exposed a Nunjucks trimming issue where generated enum rows could collapse into invalid C like `NL_KEY = SAFE_RANGE};`.
+
+Changes made:
+
+- New custom keycodes now start with an empty `value`.
+- Saving or exporting a `kind: "keycode"` support row strips the value to an empty string, including stale/imported rows.
+- The Custom Keycodes table no longer renders a Value column or value input; it shows `SAFE_RANGE in template` as the contract.
+- The built-in default keymap template now emits `enum custom_keycodes` from `ctx.layout.customKeycodes` and assigns `SAFE_RANGE` to the first generated keycode.
+- The default template now emits explicit newlines for generated C loops so layer enums, custom keycode enums, aliases, and keymaps remain valid with Nunjucks trimming enabled.
+- The Ergodox starter template now uses `ctx.layout.customKeycodes`, `ctx.layout.customKeyAliases`, and `ctx.layout.macros` separately instead of iterating raw `extKeys` for mixed behavior.
+- README now documents that custom keycodes are name-only declarations in qmk-viz.
+
+Validation:
+
+- In-app browser validation: adding `NL_BROWSER_DECL` showed no keycode value input, saved a table row with headers `Name / Kind / Notes / Actions`, and showed no `SAFE_RANGE` in the table.
+- In-app browser validation: Full Layout JSON exported `NL_BROWSER_DECL` in both `layout.extKeys` and `layout.customKeycodes` with `value: ""`.
+- In-app browser cleanup: deleted the temporary browser test keycode through the custom confirmation dialog; table returned to empty.
+- Direct Nunjucks render validation: built-in template emits `NL_ONE = SAFE_RANGE` in `enum custom_keycodes` and does not emit `#define NL_ONE`.
+- Direct Nunjucks render validation: Ergodox starter template emits custom keycodes as enum members, aliases as `#define`, and macros in the custom keycode enum/process handler path.
+- `jq -e` passed for all `default-projects/*.json`.
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.

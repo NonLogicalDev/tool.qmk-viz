@@ -979,28 +979,32 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setExtKeyDraft({
       name: kind === "macro" ? "MACRO_CUSTOM" : kind === "keycode" ? "NL_CUSTOM" : "ALIAS_CUSTOM",
       kind,
-      value: kind === "macro" ? "SEND_STRING(\"\")" : kind === "keycode" ? "SAFE_RANGE" : "KC_NO",
+      value: kind === "macro" ? "SEND_STRING(\"\")" : kind === "keycode" ? "" : "KC_NO",
       notes: ""
     });
   }
 
   function startEditExtKey(key: ExtKey) {
     setEditingExtKeyName(key.name);
-    setExtKeyDraft({ ...key });
+    setExtKeyDraft({
+      ...key,
+      value: key.kind === "keycode" ? "" : key.value
+    });
   }
 
   function saveExtKeyDraft() {
     const name = normalizeSupportIdentifier(extKeyDraft.name);
+    const kind = extKeyDraft.kind || "alias";
     if (!name) {
-      setStatusMessage(`Enter a ${supportEntryLabel(extKeyDraft.kind)} name before saving.`);
+      setStatusMessage(`Enter a ${supportEntryLabel(kind)} name before saving.`);
       return;
     }
 
     const nextKey = {
       ...extKeyDraft,
       name,
-      kind: extKeyDraft.kind || "alias",
-      value: extKeyDraft.value.trim() || "KC_NO"
+      kind,
+      value: kind === "keycode" ? "" : extKeyDraft.value.trim() || "KC_NO"
     };
 
     recordHistory();
