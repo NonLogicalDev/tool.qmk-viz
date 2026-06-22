@@ -2664,6 +2664,27 @@ button.action-import:not(:disabled),
   width: min(100%, 680px);
 }
 
+.confirmation-modal {
+  max-width: 500px;
+  width: min(100%, 500px);
+}
+
+.confirmation-modal-danger {
+  background:
+    radial-gradient(circle at 10% 0%, rgb(231 81 57 / 12%), transparent 34%),
+    var(--paper);
+}
+
+.confirmation-message {
+  background: #fffdf7;
+  border: 1px solid rgb(217 210 196 / 72%);
+  border-radius: 9px;
+  color: var(--ink);
+  line-height: 1.45;
+  margin: 0;
+  padding: 9px 10px;
+}
+
 .paste-json-modal textarea {
   font-family: "SF Mono", "Menlo", monospace;
   font-size: 0.72rem;

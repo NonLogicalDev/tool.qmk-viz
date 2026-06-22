@@ -2,7 +2,7 @@ import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import "sonner/dist/styles.css";
 import { AppTopbar } from "./components/AppTopbar";
-import { CreateLayoutModal, JsonEditModal, KleHelpModal, RenameModal } from "./components/AppModals";
+import { ConfirmationModal, CreateLayoutModal, JsonEditModal, KleHelpModal, RenameModal } from "./components/AppModals";
 import { ProjectBrowserModal } from "./components/ProjectBrowserModal";
 import { useAppWorkspace } from "./hooks/useAppWorkspace";
 import { pageForPath, pathForPage } from "./lib/appNavigation";
@@ -15,8 +15,11 @@ export function App() {
     availableLayouts,
     canRedo,
     canUndo,
+    cancelConfirmation,
     closeActionMenus,
     closeProjectBrowser,
+    confirmationDialogView,
+    confirmPendingAction,
     createLayoutNameDraft,
     downloadWorkspaceBackup,
     exampleProjects,
@@ -130,6 +133,14 @@ export function App() {
       />
 
       <Outlet />
+
+      {confirmationDialogView && (
+        <ConfirmationModal
+          dialog={confirmationDialogView}
+          onCancel={cancelConfirmation}
+          onConfirm={confirmPendingAction}
+        />
+      )}
 
       {showProjectBrowser && (
         <ProjectBrowserModal

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { BehaviorSlots } from "../lib/actions";
 import type { KeyboardModel } from "../lib/keyboardModel";
 import { createEmptyKeymapDocument, type ExtKey, type KeymapLayer } from "../lib/keymap";
-import { loadExampleProjects, loadKeyboardProjects, type SavedKeyboardProject } from "../lib/appModel";
+import { loadExampleProjects, loadKeyboardProjects, type SavedKeyboardProject, type WorkspaceFile } from "../lib/appModel";
 import { DEFAULT_KEYMAP_TEMPLATE, normalizeKeymapTemplate } from "../lib/keymapTemplate";
 import { pathForPage, type AppPage } from "../lib/appNavigation";
 import type { ProjectBrowserTab } from "../components/ProjectBrowserModal";
@@ -22,6 +22,15 @@ export type JsonEditDialog = {
   kind: JsonEditKind;
   value: string;
 };
+
+export type ConfirmDialog =
+  | { kind: "deleteDance"; name: string }
+  | { kind: "deleteExtKey"; name: string; label: string }
+  | { kind: "deleteProject"; projectId: string; name: string; layoutCount: number; versionCount: number }
+  | { kind: "deleteLayout"; layoutId: string; name: string; versionCount: number }
+  | { kind: "loadLayoutVersion"; versionId: string; name: string }
+  | { kind: "deleteVersion"; versionId: string; name: string }
+  | { kind: "restoreWorkspace"; sourceName: string; workspace: WorkspaceFile; currentProjectCount: number; currentLayoutCount: number; nextProjectCount: number; nextLayoutCount: number };
 
 export type CaptureTarget = "simple";
 
@@ -50,6 +59,7 @@ type AppStoreValues = {
   composerMode: ComposerMode;
   contextPickerActiveIndex: number;
   contextPickerSearch: string;
+  confirmDialog: ConfirmDialog | null;
   copiedKeyAction: CopiedKeyAction | null;
   createLayoutNameDraft: string | null;
   danceDraftName: string;
@@ -130,6 +140,7 @@ function createInitialValues(): AppStoreValues {
     composerMode: "simple",
     contextPickerActiveIndex: 0,
     contextPickerSearch: "",
+    confirmDialog: null,
     copiedKeyAction: null,
     createLayoutNameDraft: null,
     danceDraftName: "DANCE_0",
@@ -229,6 +240,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setComposerMode: createSetter(set, "composerMode"),
   setContextPickerActiveIndex: createSetter(set, "contextPickerActiveIndex"),
   setContextPickerSearch: createSetter(set, "contextPickerSearch"),
+  setConfirmDialog: createSetter(set, "confirmDialog"),
   setCopiedKeyAction: createSetter(set, "copiedKeyAction"),
   setCreateLayoutNameDraft: createSetter(set, "createLayoutNameDraft"),
   setDanceDraftName: createSetter(set, "danceDraftName"),

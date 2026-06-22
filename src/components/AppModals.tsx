@@ -6,6 +6,14 @@ type JsonValidation = {
   message: string;
 };
 
+export type ConfirmationDialogView = {
+  eyebrow: string;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  tone?: "danger" | "warning";
+};
+
 const jsonEditLabels: Record<JsonEditKind, { eyebrow: string; title: string; help: string }> = {
   project: {
     eyebrow: "Project JSON",
@@ -79,6 +87,46 @@ export function JsonEditModal({ dialog, validation, onChange, onClose, onSubmit 
           <button className="action-disable" data-icon="×" data-testid="close-edit-json" onClick={onClose} type="button">Close</button>
         </div>
       </form>
+    </div>
+  );
+}
+
+type ConfirmationModalProps = {
+  dialog: ConfirmationDialogView;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+export function ConfirmationModal({ dialog, onCancel, onConfirm }: ConfirmationModalProps) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section
+        className={`rename-modal confirmation-modal confirmation-modal-${dialog.tone ?? "warning"}`}
+        aria-labelledby="confirmation-modal-title"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">{dialog.eyebrow}</p>
+            <h2 id="confirmation-modal-title">{dialog.title}</h2>
+          </div>
+        </div>
+        <p className="modal-help confirmation-message">{dialog.message}</p>
+        <div className="button-row rename-modal-actions">
+          <button
+            autoFocus
+            className={dialog.tone === "danger" ? "danger-button action-danger" : "action-save"}
+            data-icon={dialog.tone === "danger" ? "!" : "✓"}
+            data-testid="confirm-dialog-confirm"
+            onClick={onConfirm}
+            type="button"
+          >
+            {dialog.confirmLabel}
+          </button>
+          <button className="action-disable" data-icon="×" data-testid="confirm-dialog-cancel" onClick={onCancel} type="button">Cancel</button>
+        </div>
+      </section>
     </div>
   );
 }

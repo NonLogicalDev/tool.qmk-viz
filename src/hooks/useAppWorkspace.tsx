@@ -41,7 +41,8 @@ import {
   type ProjectFile,
   type SavedKeyboardProject,
   type SavedLayout,
-  type SerializedWorkspaceFile
+  type SerializedWorkspaceFile,
+  type WorkspaceFile
 } from "../lib/appModel";
 import {
   DEFAULT_KEYMAP_TEMPLATE,
@@ -63,6 +64,7 @@ import {
   useAppStore,
   type JsonEditKind
 } from "../stores/appStore";
+import type { ConfirmationDialogView } from "../components/AppModals";
 
 type UseAppWorkspaceOptions = {
   enableGlobalEffects?: boolean;
@@ -179,6 +181,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     behaviorSlots,
     captureTarget,
     composerMode,
+    confirmDialog,
     copiedKeyAction,
     createLayoutNameDraft,
     danceDraftName,
@@ -260,6 +263,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setOpenContextPicker,
     setContextPickerActiveIndex,
     setContextPickerSearch,
+    setConfirmDialog,
     setCopiedKeyAction,
     setProjectBrowserPage,
     setProjectBrowserTab,
@@ -435,6 +439,68 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
       }
     });
   }, [jsonEditDialog, layoutNameDraft, model]);
+  const confirmationDialogView = useMemo<ConfirmationDialogView | null>(() => {
+    if (!confirmDialog) return null;
+
+    switch (confirmDialog.kind) {
+      case "deleteDance":
+        return {
+          eyebrow: "Delete dance",
+          title: `Delete ${confirmDialog.name}?`,
+          message: "This removes the key dance from the active layout support table. Existing mappings that reference it will not be rewritten.",
+          confirmLabel: "Delete Dance",
+          tone: "danger"
+        };
+      case "deleteExtKey":
+        return {
+          eyebrow: `Delete ${confirmDialog.label}`,
+          title: `Delete ${confirmDialog.name}?`,
+          message: `This removes the ${confirmDialog.label} from the active layout support table. Existing mappings that reference it will not be rewritten.`,
+          confirmLabel: "Delete Entry",
+          tone: "danger"
+        };
+      case "deleteProject":
+        return {
+          eyebrow: "Delete project",
+          title: `Delete ${confirmDialog.name}?`,
+          message: `This removes ${confirmDialog.layoutCount} layouts and ${confirmDialog.versionCount} saved versions from the local workspace.`,
+          confirmLabel: "Delete Project",
+          tone: "danger"
+        };
+      case "deleteLayout":
+        return {
+          eyebrow: "Delete layout",
+          title: `Delete ${confirmDialog.name}?`,
+          message: `This removes the layout and its ${confirmDialog.versionCount} saved versions from the active project.`,
+          confirmLabel: "Delete Layout",
+          tone: "danger"
+        };
+      case "loadLayoutVersion":
+        return {
+          eyebrow: "Load version",
+          title: `Load ${confirmDialog.name}?`,
+          message: "Current unsaved layout edits will be replaced by this saved version snapshot. Save a version first if you want to keep the current edits.",
+          confirmLabel: "Load Version",
+          tone: "warning"
+        };
+      case "deleteVersion":
+        return {
+          eyebrow: "Delete version",
+          title: `Delete ${confirmDialog.name}?`,
+          message: "This removes the saved keymap and KLE snapshot. Child versions will be reconnected to this version's parent.",
+          confirmLabel: "Delete Version",
+          tone: "danger"
+        };
+      case "restoreWorkspace":
+        return {
+          eyebrow: "Restore workspace",
+          title: `Restore ${confirmDialog.sourceName}?`,
+          message: `This replaces ${confirmDialog.currentProjectCount} current projects / ${confirmDialog.currentLayoutCount} layouts with ${confirmDialog.nextProjectCount} restored projects / ${confirmDialog.nextLayoutCount} layouts.`,
+          confirmLabel: "Restore Workspace",
+          tone: "warning"
+        };
+    }
+  }, [confirmDialog]);
 
   function setStatusMessage(message: string) {
     setStatusMessageState(message);
@@ -887,8 +953,11 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Saved dance ${name}.`);
   }
 
-  function deleteDance(name: string) {
-    if (!window.confirm(`Delete dance "${name}"?`)) return;
+  function performDeleteDance(name: string) {
+    if (!Object.prototype.hasOwnProperty.call(dances, name)) {
+      setStatusMessage(`Dance ${name} no longer exists.`);
+      return;
+    }
     recordHistory();
     setDances((current) => {
       const next = { ...current };
@@ -899,6 +968,10 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
       setEditingDanceName(null);
     }
     setStatusMessage(`Deleted dance ${name}.`);
+  }
+
+  function deleteDance(name: string) {
+    setConfirmDialog({ kind: "deleteDance", name });
   }
 
   function startNewExtKey(kind: ExtKeyTableKind) {
@@ -941,15 +1014,27 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Saved ${supportEntryLabel(nextKey.kind)} ${name}.`);
   }
 
-  function deleteExtKey(name: string) {
+  function performDeleteExtKey(name: string) {
     const entry = extKeys.find((key) => key.name === name);
-    if (!window.confirm(`Delete ${supportEntryLabel(entry?.kind ?? "alias")} "${name}"?`)) return;
+    if (!entry) {
+      setStatusMessage(`Support entry ${name} no longer exists.`);
+      return;
+    }
     recordHistory();
     setExtKeys((current) => current.filter((key) => key.name !== name));
     if (editingExtKeyName === name) {
       setEditingExtKeyName(null);
     }
     setStatusMessage(`Deleted ${supportEntryLabel(entry?.kind ?? "alias")} ${name}.`);
+  }
+
+  function deleteExtKey(name: string) {
+    const entry = extKeys.find((key) => key.name === name);
+    setConfirmDialog({
+      kind: "deleteExtKey",
+      name,
+      label: supportEntryLabel(entry?.kind ?? "alias")
+    });
   }
 
   function updateBehaviorSlot(id: keyof BehaviorSlots, value: string) {
@@ -1218,19 +1303,15 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Duplicated keyboard project as ${project.name}.`);
   }
 
-  function deleteKeyboardProject() {
-    if (!activeKeyboardProject) {
-      setStatusMessage("No project selected to delete.");
-      return;
-    }
-    const layoutCount = activeKeyboardProject.layouts.length;
-    const versionCount = activeKeyboardProject.layouts.reduce((total, layout) => total + layout.versions.length, 0);
-    if (!window.confirm(`Delete project "${keyboardProjectNameDraft || activeKeyboardProject.name}" with ${layoutCount} layouts and ${versionCount} saved versions?`)) {
+  function performDeleteKeyboardProject(projectId: string) {
+    const projectToDelete = keyboardProjects.find((project) => project.id === projectId);
+    if (!projectToDelete) {
+      setStatusMessage("Project no longer exists.");
       return;
     }
 
     recordHistory();
-    const remaining = keyboardProjects.filter((project) => project.id !== activeKeyboardProjectId);
+    const remaining = keyboardProjects.filter((project) => project.id !== projectId);
     if (remaining.length === 0) {
       setKeyboardProjects([]);
       loadEmptyWorkspace({ resetHistory: false });
@@ -1242,6 +1323,22 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setKeyboardProjects(remaining);
     loadKeyboardProjectObject(remaining[0], remaining[0].activeLayoutId, { resetHistory: false });
     setStatusMessage("Deleted keyboard project.");
+  }
+
+  function deleteKeyboardProject() {
+    if (!activeKeyboardProject) {
+      setStatusMessage("No project selected to delete.");
+      return;
+    }
+    const layoutCount = activeKeyboardProject.layouts.length;
+    const versionCount = activeKeyboardProject.layouts.reduce((total, layout) => total + layout.versions.length, 0);
+    setConfirmDialog({
+      kind: "deleteProject",
+      projectId: activeKeyboardProject.id,
+      name: keyboardProjectNameDraft || activeKeyboardProject.name,
+      layoutCount,
+      versionCount
+    });
   }
 
   function createBlankLayoutForActiveProject(name?: string) {
@@ -1309,13 +1406,9 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Duplicated layout as ${layout.name}.`);
   }
 
-  function deleteLayout() {
-    if (!activeSavedLayout) {
-      setStatusMessage("No layout selected to delete.");
-      return;
-    }
-
-    if (!window.confirm(`Delete layout "${layoutNameDraft}" and its ${activeSavedLayout.versions.length} saved versions?`)) {
+  function performDeleteLayout(layoutId: string) {
+    if (!activeSavedLayout || activeSavedLayout.id !== layoutId) {
+      setStatusMessage("Selected layout changed before deletion.");
       return;
     }
 
@@ -1335,6 +1428,20 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     )));
     loadLayoutObject(project, nextLayout ?? null, { resetHistory: false });
     setStatusMessage("Deleted layout.");
+  }
+
+  function deleteLayout() {
+    if (!activeSavedLayout) {
+      setStatusMessage("No layout selected to delete.");
+      return;
+    }
+
+    setConfirmDialog({
+      kind: "deleteLayout",
+      layoutId: activeSavedLayout.id,
+      name: layoutNameDraft || activeSavedLayout.name,
+      versionCount: activeSavedLayout.versions.length
+    });
   }
 
   function saveLayoutVersion() {
@@ -1376,7 +1483,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Saved ${nextLayout.name} ${version.name} from ${activeLayoutVersion.name}.`);
   }
 
-  function loadLayoutVersion(versionId: string) {
+  function performLoadLayoutVersion(versionId: string) {
     if (!model || !activeSavedLayout) return;
     const version = activeSavedLayout.versions.find((item) => item.id === versionId);
     if (!version) return;
@@ -1405,6 +1512,17 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     )));
     loadLayoutObject(project, nextLayout, { resetHistory: false, selectedSlot, activeLayerName });
     setStatusMessage(`Loaded ${nextLayout.name} ${version.name}; the next saved version will fork from it.`);
+  }
+
+  function loadLayoutVersion(versionId: string) {
+    if (!activeSavedLayout) return;
+    const version = activeSavedLayout.versions.find((item) => item.id === versionId);
+    if (!version) return;
+    setConfirmDialog({
+      kind: "loadLayoutVersion",
+      versionId,
+      name: version.name
+    });
   }
 
   function renameActiveVersion() {
@@ -1451,7 +1569,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Renamed version to ${name}.`);
   }
 
-  function deleteActiveVersion() {
+  function performDeleteActiveVersion(versionId: string) {
     if (!model || !activeSavedLayout || !activeLayoutVersion) {
       setStatusMessage("Create or import a layout before deleting versions.");
       return;
@@ -1460,8 +1578,8 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
       setStatusMessage("Cannot delete the only saved version.");
       return;
     }
-
-    if (!window.confirm(`Delete version "${activeLayoutVersion.name}"? The saved keymap and KLE snapshot will be removed.`)) {
+    if (activeLayoutVersion.id !== versionId) {
+      setStatusMessage("Selected version changed before deletion.");
       return;
     }
 
@@ -1500,6 +1618,23 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     )));
     loadLayoutObject(project, nextLayout, { resetHistory: false, selectedSlot, activeLayerName });
     setStatusMessage(`Deleted ${activeLayoutVersion.name}; selected ${fallbackVersion.name}.`);
+  }
+
+  function deleteActiveVersion() {
+    if (!model || !activeSavedLayout || !activeLayoutVersion) {
+      setStatusMessage("Create or import a layout before deleting versions.");
+      return;
+    }
+    if (activeSavedLayout.versions.length <= 1) {
+      setStatusMessage("Cannot delete the only saved version.");
+      return;
+    }
+
+    setConfirmDialog({
+      kind: "deleteVersion",
+      versionId: activeLayoutVersion.id,
+      name: activeLayoutVersion.name
+    });
   }
 
   function saveCurrentLayoutAsDefault() {
@@ -1619,22 +1754,9 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setProjectBrowserPage(0);
   }
 
-  function restoreWorkspaceFromJson(raw: unknown, sourceName: string) {
-    const workspace = parseWorkspaceFile(raw, sourceName);
+  function performRestoreWorkspace(workspace: WorkspaceFile) {
     const projectCount = workspace.projects.length;
     const layoutCount = workspace.projects.reduce((total, project) => total + project.layouts.length, 0);
-    const currentProjectCount = keyboardProjects.length;
-    const currentLayoutCount = keyboardProjects.reduce((total, project) => total + project.layouts.length, 0);
-    const confirmed = window.confirm(
-      `Restore workspace from "${sourceName}"?\n\n` +
-      `This replaces ${currentProjectCount} current projects / ${currentLayoutCount} layouts ` +
-      `with ${projectCount} restored projects / ${layoutCount} layouts.`
-    );
-
-    if (!confirmed) {
-      setStatusMessage("Canceled workspace restore.");
-      return;
-    }
 
     setKeyboardProjects(workspace.projects);
     if (workspace.projects.length === 0) {
@@ -1653,8 +1775,60 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Restored workspace with ${projectCount} projects and ${layoutCount} layouts.`);
   }
 
+  function restoreWorkspaceFromJson(raw: unknown, sourceName: string) {
+    const workspace = parseWorkspaceFile(raw, sourceName);
+    const projectCount = workspace.projects.length;
+    const layoutCount = workspace.projects.reduce((total, project) => total + project.layouts.length, 0);
+    const currentProjectCount = keyboardProjects.length;
+    const currentLayoutCount = keyboardProjects.reduce((total, project) => total + project.layouts.length, 0);
+    setConfirmDialog({
+      kind: "restoreWorkspace",
+      sourceName,
+      workspace,
+      currentProjectCount,
+      currentLayoutCount,
+      nextProjectCount: projectCount,
+      nextLayoutCount: layoutCount
+    });
+  }
+
   async function restoreWorkspace(file: File) {
     restoreWorkspaceFromJson(JSON.parse(await file.text()) as unknown, file.name);
+  }
+
+  function cancelConfirmation() {
+    setConfirmDialog(null);
+  }
+
+  function confirmPendingAction() {
+    const action = confirmDialog;
+    if (!action) return;
+
+    setConfirmDialog(null);
+
+    switch (action.kind) {
+      case "deleteDance":
+        performDeleteDance(action.name);
+        break;
+      case "deleteExtKey":
+        performDeleteExtKey(action.name);
+        break;
+      case "deleteProject":
+        performDeleteKeyboardProject(action.projectId);
+        break;
+      case "deleteLayout":
+        performDeleteLayout(action.layoutId);
+        break;
+      case "loadLayoutVersion":
+        performLoadLayoutVersion(action.versionId);
+        break;
+      case "deleteVersion":
+        performDeleteActiveVersion(action.versionId);
+        break;
+      case "restoreWorkspace":
+        performRestoreWorkspace(action.workspace);
+        break;
+    }
   }
 
   function loadExampleProject(project: SavedKeyboardProject) {
@@ -2196,6 +2370,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     renderedKeymap,
     renderedKeymapHasError,
     jsonEditValidation,
+    confirmationDialogView,
     simpleAction,
     composerLayerOptions,
     composerLayerPickerOptions,
@@ -2297,6 +2472,8 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     downloadWorkspaceBackup,
     downloadProjectKle,
     downloadActiveLayerKle,
+    cancelConfirmation,
+    confirmPendingAction,
     closeActionMenus,
     closeContextPicker,
     renderContextPicker,

@@ -1811,3 +1811,30 @@ Validation:
 - In-app browser validation: top-nav Project click changed the hash to `#/project`, highlighted Project, and rendered the Project page with model/KLE sections.
 - In-app browser validation: direct `#/layout` rendered the Layout page and highlighted Layout.
 - In-app browser validation: `#/` redirected to `#/layout`.
+
+## 2026-06-22: qmk-viz custom confirmation modals
+
+Goal: replace native browser confirmations with qmk-viz modal confirmations, including Version Tree loads that overwrite unsaved working layout edits.
+
+What did not work:
+
+- `window.confirm(...)` produced unstyled browser dialogs and did not fit the app's modal/action language.
+- The first Version Tree fix put a native browser confirmation in `loadLayoutVersion()`, which protected the operation but not the product experience.
+- Running `npm run build` inside the sandbox failed because Vite could not write its temporary config file under `node_modules/.vite-temp`.
+
+Changes made:
+
+- Added typed pending confirmation state for destructive and replacement actions.
+- Added a reusable `ConfirmationModal` with danger/warning variants.
+- Replaced confirmations for deleting dances, custom support entries, projects, layouts, versions, workspace restore, and layout-version loading.
+- Kept mutation logic behind confirm handlers, so canceling closes the modal before history or document state changes.
+- Stored parsed workspace restore data in the pending confirmation so the uploaded file does not need to be re-read after the modal.
+
+Validation:
+
+- `rg "window\\.confirm|confirm\\(" src` found no remaining browser confirmation calls.
+- `git diff --check` passed.
+- `npm run build` passed when rerun unsandboxed. Existing Vite large-chunk warning remains.
+- In-app browser validation: clicking a Version Tree node opens the custom `Load Version` modal and no native JavaScript dialog is active.
+- In-app browser validation: canceling the modal closes it with no remaining dialog.
+- In-app browser validation: `Layout actions -> Delete Layout` opens the custom danger modal and no native JavaScript dialog is active.
