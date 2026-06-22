@@ -64,6 +64,15 @@ export type ProjectFile = {
   project: SavedKeyboardProject;
 };
 
+export type WorkspaceFile = {
+  version: 1;
+  kind: "qmk-viz-workspace";
+  exportedAt: string | null;
+  activeProjectId: string | null;
+  activeLayoutId: string | null;
+  projects: SavedKeyboardProject[];
+};
+
 export function newEntityId(prefix: string): string {
   return globalThis.crypto?.randomUUID?.() ?? `${prefix}-${Date.now()}`;
 }
@@ -497,5 +506,49 @@ export function parseProjectFile(raw: unknown, fallbackSource: string): SavedKey
     layouts: safeLayouts,
     activeLayoutId,
     updatedAt
+  };
+}
+
+export function parseWorkspaceFile(raw: unknown, sourceName: string): WorkspaceFile {
+  if (typeof raw !== "object" || raw === null || (raw as { kind?: unknown }).kind !== "qmk-viz-workspace") {
+    throw new Error(`${sourceName} must be a qmk-viz workspace backup file.`);
+  }
+
+  const typedWorkspace = raw as {
+    version?: unknown;
+    exportedAt?: unknown;
+    activeProjectId?: unknown;
+    activeLayoutId?: unknown;
+    projects?: unknown;
+  };
+
+  if (!Array.isArray(typedWorkspace.projects)) {
+    throw new Error("Workspace backup JSON is missing a projects array.");
+  }
+
+  const projects = typedWorkspace.projects.map((project, index) => normalizeLoadedProject(project as Partial<SavedKeyboardProject>, index));
+  const seenProjectIds = new Set<string>();
+  for (const project of projects) {
+    if (seenProjectIds.has(project.id)) {
+      throw new Error(`Workspace backup contains duplicate project id "${project.id}".`);
+    }
+    seenProjectIds.add(project.id);
+  }
+
+  const activeProjectId = typeof typedWorkspace.activeProjectId === "string" && projects.some((project) => project.id === typedWorkspace.activeProjectId)
+    ? typedWorkspace.activeProjectId
+    : null;
+  const activeProject = projects.find((project) => project.id === activeProjectId) ?? null;
+  const activeLayoutId = activeProject && typeof typedWorkspace.activeLayoutId === "string" && activeProject.layouts.some((layout) => layout.id === typedWorkspace.activeLayoutId)
+    ? typedWorkspace.activeLayoutId
+    : null;
+
+  return {
+    version: 1,
+    kind: "qmk-viz-workspace",
+    exportedAt: typeof typedWorkspace.exportedAt === "string" ? typedWorkspace.exportedAt : null,
+    activeProjectId,
+    activeLayoutId,
+    projects
   };
 }

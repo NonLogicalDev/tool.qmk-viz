@@ -33,6 +33,7 @@ import {
   loadKeyboardProjects,
   parseLayoutUpload,
   parseProjectFile,
+  parseWorkspaceFile,
   reconcileDefaultLayoutToModel,
   reconcileSavedLayoutToModel,
   safeFileSlug,
@@ -1509,6 +1510,44 @@ export function App() {
     importFullProjectFromJson(JSON.parse(await file.text()) as unknown, file.name);
   }
 
+  function restoreWorkspaceFromJson(raw: unknown, sourceName: string) {
+    const workspace = parseWorkspaceFile(raw, sourceName);
+    const projectCount = workspace.projects.length;
+    const layoutCount = workspace.projects.reduce((total, project) => total + project.layouts.length, 0);
+    const currentProjectCount = keyboardProjects.length;
+    const currentLayoutCount = keyboardProjects.reduce((total, project) => total + project.layouts.length, 0);
+    const confirmed = window.confirm(
+      `Restore workspace from "${sourceName}"?\n\n` +
+      `This replaces ${currentProjectCount} current projects / ${currentLayoutCount} layouts ` +
+      `with ${projectCount} restored projects / ${layoutCount} layouts.`
+    );
+
+    if (!confirmed) {
+      setStatusMessage("Canceled workspace restore.");
+      return;
+    }
+
+    setKeyboardProjects(workspace.projects);
+    if (workspace.projects.length === 0) {
+      loadEmptyWorkspace();
+      setActivePage("projects");
+      setStatusMessage("Restored empty workspace. No user projects remain.");
+      return;
+    }
+
+    const nextProject = workspace.projects.find((project) => project.id === workspace.activeProjectId) ?? workspace.projects[0];
+    const nextLayoutId = nextProject.id === workspace.activeProjectId && workspace.activeLayoutId
+      ? workspace.activeLayoutId
+      : nextProject.activeLayoutId;
+    const nextLayout = nextProject.layouts.find((layout) => layout.id === nextLayoutId) ?? activeLayoutFor(nextProject);
+    loadKeyboardProjectObject(nextProject, nextLayout?.id ?? "", { resetHistory: true });
+    setStatusMessage(`Restored workspace with ${projectCount} projects and ${layoutCount} layouts.`);
+  }
+
+  async function restoreWorkspace(file: File) {
+    restoreWorkspaceFromJson(JSON.parse(await file.text()) as unknown, file.name);
+  }
+
   function loadExampleProject(project: SavedKeyboardProject) {
     const name = keyboardProjects.some((item) => item.name === project.name)
       ? `${project.name} example`
@@ -2955,6 +2994,23 @@ export function App() {
             <div className="page-actions">
               <button className="action-create" data-icon="+" data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
               <button className="action-export" data-icon="⇡" data-testid="backup-workspace" onClick={downloadWorkspaceBackup} type="button">Backup Workspace</button>
+              <label className="file-import action-import" data-icon="⇣" title="Restore a full qmk-viz workspace backup">
+                Restore Workspace
+                <input
+                  data-testid="workspace-restore-upload"
+                  accept="application/json,.json"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void restoreWorkspace(file).catch((error: unknown) => {
+                        setStatusMessage(error instanceof Error ? error.message : "Failed to restore workspace backup.");
+                      });
+                    }
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
               {renderActionMenu("project-file-actions", "Project file", (
                 <>
                   <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Import a full qmk-viz project JSON backup">

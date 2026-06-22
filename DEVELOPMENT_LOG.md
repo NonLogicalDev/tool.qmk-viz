@@ -1171,3 +1171,27 @@ Validation:
 - In-app browser validation: reopening Project picker, pressing ArrowDown, then Enter selected `Corne 42-key Split`.
 - In-app browser validation: Escape closed the Project picker.
 - In-app browser validation: Layout picker opened with the same search/listbox UI and showed the active selected layout.
+
+## 2026-06-21: qmk-viz workspace restore
+
+Goal: add the missing Restore Workspace operation to pair with Backup Workspace.
+
+What did not work:
+
+- Backup Workspace downloaded the full `qmk-viz-workspace` local-state file, but the app only had additive single-project import.
+- Overloading Import Project would blur two different operations: adding one project versus replacing the whole browser-local workspace.
+
+Changes made:
+
+- Added `parseWorkspaceFile()` for `kind: "qmk-viz-workspace"` backup files.
+- Restore Workspace now validates and normalizes backed-up projects before changing state.
+- Restore asks for confirmation and replaces all current user projects with the backup projects.
+- Restore preserves the backed-up active project/layout when valid and falls back to the first project/layout otherwise.
+- Empty workspace backups restore to the no-project state.
+- Added a top-level Restore Workspace JSON upload control beside Backup Workspace.
+
+Validation:
+
+- `npm run build` passed. The existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: Project page shows `Backup Workspace`, `Restore Workspace`, and `Project file` as separate actions.
+- In-app browser validation: Restore Workspace is a JSON file input with `accept="application/json,.json"`.
