@@ -27,6 +27,7 @@ What did not work:
 - The existing `localhost` browser origin already had the user's Ergodox project in localStorage, so it correctly masked the starter-project fallback during validation.
 - `127.0.0.1:5176` failed because the existing Vite server was bound to `localhost`; a second dev server bound to `127.0.0.1:5177` was used for a clean-origin smoke test.
 - Blocking deletion of the final project conflicted with the empty-project model. A literal zero-project app state would require every page to handle no active project, so the pragmatic fix is deleting the requested project and opening a blank shell.
+- Browser automation timed out while trying to exercise the final-project confirmation dialog, likely because an open `window.confirm` blocked later reload/evaluate calls. The final-delete path was validated by source inspection and `just viz-build`, not by a completed browser click-through.
 
 Validation:
 
@@ -36,7 +37,7 @@ Validation:
   - ANSI 60% renders 61 keycaps and one `Default` layout
   - Projects page shows each starter with one layout and one normalized initial version
   - `Create Project` adds `Untitled Keyboard Project` with `No KLE`, zero layouts, zero versions, zero keys, and disabled KLE download
-  - deleting the final remaining project opens a new empty `Untitled Keyboard Project` shell instead of blocking deletion
+- Source inspection confirmed the project delete button is no longer disabled for the final project, final delete records history, removes the selected project, and opens a new empty `Untitled Keyboard Project` shell.
 
 ## 2026-06-21: qmk-viz KLE edit modal and responsive keyboard stage
 
