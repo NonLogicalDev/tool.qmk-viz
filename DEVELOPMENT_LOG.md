@@ -1584,7 +1584,40 @@ Validation:
 - In-app browser validation on `http://127.0.0.1:5182/`: Workspace trigger renders inline-flex with the icon pseudo-element inline.
 - In-app browser validation: clicking a keyboard key produced zero `[data-sonner-toast]` elements.
 - In-app browser validation: `Copy expression` produced the app toast `Copied KC_SPC to clipboard.`
-- In-app browser validation: `Save Key Alias` modal opened, saved `KK_BROWSER_TEST_ALIAS`, and the alias appeared in the Custom Key Aliases table.
+- In-app browser validation: `Save Key Alias` modal opened, saved `ALIAS_BROWSER_TEST`, and the alias appeared in the Custom Key Aliases table.
 - In-app browser validation: Custom Keycodes table saved `NL_BROWSER_TEST` with `SAFE_RANGE`.
 - In-app browser validation: temporarily applying `NL_BROWSER_TEST` to a key rendered `NL_BROWSER_TEST` literally in the selected key and keycap display, not as stock QMK shorthand.
 - Browser validation cleanup: app-wide Undo removed the test alias, test keycode, and temporary raw key mapping, returning the selected key to `KC_1`.
+
+## 2026-06-22: qmk-viz Atreus starter, small-screen keyboard scroll, and QMK identifier cleanup
+
+Goal: add the Atreus starter from the downloaded KLE file, keep small-screen keyboard views usable, remove the non-standard local alias convention from defaults, fix Ergodox starter consistency, and simplify the version graph.
+
+What did not work:
+
+- Very small browser viewports could clip the keyboard because the keyboard panel and stage viewport hid overflow.
+- The first Atreus plan assumed a generic `BASE`/`FN` shape, but the requested QMK default keymap uses `_QW`, `_RS`, and `_LW`.
+- Old local aliases were still present in the built-in display labels, alias placeholder, development log example, and Ergodox starter data even though they are not stock QMK.
+- The Ergodox starter had unique `LT/RT/LC/RC` KLE identifiers, but the embedded `defaultLayout`, active layout document, and initial version document disagreed on several base-layer mappings.
+- The version graph minimap did not provide useful navigation for current layout version trees.
+
+Changes made:
+
+- Added `default-projects/atreus.json` with KLE-derived `A00` through `A41` identifiers and QMK Atreus default layers represented as `QW`, `RS`, and `LW`.
+- Changed the keyboard panel/stage viewport overflow behavior so constrained screens can scroll instead of clipping hidden keyboard content.
+- Removed the old local alias prefix from built-in key labels and replaced starter mappings with stock QMK aliases such as `KC_LPRN`, `KC_RPRN`, `KC_DQUO`, `KC_LCBR`, and `KC_RCBR`.
+- Changed the generated custom-alias placeholder to `ALIAS_CUSTOM`.
+- Tightened layer-name inference so identifiers with underscores are not guessed to be layers, preserving custom identifiers like `NL_MS_L5` and `ALIAS_*` as literal custom values.
+- Normalized all embedded Ergodox starter layout documents so default/current/version mappings agree.
+- Removed the React Flow minimap from the layout version tree while keeping graph controls and background.
+
+Validation:
+
+- A repository-wide search for the removed local prefix returned no matches.
+- JSON validation confirmed the Ergodox starter has 76 unique IDs, the Atreus starter has 42 unique IDs, both have no missing/unmapped layout slots, and all embedded Ergodox layout documents have zero mapping diffs.
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: loading the Ergodox example rendered 76 keys with no old local alias prefix visible.
+- In-app browser validation: Ergodox `RT00` rendered as backslash, `RT10` rendered as minus, `LC01`/`LC02` rendered as `LGui`/`MDIA`, and `RC01`/`RC02` rendered as `Ins`/`RGui`.
+- In-app browser validation: the layout version tree rendered with zero `.react-flow__minimap` elements.
+- In-app browser validation at `320x520`: the keyboard panel computed `overflow-x/y: auto` and exposed horizontal scroll (`panelScrollWidth` greater than `panelClientWidth`) instead of clipping.

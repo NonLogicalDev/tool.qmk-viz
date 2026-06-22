@@ -156,7 +156,7 @@ export function SaveKeyAliasModal({ expression, value, onChange, onClose, onSubm
             data-testid="save-key-alias-name"
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            placeholder="KK_CUSTOM"
+            placeholder="ALIAS_CUSTOM"
             spellCheck={false}
           />
         </label>

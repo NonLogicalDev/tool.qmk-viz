@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { Background, Controls, MiniMap, Position, ReactFlow, type Edge, type Node } from "@xyflow/react";
+import { Background, Controls, Position, ReactFlow, type Edge, type Node } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { formatVersionDate, type SavedLayout, type SavedLayoutVersion } from "../lib/appModel";
 
@@ -92,7 +92,6 @@ export function LayoutVersionTree({ layout, onSelectVersion }: {
         nodesConnectable={false}
         onNodeClick={(_: MouseEvent, node: Node) => onSelectVersion(node.id)}
       >
-        <MiniMap pannable zoomable />
         <Controls showInteractive={false} />
         <Background />
       </ReactFlow>

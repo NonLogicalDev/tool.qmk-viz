@@ -768,7 +768,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   }
 
   function openSaveAliasDialog() {
-    setExtraKeyNameDraft(extraKeyNameDraft.trim() || "KK_CUSTOM");
+    setExtraKeyNameDraft(extraKeyNameDraft.trim() || "ALIAS_CUSTOM");
     setShowSaveAliasDialog(true);
   }
 
@@ -862,7 +862,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   function startNewExtKey(kind: ExtKeyTableKind) {
     setEditingExtKeyName("");
     setExtKeyDraft({
-      name: kind === "macro" ? "MACRO_CUSTOM" : kind === "keycode" ? "NL_CUSTOM" : "KK_CUSTOM",
+      name: kind === "macro" ? "MACRO_CUSTOM" : kind === "keycode" ? "NL_CUSTOM" : "ALIAS_CUSTOM",
       kind,
       value: kind === "macro" ? "SEND_STRING(\"\")" : kind === "keycode" ? "SAFE_RANGE" : "KC_NO",
       notes: ""

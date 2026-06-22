@@ -1,0 +1,609 @@
+{
+  "version": 1,
+  "kind": "qmk-viz-project",
+  "project": {
+    "id": "starter/atreus",
+    "name": "Atreus",
+    "model": {
+      "id": "starter/atreus/model",
+      "name": "Atreus",
+      "author": "qmk-viz starter",
+      "source": "default-projects/atreus.json",
+      "kle": [
+        {
+          "name": "Atreus",
+          "author": "qmk-viz starter"
+        },
+        [
+          {
+            "r": 10,
+            "rx": 1,
+            "y": -0.09999999999999998,
+            "x": 2
+          },
+          "A00"
+        ],
+        [
+          {
+            "y": -0.65,
+            "x": 1
+          },
+          "A01",
+          {
+            "x": 1
+          },
+          "A02"
+        ],
+        [
+          {
+            "y": -0.75
+          },
+          "A03"
+        ],
+        [
+          {
+            "y": -0.9,
+            "x": 4
+          },
+          "A04"
+        ],
+        [
+          {
+            "y": -0.7000000000000001,
+            "x": 2
+          },
+          "A05"
+        ],
+        [
+          {
+            "y": -0.6499999999999999,
+            "x": 1
+          },
+          "A06",
+          {
+            "x": 1
+          },
+          "A07"
+        ],
+        [
+          {
+            "y": -0.75
+          },
+          "A08"
+        ],
+        [
+          {
+            "y": -0.8999999999999999,
+            "x": 4
+          },
+          "A09"
+        ],
+        [
+          {
+            "y": -0.7000000000000002,
+            "x": 2
+          },
+          "A10"
+        ],
+        [
+          {
+            "y": -0.6499999999999999,
+            "x": 1
+          },
+          "A11",
+          {
+            "x": 1
+          },
+          "A12"
+        ],
+        [
+          {
+            "y": -0.75
+          },
+          "A13"
+        ],
+        [
+          {
+            "y": -0.8999999999999999,
+            "x": 4
+          },
+          "A14"
+        ],
+        [
+          {
+            "y": -0.75,
+            "x": 5,
+            "h": 1.5
+          },
+          "A15"
+        ],
+        [
+          {
+            "y": -0.9500000000000002,
+            "x": 2
+          },
+          "A16"
+        ],
+        [
+          {
+            "y": -0.6499999999999999,
+            "x": 1
+          },
+          "A17",
+          {
+            "x": 1
+          },
+          "A18"
+        ],
+        [
+          {
+            "y": -0.75
+          },
+          "A19"
+        ],
+        [
+          {
+            "y": -0.8999999999999999,
+            "x": 4
+          },
+          "A20"
+        ],
+        [
+          {
+            "r": -10,
+            "rx": 7,
+            "ry": 0.965,
+            "y": -0.20000000000000018,
+            "x": 2
+          },
+          "A21"
+        ],
+        [
+          {
+            "y": -0.6499999999999999,
+            "x": 1
+          },
+          "A22",
+          {
+            "x": 1
+          },
+          "A23"
+        ],
+        [
+          {
+            "y": -0.75,
+            "x": 4
+          },
+          "A24"
+        ],
+        [
+          {
+            "y": -0.8999999999999999
+          },
+          "A25"
+        ],
+        [
+          {
+            "y": -0.7000000000000002,
+            "x": 2
+          },
+          "A26"
+        ],
+        [
+          {
+            "y": -0.6499999999999999,
+            "x": 1
+          },
+          "A27",
+          {
+            "x": 1
+          },
+          "A28"
+        ],
+        [
+          {
+            "y": -0.75,
+            "x": 4
+          },
+          "A29"
+        ],
+        [
+          {
+            "y": -0.8999999999999999
+          },
+          "A30"
+        ],
+        [
+          {
+            "y": -0.7000000000000002,
+            "x": 2
+          },
+          "A31"
+        ],
+        [
+          {
+            "y": -0.6499999999999999,
+            "x": 1
+          },
+          "A32",
+          {
+            "x": 1
+          },
+          "A33"
+        ],
+        [
+          {
+            "y": -0.7500000000000004,
+            "x": 4
+          },
+          "A34"
+        ],
+        [
+          {
+            "y": -0.9000000000000004
+          },
+          "A35"
+        ],
+        [
+          {
+            "y": -0.7499999999999996,
+            "x": -1,
+            "h": 1.5
+          },
+          "A36"
+        ],
+        [
+          {
+            "y": -0.9499999999999997,
+            "x": 2
+          },
+          "A37"
+        ],
+        [
+          {
+            "y": -0.6500000000000004,
+            "x": 1
+          },
+          "A38",
+          {
+            "x": 1
+          },
+          "A39"
+        ],
+        [
+          {
+            "y": -0.75,
+            "x": 4
+          },
+          "A40"
+        ],
+        [
+          {
+            "y": -0.9000000000000004
+          },
+          "A41"
+        ]
+      ]
+    },
+    "defaultLayout": {
+      "document": {
+        "version": 1,
+        "layers": [
+          {
+            "name": "QW",
+            "keys": {
+              "A03": "KC_Q",
+              "A01": "KC_W",
+              "A00": "KC_E",
+              "A02": "KC_R",
+              "A04": "KC_T",
+              "A25": "KC_Y",
+              "A22": "KC_U",
+              "A21": "KC_I",
+              "A23": "KC_O",
+              "A24": "KC_P",
+              "A08": "KC_A",
+              "A06": "KC_S",
+              "A05": "KC_D",
+              "A07": "KC_F",
+              "A09": "KC_G",
+              "A30": "KC_H",
+              "A27": "KC_J",
+              "A26": "KC_K",
+              "A28": "KC_L",
+              "A29": "KC_SCLN",
+              "A13": "KC_Z",
+              "A11": "KC_X",
+              "A10": "KC_C",
+              "A12": "KC_V",
+              "A14": "KC_B",
+              "A35": "KC_N",
+              "A32": "KC_M",
+              "A31": "KC_COMM",
+              "A33": "KC_DOT",
+              "A34": "KC_SLSH",
+              "A19": "KC_ESC",
+              "A17": "KC_TAB",
+              "A16": "KC_LGUI",
+              "A18": "KC_LSFT",
+              "A20": "KC_BSPC",
+              "A15": "KC_LCTL",
+              "A36": "KC_LALT",
+              "A41": "KC_SPC",
+              "A38": "MO(RS)",
+              "A37": "KC_MINS",
+              "A39": "KC_QUOT",
+              "A40": "KC_ENT"
+            }
+          },
+          {
+            "name": "RS",
+            "keys": {
+              "A03": "KC_EXLM",
+              "A01": "KC_AT",
+              "A00": "KC_UP",
+              "A02": "KC_LCBR",
+              "A04": "KC_RCBR",
+              "A25": "KC_PGUP",
+              "A22": "KC_7",
+              "A21": "KC_8",
+              "A23": "KC_9",
+              "A24": "KC_ASTR",
+              "A08": "KC_HASH",
+              "A06": "KC_LEFT",
+              "A05": "KC_DOWN",
+              "A07": "KC_RGHT",
+              "A09": "KC_DLR",
+              "A30": "KC_PGDN",
+              "A27": "KC_4",
+              "A26": "KC_5",
+              "A28": "KC_6",
+              "A29": "KC_PLUS",
+              "A13": "KC_LBRC",
+              "A11": "KC_RBRC",
+              "A10": "KC_LPRN",
+              "A12": "KC_RPRN",
+              "A14": "KC_AMPR",
+              "A35": "KC_GRV",
+              "A32": "KC_1",
+              "A31": "KC_2",
+              "A33": "KC_3",
+              "A34": "KC_BSLS",
+              "A19": "TG(LW)",
+              "A17": "KC_INS",
+              "A16": "KC_LGUI",
+              "A18": "KC_LSFT",
+              "A20": "KC_BSPC",
+              "A15": "KC_LCTL",
+              "A36": "KC_LALT",
+              "A41": "KC_SPC",
+              "A38": "KC_TRNS",
+              "A37": "KC_DOT",
+              "A39": "KC_0",
+              "A40": "KC_EQL"
+            }
+          },
+          {
+            "name": "LW",
+            "keys": {
+              "A03": "KC_INS",
+              "A01": "KC_HOME",
+              "A00": "KC_UP",
+              "A02": "KC_END",
+              "A04": "KC_PGUP",
+              "A25": "KC_UP",
+              "A22": "KC_F7",
+              "A21": "KC_F8",
+              "A23": "KC_F9",
+              "A24": "KC_F10",
+              "A08": "KC_DEL",
+              "A06": "KC_LEFT",
+              "A05": "KC_DOWN",
+              "A07": "KC_RGHT",
+              "A09": "KC_PGDN",
+              "A30": "KC_DOWN",
+              "A27": "KC_F4",
+              "A26": "KC_F5",
+              "A28": "KC_F6",
+              "A29": "KC_F11",
+              "A13": "KC_NO",
+              "A11": "KC_VOLU",
+              "A10": "KC_NO",
+              "A12": "KC_NO",
+              "A14": "QK_BOOT",
+              "A35": "KC_NO",
+              "A32": "KC_F1",
+              "A31": "KC_F2",
+              "A33": "KC_F3",
+              "A34": "KC_F12",
+              "A19": "KC_NO",
+              "A17": "KC_VOLD",
+              "A16": "KC_LGUI",
+              "A18": "KC_LSFT",
+              "A20": "KC_BSPC",
+              "A15": "KC_LCTL",
+              "A36": "KC_LALT",
+              "A41": "KC_SPC",
+              "A38": "TO(QW)",
+              "A37": "KC_PSCR",
+              "A39": "KC_SCRL",
+              "A40": "KC_PAUS"
+            }
+          }
+        ],
+        "dances": {},
+        "extKeys": [],
+        "layerColors": {
+          "QW": "#0078a8",
+          "RS": "#e75d3f",
+          "LW": "#5c8a21"
+        }
+      },
+      "updatedAt": "2026-06-22T00:00:00.000Z"
+    },
+    "layouts": [
+      {
+        "id": "starter/atreus/layout/default",
+        "name": "Default",
+        "document": {
+          "version": 1,
+          "layers": [
+            {
+              "name": "QW",
+              "keys": {
+                "A03": "KC_Q",
+                "A01": "KC_W",
+                "A00": "KC_E",
+                "A02": "KC_R",
+                "A04": "KC_T",
+                "A25": "KC_Y",
+                "A22": "KC_U",
+                "A21": "KC_I",
+                "A23": "KC_O",
+                "A24": "KC_P",
+                "A08": "KC_A",
+                "A06": "KC_S",
+                "A05": "KC_D",
+                "A07": "KC_F",
+                "A09": "KC_G",
+                "A30": "KC_H",
+                "A27": "KC_J",
+                "A26": "KC_K",
+                "A28": "KC_L",
+                "A29": "KC_SCLN",
+                "A13": "KC_Z",
+                "A11": "KC_X",
+                "A10": "KC_C",
+                "A12": "KC_V",
+                "A14": "KC_B",
+                "A35": "KC_N",
+                "A32": "KC_M",
+                "A31": "KC_COMM",
+                "A33": "KC_DOT",
+                "A34": "KC_SLSH",
+                "A19": "KC_ESC",
+                "A17": "KC_TAB",
+                "A16": "KC_LGUI",
+                "A18": "KC_LSFT",
+                "A20": "KC_BSPC",
+                "A15": "KC_LCTL",
+                "A36": "KC_LALT",
+                "A41": "KC_SPC",
+                "A38": "MO(RS)",
+                "A37": "KC_MINS",
+                "A39": "KC_QUOT",
+                "A40": "KC_ENT"
+              }
+            },
+            {
+              "name": "RS",
+              "keys": {
+                "A03": "KC_EXLM",
+                "A01": "KC_AT",
+                "A00": "KC_UP",
+                "A02": "KC_LCBR",
+                "A04": "KC_RCBR",
+                "A25": "KC_PGUP",
+                "A22": "KC_7",
+                "A21": "KC_8",
+                "A23": "KC_9",
+                "A24": "KC_ASTR",
+                "A08": "KC_HASH",
+                "A06": "KC_LEFT",
+                "A05": "KC_DOWN",
+                "A07": "KC_RGHT",
+                "A09": "KC_DLR",
+                "A30": "KC_PGDN",
+                "A27": "KC_4",
+                "A26": "KC_5",
+                "A28": "KC_6",
+                "A29": "KC_PLUS",
+                "A13": "KC_LBRC",
+                "A11": "KC_RBRC",
+                "A10": "KC_LPRN",
+                "A12": "KC_RPRN",
+                "A14": "KC_AMPR",
+                "A35": "KC_GRV",
+                "A32": "KC_1",
+                "A31": "KC_2",
+                "A33": "KC_3",
+                "A34": "KC_BSLS",
+                "A19": "TG(LW)",
+                "A17": "KC_INS",
+                "A16": "KC_LGUI",
+                "A18": "KC_LSFT",
+                "A20": "KC_BSPC",
+                "A15": "KC_LCTL",
+                "A36": "KC_LALT",
+                "A41": "KC_SPC",
+                "A38": "KC_TRNS",
+                "A37": "KC_DOT",
+                "A39": "KC_0",
+                "A40": "KC_EQL"
+              }
+            },
+            {
+              "name": "LW",
+              "keys": {
+                "A03": "KC_INS",
+                "A01": "KC_HOME",
+                "A00": "KC_UP",
+                "A02": "KC_END",
+                "A04": "KC_PGUP",
+                "A25": "KC_UP",
+                "A22": "KC_F7",
+                "A21": "KC_F8",
+                "A23": "KC_F9",
+                "A24": "KC_F10",
+                "A08": "KC_DEL",
+                "A06": "KC_LEFT",
+                "A05": "KC_DOWN",
+                "A07": "KC_RGHT",
+                "A09": "KC_PGDN",
+                "A30": "KC_DOWN",
+                "A27": "KC_F4",
+                "A26": "KC_F5",
+                "A28": "KC_F6",
+                "A29": "KC_F11",
+                "A13": "KC_NO",
+                "A11": "KC_VOLU",
+                "A10": "KC_NO",
+                "A12": "KC_NO",
+                "A14": "QK_BOOT",
+                "A35": "KC_NO",
+                "A32": "KC_F1",
+                "A31": "KC_F2",
+                "A33": "KC_F3",
+                "A34": "KC_F12",
+                "A19": "KC_NO",
+                "A17": "KC_VOLD",
+                "A16": "KC_LGUI",
+                "A18": "KC_LSFT",
+                "A20": "KC_BSPC",
+                "A15": "KC_LCTL",
+                "A36": "KC_LALT",
+                "A41": "KC_SPC",
+                "A38": "TO(QW)",
+                "A37": "KC_PSCR",
+                "A39": "KC_SCRL",
+                "A40": "KC_PAUS"
+              }
+            }
+          ],
+          "dances": {},
+          "extKeys": [],
+          "layerColors": {
+            "QW": "#0078a8",
+            "RS": "#e75d3f",
+            "LW": "#5c8a21"
+          }
+        },
+        "versions": [],
+        "activeVersionId": "",
+        "updatedAt": "2026-06-22T00:00:00.000Z"
+      }
+    ],
+    "activeLayoutId": "starter/atreus/layout/default",
+    "updatedAt": "2026-06-22T00:00:00.000Z"
+  }
+}

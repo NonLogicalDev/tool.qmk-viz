@@ -559,8 +559,7 @@ textarea {
   box-shadow: var(--shadow);
   display: grid;
   gap: 7px;
-  overflow-x: hidden;
-  overflow-y: hidden;
+  overflow: auto;
   padding: clamp(8px, 0.8vw, 12px) clamp(8px, 1vw, 14px) clamp(8px, 0.9vw, 12px);
   width: 100%;
 }
@@ -848,7 +847,8 @@ textarea {
 }
 
 .keyboard-stage-viewport {
-  overflow: hidden;
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: 0;
   width: 100%;
 }
