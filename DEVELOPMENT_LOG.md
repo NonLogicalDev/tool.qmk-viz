@@ -1963,3 +1963,31 @@ Validation:
 - `jq -e` passed for all `default-projects/*.json`.
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
+
+## 2026-06-22: qmk-viz keycode library drawer prototype
+
+Goal: add a global keycode discovery surface so users can browse categories, search human terms, and copy QMK identifiers without relying only on capture.
+
+What did not work:
+
+- Capture helps when the desired key exists on the physical keyboard, but it does not help discover media, mouse, system, symbol, or less obvious QMK aliases.
+- Reusing the app's custom dropdown pattern would make the library feel like a field picker instead of a reference/browser surface.
+
+Changes made:
+
+- Added `src/lib/keycodeLibrary.ts` with a curated 92-entry prototype catalog covering letters, numbers, symbols, navigation, editing, function keys, modifiers, media, mouse, and system/QMK actions.
+- Added token search across keycode, label, description, category, and aliases, so queries like `key a`, `volume`, and `print screen` work.
+- Added `src/components/KeycodeLibraryDrawer.tsx` as a global bottom-right drawer with search, category accordions, result rows, and per-key Copy buttons.
+- Mounted the drawer from `App.tsx` so it is available across Project, Layout, and Export routes.
+- Styled the drawer as a compact help/reference panel with native `details`/`summary` category sections, explicitly distinct from custom dropdown/listbox controls.
+- Added responsive drawer sizing so mobile widths use the screen width without causing page overflow.
+
+Validation:
+
+- In-app browser validation: drawer opens from the floating Keycodes trigger and renders 10 category accordions.
+- In-app browser validation: `key a` search returns `KC_A` as the first result.
+- In-app browser validation: `volume` search returns `KC_VOLU`, `KC_VOLD`, and `KC_MUTE`.
+- In-app browser validation: Copy on `KC_VOLU` writes `KC_VOLU` to the browser clipboard and flips the button to `Copied`.
+- In-app browser validation at `390x844`: drawer and trigger fit inside the viewport at 366px wide, and document scroll width stays 390px.
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.

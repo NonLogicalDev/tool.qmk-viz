@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import "sonner/dist/styles.css";
 import { AppTopbar } from "./components/AppTopbar";
 import { ConfirmationModal, CreateLayoutModal, JsonEditModal, KleHelpModal, RenameModal } from "./components/AppModals";
+import { KeycodeLibraryDrawer } from "./components/KeycodeLibraryDrawer";
 import { ProjectBrowserModal } from "./components/ProjectBrowserModal";
 import { useAppWorkspace } from "./hooks/useAppWorkspace";
 import { pageForPath, pathForPage } from "./lib/appNavigation";
@@ -133,6 +134,8 @@ export function App() {
       />
 
       <Outlet />
+
+      <KeycodeLibraryDrawer />
 
       {confirmationDialogView && (
         <ConfirmationModal
