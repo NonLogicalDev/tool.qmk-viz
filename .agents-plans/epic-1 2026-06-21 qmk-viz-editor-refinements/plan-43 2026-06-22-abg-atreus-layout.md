@@ -38,6 +38,7 @@ The source config lives at `https://github.com/abhinav/home/blob/master/etc/atre
 - The generic qmk-viz Atreus model exposes 42 slots, while the Keyboardio Atreus source has 44 physical keys plus four blocked matrix positions.
 - User clarification: source positions `29` and `30` are real Keyboardio split keys above `A15` and `A36`, not unsupported keys.
 - The Keyboardio variant maps source position `29` to `A42` and source position `30` to `A43`. Those restore `` KC_GRV `` / `KC_BSLS` on `BASE` and `KC_VOLU` / `KC_MPLY` on `FUN`.
+- Screenshot correction: the Chrysalis bottom rows map physically as left `Ctrl Alt Cmd Lower Shift Esc` and right `Bksp Space Raise Tab Meta Enter`; the first 44-key import kept the split keys but still mapped several bottom/layer positions to the wrong slots.
 - Source layers 4-8 contain no usable mappings, so omitting them preserves behavior while avoiding five empty layer tabs in the starter example.
 - The bottom-row mapping is not a straight source-order-to-KLE-order mapping; it follows the existing Atreus starter's KLE slot labels so layer shifts, modifiers, space, tab, enter, escape, and backspace stay on matching physical slots.
 
@@ -48,6 +49,7 @@ The source config lives at `https://github.com/abhinav/home/blob/master/etc/atre
 - [x] 2026-06-22 10:34 - Updated the development log with stale-source and unsupported-position notes.
 - [x] 2026-06-22 10:34 - Verified all default project JSON parses, `git diff --check` passes, and `npm run build` passes with the existing large-chunk warning.
 - [x] 2026-06-22 10:45 - Forked the Keyboardio-specific hardware into a separate 44-key starter and restored the generic Atreus starter to one default layout.
+- [x] 2026-06-22 11:12 - Corrected Keyboardio ABG bottom-row and layer-key slot mapping from the configurator screenshot.
 
 # Unfinished Work
 

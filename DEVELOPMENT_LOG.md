@@ -2050,3 +2050,11 @@ Validation:
 - All `default-projects/*.json` files parse with `jq`.
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
+
+Follow-up correction from ABG configurator screenshot:
+
+- The first Keyboardio variant restored the two split keys but still had the bottom/layer source positions mapped to the wrong KLE IDs.
+- Corrected the physical source map to left bottom `Ctrl Alt Cmd Lower Shift Esc` and right bottom `Bksp Space Raise Tab Meta Enter`.
+- Renamed imported ABG layers from placeholder names `SYM/FUN/NUM` to screenshot-aligned `LOWER/META/RAISE`.
+- Verified the base layer now maps `A18 = MO(LOWER)`, `A38 = MO(RAISE)`, `A39 = MO(META)`, with `A19/A17/A16/A15/A20` and `A36/A41/A37/A40` matching the photographed bottom keys.
+- `jq`, focused Keyboardio ABG invariant checks, `git diff --check`, and `npm run build` passed after the correction. Existing Vite large-chunk warning remains.
