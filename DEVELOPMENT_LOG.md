@@ -1838,3 +1838,27 @@ Validation:
 - In-app browser validation: clicking a Version Tree node opens the custom `Load Version` modal and no native JavaScript dialog is active.
 - In-app browser validation: canceling the modal closes it with no remaining dialog.
 - In-app browser validation: `Layout actions -> Delete Layout` opens the custom danger modal and no native JavaScript dialog is active.
+
+## 2026-06-22: qmk-viz public README refresh
+
+Goal: make the public GitHub README enticing to new users and include the provided interface screenshot as an example of the app.
+
+What did not work:
+
+- The existing README was accurate but read like internal setup notes.
+- Referencing the screenshot from `/Users/nonlogical/...` would not render on GitHub.
+
+Changes made:
+
+- Copied the screenshot into `docs/qmk-viz-interface.png`.
+- Rewrote `README.md` around the product pitch, live app link, screenshot, KLE identifier model, project flow, export formats, development commands, tech stack, and license.
+- Added a full-interface Action Composer section covering keycodes, modifier stacks, layer actions, dances, aliases, macros, and raw QMK expressions.
+- Added a custom `keymap.c` template section showing the built-in Nunjucks renderer, external generation from layout JSON, layer iteration, slot lookup helpers, support aliases, custom keycodes, and macros.
+- Clarified that users can either generate `keymap.c` inside qmk-viz or use the exported layout JSON with their own generator.
+- Kept KLE as the stated source of truth and avoided board-specific one-off language.
+
+Validation:
+
+- `test -f docs/qmk-viz-interface.png` passed.
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.
