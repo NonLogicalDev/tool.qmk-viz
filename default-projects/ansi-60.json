@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "kind": "qmk-viz-project",
+  "project": {
+    "id": "starter/ansi-60",
+    "name": "ANSI 60%",
+    "model": {
+      "id": "starter/ansi-60/model",
+      "name": "ANSI 60%",
+      "author": "qmk-viz starter",
+      "source": "default-projects/ansi-60.json",
+      "kle": [
+        {
+          "name": "ANSI 60%",
+          "author": "qmk-viz starter"
+        },
+        ["K00", "K01", "K02", "K03", "K04", "K05", "K06", "K07", "K08", "K09", "K0A", "K0B", "K0C", { "w": 2 }, "K0D"],
+        [{ "w": 1.5 }, "K10", "K11", "K12", "K13", "K14", "K15", "K16", "K17", "K18", "K19", "K1A", "K1B", "K1C", { "w": 1.5 }, "K1D"],
+        [{ "w": 1.75 }, "K20", "K21", "K22", "K23", "K24", "K25", "K26", "K27", "K28", "K29", "K2A", "K2B", { "w": 2.25 }, "K2C"],
+        [{ "w": 2.25 }, "K30", "K31", "K32", "K33", "K34", "K35", "K36", "K37", "K38", "K39", "K3A", { "w": 2.75 }, "K3B"],
+        [{ "w": 1.25 }, "K40", { "w": 1.25 }, "K41", { "w": 1.25 }, "K42", { "w": 6.25 }, "K43", { "w": 1.25 }, "K44", { "w": 1.25 }, "K45", { "w": 1.25 }, "K46", { "w": 1.25 }, "K47"]
+      ]
+    },
+    "defaultLayout": {
+      "document": {
+        "version": 1,
+        "layers": [
+          {
+            "name": "BASE",
+            "keys": {
+              "K00": "KC_ESC",
+              "K01": "KC_1",
+              "K02": "KC_2",
+              "K03": "KC_3",
+              "K04": "KC_4",
+              "K05": "KC_5",
+              "K06": "KC_6",
+              "K07": "KC_7",
+              "K08": "KC_8",
+              "K09": "KC_9",
+              "K0A": "KC_0",
+              "K0B": "KC_MINS",
+              "K0C": "KC_EQL",
+              "K0D": "KC_BSPC",
+              "K10": "KC_TAB",
+              "K11": "KC_Q",
+              "K12": "KC_W",
+              "K13": "KC_E",
+              "K14": "KC_R",
+              "K15": "KC_T",
+              "K16": "KC_Y",
+              "K17": "KC_U",
+              "K18": "KC_I",
+              "K19": "KC_O",
+              "K1A": "KC_P",
+              "K1B": "KC_LBRC",
+              "K1C": "KC_RBRC",
+              "K1D": "KC_BSLS",
+              "K20": "KC_CAPS",
+              "K21": "KC_A",
+              "K22": "KC_S",
+              "K23": "KC_D",
+              "K24": "KC_F",
+              "K25": "KC_G",
+              "K26": "KC_H",
+              "K27": "KC_J",
+              "K28": "KC_K",
+              "K29": "KC_L",
+              "K2A": "KC_SCLN",
+              "K2B": "KC_QUOT",
+              "K2C": "KC_ENT",
+              "K30": "KC_LSFT",
+              "K31": "KC_Z",
+              "K32": "KC_X",
+              "K33": "KC_C",
+              "K34": "KC_V",
+              "K35": "KC_B",
+              "K36": "KC_N",
+              "K37": "KC_M",
+              "K38": "KC_COMM",
+              "K39": "KC_DOT",
+              "K3A": "KC_SLSH",
+              "K3B": "KC_RSFT",
+              "K40": "KC_LCTL",
+              "K41": "KC_LGUI",
+              "K42": "KC_LALT",
+              "K43": "KC_SPC",
+              "K44": "KC_RALT",
+              "K45": "KC_RGUI",
+              "K46": "KC_APP",
+              "K47": "KC_RCTL"
+            }
+          }
+        ],
+        "dances": {},
+        "extKeys": [],
+        "layerColors": {
+          "BASE": "#0078a8"
+        }
+      },
+      "updatedAt": "2026-06-21T00:00:00.000Z"
+    },
+    "layouts": [
+      {
+        "id": "starter/ansi-60/layout/default",
+        "name": "Default",
+        "document": {
+          "version": 1,
+          "layers": [
+            {
+              "name": "BASE",
+              "keys": {
+                "K00": "KC_ESC",
+                "K01": "KC_1",
+                "K02": "KC_2",
+                "K03": "KC_3",
+                "K04": "KC_4",
+                "K05": "KC_5",
+                "K06": "KC_6",
+                "K07": "KC_7",
+                "K08": "KC_8",
+                "K09": "KC_9",
+                "K0A": "KC_0",
+                "K0B": "KC_MINS",
+                "K0C": "KC_EQL",
+                "K0D": "KC_BSPC",
+                "K10": "KC_TAB",
+                "K11": "KC_Q",
+                "K12": "KC_W",
+                "K13": "KC_E",
+                "K14": "KC_R",
+                "K15": "KC_T",
+                "K16": "KC_Y",
+                "K17": "KC_U",
+                "K18": "KC_I",
+                "K19": "KC_O",
+                "K1A": "KC_P",
+                "K1B": "KC_LBRC",
+                "K1C": "KC_RBRC",
+                "K1D": "KC_BSLS",
+                "K20": "KC_CAPS",
+                "K21": "KC_A",
+                "K22": "KC_S",
+                "K23": "KC_D",
+                "K24": "KC_F",
+                "K25": "KC_G",
+                "K26": "KC_H",
+                "K27": "KC_J",
+                "K28": "KC_K",
+                "K29": "KC_L",
+                "K2A": "KC_SCLN",
+                "K2B": "KC_QUOT",
+                "K2C": "KC_ENT",
+                "K30": "KC_LSFT",
+                "K31": "KC_Z",
+                "K32": "KC_X",
+                "K33": "KC_C",
+                "K34": "KC_V",
+                "K35": "KC_B",
+                "K36": "KC_N",
+                "K37": "KC_M",
+                "K38": "KC_COMM",
+                "K39": "KC_DOT",
+                "K3A": "KC_SLSH",
+                "K3B": "KC_RSFT",
+                "K40": "KC_LCTL",
+                "K41": "KC_LGUI",
+                "K42": "KC_LALT",
+                "K43": "KC_SPC",
+                "K44": "KC_RALT",
+                "K45": "KC_RGUI",
+                "K46": "KC_APP",
+                "K47": "KC_RCTL"
+              }
+            }
+          ],
+          "dances": {},
+          "extKeys": [],
+          "layerColors": {
+            "BASE": "#0078a8"
+          }
+        },
+        "versions": [],
+        "activeVersionId": "",
+        "updatedAt": "2026-06-21T00:00:00.000Z"
+      }
+    ],
+    "activeLayoutId": "starter/ansi-60/layout/default",
+    "updatedAt": "2026-06-21T00:00:00.000Z"
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "kind": "qmk-viz-project",
+  "project": {
+    "id": "starter/planck-4x12",
+    "name": "Planck 4x12",
+    "model": {
+      "id": "starter/planck-4x12/model",
+      "name": "Planck 4x12",
+      "author": "qmk-viz starter",
+      "source": "default-projects/planck-4x12.json",
+      "kle": [
+        {
+          "name": "Planck 4x12",
+          "author": "qmk-viz starter"
+        },
+        ["P00", "P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08", "P09", "P0A", "P0B"],
+        ["P10", "P11", "P12", "P13", "P14", "P15", "P16", "P17", "P18", "P19", "P1A", "P1B"],
+        ["P20", "P21", "P22", "P23", "P24", "P25", "P26", "P27", "P28", "P29", "P2A", "P2B"],
+        ["P30", "P31", "P32", "P33", "P34", "P35", "P36", "P37", "P38", "P39", "P3A", "P3B"]
+      ]
+    },
+    "defaultLayout": {
+      "document": {
+        "version": 1,
+        "layers": [
+          {
+            "name": "BASE",
+            "keys": {
+              "P00": "KC_TAB",
+              "P01": "KC_Q",
+              "P02": "KC_W",
+              "P03": "KC_E",
+              "P04": "KC_R",
+              "P05": "KC_T",
+              "P06": "KC_Y",
+              "P07": "KC_U",
+              "P08": "KC_I",
+              "P09": "KC_O",
+              "P0A": "KC_P",
+              "P0B": "KC_BSPC",
+              "P10": "KC_ESC",
+              "P11": "KC_A",
+              "P12": "KC_S",
+              "P13": "KC_D",
+              "P14": "KC_F",
+              "P15": "KC_G",
+              "P16": "KC_H",
+              "P17": "KC_J",
+              "P18": "KC_K",
+              "P19": "KC_L",
+              "P1A": "KC_SCLN",
+              "P1B": "KC_ENT",
+              "P20": "KC_LSFT",
+              "P21": "KC_Z",
+              "P22": "KC_X",
+              "P23": "KC_C",
+              "P24": "KC_V",
+              "P25": "KC_B",
+              "P26": "KC_N",
+              "P27": "KC_M",
+              "P28": "KC_COMM",
+              "P29": "KC_DOT",
+              "P2A": "KC_SLSH",
+              "P2B": "KC_RSFT",
+              "P30": "KC_LCTL",
+              "P31": "KC_LGUI",
+              "P32": "KC_LALT",
+              "P33": "KC_GRV",
+              "P34": "KC_SPC",
+              "P35": "KC_SPC",
+              "P36": "KC_SPC",
+              "P37": "KC_MINS",
+              "P38": "KC_RALT",
+              "P39": "KC_RGUI",
+              "P3A": "KC_APP",
+              "P3B": "KC_RCTL"
+            }
+          }
+        ],
+        "dances": {},
+        "extKeys": [],
+        "layerColors": {
+          "BASE": "#0078a8"
+        }
+      },
+      "updatedAt": "2026-06-21T00:00:00.000Z"
+    },
+    "layouts": [
+      {
+        "id": "starter/planck-4x12/layout/default",
+        "name": "Default",
+        "document": {
+          "version": 1,
+          "layers": [
+            {
+              "name": "BASE",
+              "keys": {
+                "P00": "KC_TAB",
+                "P01": "KC_Q",
+                "P02": "KC_W",
+                "P03": "KC_E",
+                "P04": "KC_R",
+                "P05": "KC_T",
+                "P06": "KC_Y",
+                "P07": "KC_U",
+                "P08": "KC_I",
+                "P09": "KC_O",
+                "P0A": "KC_P",
+                "P0B": "KC_BSPC",
+                "P10": "KC_ESC",
+                "P11": "KC_A",
+                "P12": "KC_S",
+                "P13": "KC_D",
+                "P14": "KC_F",
+                "P15": "KC_G",
+                "P16": "KC_H",
+                "P17": "KC_J",
+                "P18": "KC_K",
+                "P19": "KC_L",
+                "P1A": "KC_SCLN",
+                "P1B": "KC_ENT",
+                "P20": "KC_LSFT",
+                "P21": "KC_Z",
+                "P22": "KC_X",
+                "P23": "KC_C",
+                "P24": "KC_V",
+                "P25": "KC_B",
+                "P26": "KC_N",
+                "P27": "KC_M",
+                "P28": "KC_COMM",
+                "P29": "KC_DOT",
+                "P2A": "KC_SLSH",
+                "P2B": "KC_RSFT",
+                "P30": "KC_LCTL",
+                "P31": "KC_LGUI",
+                "P32": "KC_LALT",
+                "P33": "KC_GRV",
+                "P34": "KC_SPC",
+                "P35": "KC_SPC",
+                "P36": "KC_SPC",
+                "P37": "KC_MINS",
+                "P38": "KC_RALT",
+                "P39": "KC_RGUI",
+                "P3A": "KC_APP",
+                "P3B": "KC_RCTL"
+              }
+            }
+          ],
+          "dances": {},
+          "extKeys": [],
+          "layerColors": {
+            "BASE": "#0078a8"
+          }
+        },
+        "versions": [],
+        "activeVersionId": "",
+        "updatedAt": "2026-06-21T00:00:00.000Z"
+      }
+    ],
+    "activeLayoutId": "starter/planck-4x12/layout/default",
+    "updatedAt": "2026-06-21T00:00:00.000Z"
+  }
+}

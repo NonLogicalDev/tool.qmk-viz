@@ -22,8 +22,17 @@ export type KeyboardModel = {
   height: number;
   unit: number;
   padding: number;
+  paddingX: number;
+  paddingY: number;
   kle: KleDocument;
   keys: KeySlot[];
+};
+
+type Bounds = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
 };
 
 function safeId(value: string): string {
@@ -39,14 +48,50 @@ function slotFromLegend(key: { legendSlots: string[]; legends: string[]; label: 
   return key.legendSlots[6] || key.legendSlots[4] || key.legends.at(-1) || key.label;
 }
 
-function maxCoordinate(keys: KeySlot[], axis: "x" | "y", size: "width" | "height") {
-  return Math.max(...keys.map((key) => key[axis] + key[size]));
-}
-
 function displayUnitFor(width: number): number {
   if (width > 24) return 44;
   if (width > 20) return 50;
   return 60;
+}
+
+function rotatePoint(x: number, y: number, originX: number, originY: number, rotation: number) {
+  const radians = rotation * Math.PI / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const dx = x - originX;
+  const dy = y - originY;
+
+  return {
+    x: originX + dx * cos - dy * sin,
+    y: originY + dx * sin + dy * cos
+  };
+}
+
+function transformedKeyBounds(key: KeySlot): Bounds {
+  const corners = [
+    rotatePoint(key.x, key.y, key.rotationX, key.rotationY, key.rotation),
+    rotatePoint(key.x + key.width, key.y, key.rotationX, key.rotationY, key.rotation),
+    rotatePoint(key.x, key.y + key.height, key.rotationX, key.rotationY, key.rotation),
+    rotatePoint(key.x + key.width, key.y + key.height, key.rotationX, key.rotationY, key.rotation)
+  ];
+
+  return {
+    minX: Math.min(...corners.map((corner) => corner.x)),
+    minY: Math.min(...corners.map((corner) => corner.y)),
+    maxX: Math.max(...corners.map((corner) => corner.x)),
+    maxY: Math.max(...corners.map((corner) => corner.y))
+  };
+}
+
+function keyboardBounds(keys: KeySlot[]): Bounds {
+  const bounds = keys.map(transformedKeyBounds);
+
+  return {
+    minX: Math.min(...bounds.map((bound) => bound.minX)),
+    minY: Math.min(...bounds.map((bound) => bound.minY)),
+    maxX: Math.max(...bounds.map((bound) => bound.maxX)),
+    maxY: Math.max(...bounds.map((bound) => bound.maxY))
+  };
 }
 
 export function buildKeyboardModelFromKle(raw: unknown, options: {
@@ -87,20 +132,32 @@ export function buildKeyboardModelFromKle(raw: unknown, options: {
 
   const name = options.name || metadataString(metadata, "name") || "Uploaded Keyboard";
   const author = options.author || metadataString(metadata, "author");
-  const stagePadding = 1;
-  const width = maxCoordinate(keys, "x", "width") + stagePadding * 2;
-  const height = maxCoordinate(keys, "y", "height") + stagePadding * 2;
+  const bounds = keyboardBounds(keys);
+  const naturalWidth = bounds.maxX - bounds.minX;
+  const naturalHeight = bounds.maxY - bounds.minY;
+  const unit = displayUnitFor(naturalWidth);
+  const stagePaddingX = 100 / unit;
+  const stagePaddingY = 10 / unit;
+  const normalizedKeys = keys.map((key) => ({
+    ...key,
+    x: key.x - bounds.minX,
+    y: key.y - bounds.minY,
+    rotationX: key.rotationX - bounds.minX,
+    rotationY: key.rotationY - bounds.minY
+  }));
 
   return {
     id: options.id || `uploaded/${safeId(name)}`,
     name,
     author,
     source: options.source || "Keyboard Layout Editor JSON",
-    width,
-    height,
-    unit: displayUnitFor(width),
-    padding: stagePadding,
+    width: naturalWidth + stagePaddingX * 2,
+    height: naturalHeight + stagePaddingY * 2,
+    unit,
+    padding: stagePaddingX,
+    paddingX: stagePaddingX,
+    paddingY: stagePaddingY,
     kle: cloneKleDocument(raw),
-    keys
+    keys: normalizedKeys
   };
 }

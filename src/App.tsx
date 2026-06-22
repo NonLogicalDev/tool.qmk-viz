@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "./lib/actions";
 import { buildKeyboardModelFromKle, type KeyboardModel, type KeySlot } from "./lib/keyboardModel";
 import {
   cloneKeymapDocument,
-  createBlankKeymapDocument,
+  createEmptyKeymapDocument,
   selectedKeycode,
   serializeKeymapExport,
   transparentLayerFrom,
@@ -22,10 +22,10 @@ import {
   KEYBOARD_PROJECTS_STORAGE_KEY,
   activeLayoutFor,
   cloneSavedLayout,
+  createEmptyKeyboardProject,
   createKeyboardProject,
   createLayout,
   createLayoutVersion,
-  defaultKeyboardProject,
   loadKeyboardProjects,
   parseLayoutUpload,
   parseProjectFile,
@@ -47,7 +47,6 @@ import {
   simpleComposerActions,
   type SimpleComposerKind
 } from "./lib/qmkActions";
-import { ergodoxInfinity } from "./models/ergodoxInfinity";
 
 type BehaviorField = {
   id: keyof BehaviorSlots;
@@ -63,14 +62,7 @@ type RenameDialog = {
   value: string;
 };
 
-type PasteJsonKind = "kle";
-
-type PasteJsonDialog = {
-  kind: PasteJsonKind;
-  value: string;
-};
-
-type JsonEditKind = "project" | "layout";
+type JsonEditKind = "project" | "layout" | "kle";
 
 type JsonEditDialog = {
   kind: JsonEditKind;
@@ -135,14 +127,6 @@ const simpleKeycodeMods = [
   { id: "gui", label: "Gui", wrapper: "LGUI" }
 ];
 
-const pasteJsonLabels: Record<PasteJsonKind, { eyebrow: string; title: string; placeholder: string }> = {
-  kle: {
-    eyebrow: "Update KLE model",
-    title: "Paste KLE JSON",
-    placeholder: "[\n  { \"name\": \"Keyboard Name\" },\n  [ ... ]\n]"
-  }
-};
-
 const jsonEditLabels: Record<JsonEditKind, { eyebrow: string; title: string; help: string }> = {
   project: {
     eyebrow: "Project JSON",
@@ -153,6 +137,11 @@ const jsonEditLabels: Record<JsonEditKind, { eyebrow: string; title: string; hel
     eyebrow: "Layout JSON",
     title: "Edit current layout JSON",
     help: "Save replaces the active layout document with the edited layout JSON and preserves its version tree."
+  },
+  kle: {
+    eyebrow: "KLE JSON",
+    title: "Edit current KLE JSON",
+    help: "Save replaces the active keyboard model, reconciles matching key IDs, and keeps the project name unchanged."
   }
 };
 
@@ -215,24 +204,30 @@ function isModifierKeyEvent(event: KeyboardEvent): boolean {
   return event.key === "Shift" || event.key === "Control" || event.key === "Alt" || event.key === "Meta";
 }
 
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
 export function App() {
+  const keyboardViewportRef = useRef<HTMLDivElement | null>(null);
   const [keyboardProjects, setKeyboardProjects] = useState<SavedKeyboardProject[]>(loadKeyboardProjects);
   const initialKeyboardProject = keyboardProjects[0];
   const initialLayout = activeLayoutFor(initialKeyboardProject);
+  const initialDocument = initialLayout ? cloneKeymapDocument(initialLayout.document) : createEmptyKeymapDocument();
   const [activePage, setActivePage] = useState<AppPage>("editor");
   const [activeKeyboardProjectId, setActiveKeyboardProjectId] = useState(initialKeyboardProject.id);
-  const [activeLayoutId, setActiveLayoutId] = useState(initialLayout.id);
-  const initialVersion = initialLayout.versions.find((version) => version.id === initialLayout.activeVersionId) ?? initialLayout.versions[0];
+  const [activeLayoutId, setActiveLayoutId] = useState(initialLayout?.id ?? "");
+  const initialVersion = initialLayout?.versions.find((version) => version.id === initialLayout.activeVersionId) ?? initialLayout?.versions[0];
   const [keyboardProjectNameDraft, setKeyboardProjectNameDraft] = useState(initialKeyboardProject.name);
-  const [layoutNameDraft, setLayoutNameDraft] = useState(initialLayout.name);
+  const [layoutNameDraft, setLayoutNameDraft] = useState(initialLayout?.name ?? "");
   const [versionNameDraft, setVersionNameDraft] = useState("");
   const [selectedVersionNameDraft, setSelectedVersionNameDraft] = useState(initialVersion?.name ?? "");
-  const [model, setModel] = useState<KeyboardModel>(initialKeyboardProject.model);
-  const [layers, setLayers] = useState<KeymapLayer[]>(() => cloneKeymapDocument(initialLayout.document).layers);
-  const [layerColors, setLayerColors] = useState<Record<string, string>>(() => cloneKeymapDocument(initialLayout.document).layerColors ?? {});
+  const [model, setModel] = useState<KeyboardModel | null>(initialKeyboardProject.model);
+  const [layers, setLayers] = useState<KeymapLayer[]>(() => initialDocument.layers);
+  const [layerColors, setLayerColors] = useState<Record<string, string>>(() => initialDocument.layerColors ?? {});
   const [activeLayerName, setActiveLayerName] = useState(layers[0]?.name ?? "BASE");
   const [layerNameDraft, setLayerNameDraft] = useState(layers[0]?.name ?? "BASE");
-  const [selectedSlot, setSelectedSlot] = useState(model.keys[0]?.slot ?? "");
+  const [selectedSlot, setSelectedSlot] = useState(model?.keys[0]?.slot ?? "");
   const [swapSourceSlot, setSwapSourceSlot] = useState<string | null>(null);
   const [draftAction, setDraftAction] = useState("");
   const [behaviorSlots, setBehaviorSlots] = useState<BehaviorSlots>(() => parseActionToBehaviorSlots(""));
@@ -246,8 +241,8 @@ export function App() {
   const [modTapModifier, setModTapModifier] = useState("CTL_T");
   const [extraKeyNameDraft, setExtraKeyNameDraft] = useState("KK_CUSTOM");
   const [danceName, setDanceName] = useState("DANCE_0");
-  const [dances, setDances] = useState<Record<string, BehaviorSlots>>(() => ({ ...initialLayout.document.dances }));
-  const [extKeys, setExtKeys] = useState<ExtKey[]>(() => initialLayout.document.extKeys.map((key) => ({ ...key })));
+  const [dances, setDances] = useState<Record<string, BehaviorSlots>>(() => ({ ...initialDocument.dances }));
+  const [extKeys, setExtKeys] = useState<ExtKey[]>(() => initialDocument.extKeys.map((key) => ({ ...key })));
   const [editingDanceName, setEditingDanceName] = useState<string | null>(null);
   const [danceDraftName, setDanceDraftName] = useState("DANCE_0");
   const [danceDraftSlots, setDanceDraftSlots] = useState<BehaviorSlots>({ tap: "", hold: "", doubleTap: "", tapHold: "" });
@@ -259,28 +254,51 @@ export function App() {
   const [captureTarget, setCaptureTarget] = useState<CaptureTarget | null>(null);
   const [renameDialog, setRenameDialog] = useState<RenameDialog | null>(null);
   const [createLayoutNameDraft, setCreateLayoutNameDraft] = useState<string | null>(null);
-  const [pasteJsonDialog, setPasteJsonDialog] = useState<PasteJsonDialog | null>(null);
   const [jsonEditDialog, setJsonEditDialog] = useState<JsonEditDialog | null>(null);
+  const [keyboardViewportSize, setKeyboardViewportSize] = useState(() => ({
+    width: 0,
+    screenHeight: typeof window === "undefined" ? 900 : window.innerHeight
+  }));
 
   const activeKeyboardProject = keyboardProjects.find((project) => project.id === activeKeyboardProjectId) ?? keyboardProjects[0];
   const availableLayouts = activeKeyboardProject.layouts;
-  const activeSavedLayout = availableLayouts.find((layout) => layout.id === activeLayoutId) ?? availableLayouts[0];
-  const activeLayoutVersion = activeSavedLayout.versions.find((version) => version.id === activeSavedLayout.activeVersionId) ?? activeSavedLayout.versions[0];
+  const activeSavedLayout = availableLayouts.find((layout) => layout.id === activeLayoutId) ?? availableLayouts[0] ?? null;
+  const activeLayoutVersion = activeSavedLayout?.versions.find((version) => version.id === activeSavedLayout.activeVersionId) ?? activeSavedLayout?.versions[0] ?? null;
+  const hasModel = model !== null;
+  const hasLayout = activeSavedLayout !== null;
   const projectStats = useMemo(() => keyboardProjects.map((project) => ({
     id: project.id,
     name: project.name,
     layoutCount: project.layouts.length,
     versionCount: project.layouts.reduce((total, layout) => total + layout.versions.length, 0),
-    keyCount: project.model.keys.length
+    keyCount: project.model?.keys.length ?? 0
   })), [keyboardProjects]);
   const foundLayerIndex = layers.findIndex((layer) => layer.name === activeLayerName);
   const activeLayerIndex = foundLayerIndex >= 0 ? foundLayerIndex : 0;
-  const activeLayer = layers[activeLayerIndex] ?? layers[0];
+  const activeLayer = layers[activeLayerIndex] ?? layers[0] ?? { name: "BASE", keys: {} };
   const layerColorMap = useMemo(() => Object.fromEntries(
     layers.map((layer, index) => [layer.name, layerColors[layer.name] ?? layerPalette[index % layerPalette.length]])
   ), [layerColors, layers]);
-  const selectedKey = model.keys.find((key) => key.slot === selectedSlot) ?? model.keys[0];
+  const selectedKey = model?.keys.find((key) => key.slot === selectedSlot) ?? model?.keys[0] ?? null;
   const currentAction = selectedKey ? selectedKeycode(activeLayer, selectedKey.slot) : TRANSPARENT;
+  const keyboardStageSize = useMemo(() => ({
+    width: model ? model.width * model.unit : 0,
+    height: model ? model.height * model.unit : 0
+  }), [model]);
+  const keyboardScale = useMemo(() => {
+    if (!keyboardStageSize.width || !keyboardStageSize.height) return 1;
+    const measuredWidth = keyboardViewportSize.width || keyboardStageSize.width;
+    const widthScale = (measuredWidth - 4) / keyboardStageSize.width;
+    const maxVisualHeight = Math.max(560, keyboardViewportSize.screenHeight * 0.72);
+    const heightScale = maxVisualHeight / keyboardStageSize.height;
+    const fitScale = Math.min(widthScale, heightScale);
+
+    return clampNumber(Number.isFinite(fitScale) ? fitScale : 1, 0.68, 1.35);
+  }, [keyboardStageSize.height, keyboardStageSize.width, keyboardViewportSize.screenHeight, keyboardViewportSize.width]);
+  const keyboardVisualSize = useMemo(() => ({
+    width: keyboardStageSize.width * keyboardScale,
+    height: keyboardStageSize.height * keyboardScale
+  }), [keyboardScale, keyboardStageSize.height, keyboardStageSize.width]);
   const keymapDocument = useMemo<KeymapDocument>(() => ({
     version: 1,
     layers,
@@ -288,14 +306,29 @@ export function App() {
     extKeys,
     layerColors
   }), [dances, extKeys, layerColors, layers]);
-  const jsonOutput = useMemo(() => serializeKeymapExport(model, keymapDocument, {
-    keyboardProjectId: activeKeyboardProjectId,
-    keyboardProjectName: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
-    layoutId: activeLayoutId,
-    layoutName: layoutNameDraft.trim() || "Layout"
-  }), [
+  const jsonOutput = useMemo(() => {
+    if (!model || !activeSavedLayout) {
+      return JSON.stringify({
+        version: 1,
+        keyboardProject: {
+          id: activeKeyboardProjectId,
+          name: keyboardProjectNameDraft.trim() || activeKeyboardProject.name
+        },
+        keyboard: null,
+        layout: null
+      }, null, 2);
+    }
+
+    return serializeKeymapExport(model, keymapDocument, {
+      keyboardProjectId: activeKeyboardProjectId,
+      keyboardProjectName: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
+      layoutId: activeLayoutId,
+      layoutName: layoutNameDraft.trim() || activeSavedLayout.name
+    });
+  }, [
     activeKeyboardProject.name,
     activeKeyboardProjectId,
+    activeSavedLayout,
     activeLayoutId,
     keyboardProjectNameDraft,
     keymapDocument,
@@ -308,24 +341,52 @@ export function App() {
     return validateJsonText(jsonEditDialog.value, "JSON editor is empty.", (raw) => {
       if (jsonEditDialog.kind === "project") {
         parseProjectFile(raw, "edited-project.json");
-      } else {
+      } else if (jsonEditDialog.kind === "layout") {
+        if (!model) {
+          throw new Error("Upload or edit a KLE model before editing layout JSON.");
+        }
         parseLayoutUpload(raw, model, layoutNameDraft || "Edited Layout");
+      } else {
+        buildKeyboardModelFromKle(raw, { source: "edited-kle.json" });
       }
     });
   }, [jsonEditDialog, layoutNameDraft, model]);
-  const pasteJsonValidation = useMemo<JsonValidation>(() => {
-    if (!pasteJsonDialog) return { ok: true, message: "" };
 
-    return validateJsonText(pasteJsonDialog.value, "Paste KLE JSON before updating.", (raw) => {
-      buildKeyboardModelFromKle(raw, { source: "pasted-kle.json" });
-    });
-  }, [pasteJsonDialog]);
+  useEffect(() => {
+    const node = keyboardViewportRef.current;
+    if (!node) return undefined;
+
+    const updateViewportSize = () => {
+      const nextWidth = node.clientWidth;
+      const nextHeight = window.innerHeight;
+      setKeyboardViewportSize((current) => (
+        Math.abs(current.width - nextWidth) < 0.5 && current.screenHeight === nextHeight
+          ? current
+          : { width: nextWidth, screenHeight: nextHeight }
+      ));
+    };
+
+    updateViewportSize();
+    window.addEventListener("resize", updateViewportSize);
+
+    if (typeof ResizeObserver === "undefined") {
+      return () => window.removeEventListener("resize", updateViewportSize);
+    }
+
+    const observer = new ResizeObserver(updateViewportSize);
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateViewportSize);
+    };
+  }, [activePage]);
 
   function projectWithEditorState(): SavedKeyboardProject {
     const now = new Date().toISOString();
-    const layoutName = layoutNameDraft.trim() || availableLayouts.find((layout) => layout.id === activeLayoutId)?.name || "Layout";
-    const nextLayouts = availableLayouts.map((layout) => (
-      layout.id === activeLayoutId
+    const layoutName = layoutNameDraft.trim() || activeSavedLayout?.name || "Layout";
+    const nextLayouts = model ? availableLayouts.map((layout) => (
+      activeSavedLayout && layout.id === activeLayoutId
         ? cloneSavedLayout({
           ...layout,
           name: layoutName,
@@ -333,14 +394,14 @@ export function App() {
           updatedAt: now
         }, model)
         : cloneSavedLayout(layout, model)
-    ));
+    )) : [];
 
     return {
       ...activeKeyboardProject,
       name: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
-      model: sanitizeKeyboardModel(model),
+      model: model ? sanitizeKeyboardModel(model) : null,
       layouts: nextLayouts,
-      activeLayoutId,
+      activeLayoutId: activeSavedLayout ? activeLayoutId : "",
       updatedAt: now
     };
   }
@@ -354,25 +415,25 @@ export function App() {
     });
   }
 
-  function loadLayoutObject(project: SavedKeyboardProject, layout: SavedLayout, options: {
+  function loadLayoutObject(project: SavedKeyboardProject, layout: SavedLayout | null, options: {
     resetHistory?: boolean;
     selectedSlot?: string;
     activeLayerName?: string;
   } = {}) {
-    const document = cloneKeymapDocument(layout.document);
+    const document = layout ? cloneKeymapDocument(layout.document) : createEmptyKeymapDocument();
     const nextLayerName = options.activeLayerName && document.layers.some((layer) => layer.name === options.activeLayerName)
       ? options.activeLayerName
       : document.layers[0]?.name ?? "BASE";
-    const nextSelectedSlot = options.selectedSlot && project.model.keys.some((key) => key.slot === options.selectedSlot)
+    const nextSelectedSlot = options.selectedSlot && project.model?.keys.some((key) => key.slot === options.selectedSlot)
       ? options.selectedSlot
-      : project.model.keys[0]?.slot ?? "";
+      : project.model?.keys[0]?.slot ?? "";
 
     setActiveKeyboardProjectId(project.id);
-    setActiveLayoutId(layout.id);
+    setActiveLayoutId(layout?.id ?? "");
     setKeyboardProjectNameDraft(project.name);
-    setLayoutNameDraft(layout.name);
+    setLayoutNameDraft(layout?.name ?? "");
     setVersionNameDraft("");
-    setSelectedVersionNameDraft((layout.versions.find((version) => version.id === layout.activeVersionId) ?? layout.versions[0])?.name ?? "");
+    setSelectedVersionNameDraft((layout?.versions.find((version) => version.id === layout.activeVersionId) ?? layout?.versions[0])?.name ?? "");
     setModel(project.model);
     setLayers(document.layers);
     setLayerColors(document.layerColors ?? {});
@@ -406,11 +467,11 @@ export function App() {
       selectedSlot: string;
     };
     const layout = saved.project.layouts.find((item) => item.id === saved.activeLayoutId) ?? activeLayoutFor(saved.project);
-    const document = cloneKeymapDocument(layout.document);
+    const document = layout ? cloneKeymapDocument(layout.document) : createEmptyKeymapDocument();
     const nextLayerName = document.layers.find((layer) => layer.name === saved.activeLayerName)?.name ?? document.layers[0]?.name ?? "BASE";
-    const nextSelectedSlot = saved.project.model.keys.some((key) => key.slot === saved.selectedSlot)
+    const nextSelectedSlot = saved.project.model?.keys.some((key) => key.slot === saved.selectedSlot)
       ? saved.selectedSlot
-      : saved.project.model.keys[0]?.slot ?? "";
+      : saved.project.model?.keys[0]?.slot ?? "";
 
     setKeyboardProjects((current) => {
       const hasSnapshotProject = current.some((project) => project.id === saved.project.id);
@@ -419,9 +480,9 @@ export function App() {
         : [...current, saved.project];
     });
     setActiveKeyboardProjectId(saved.project.id);
-    setActiveLayoutId(layout.id);
+    setActiveLayoutId(layout?.id ?? "");
     setKeyboardProjectNameDraft(saved.project.name);
-    setLayoutNameDraft(layout.name);
+    setLayoutNameDraft(layout?.name ?? "");
     setModel(saved.project.model);
     setLayers(document.layers);
     setLayerColors(document.layerColors ?? {});
@@ -459,6 +520,10 @@ export function App() {
   }
 
   function startKeySwap() {
+    if (!selectedKey) {
+      setStatusMessage("Upload a KLE model and select a key before starting a swap.");
+      return;
+    }
     setSwapSourceSlot(selectedKey.slot);
     setStatusMessage(`Select another key to swap with ${selectedKey.slot} on ${activeLayer.name}.`);
   }
@@ -539,6 +604,10 @@ export function App() {
   }
 
   function writeAction(value: string) {
+    if (!selectedKey || !activeSavedLayout) {
+      setStatusMessage("Create or import a layout and select a key before writing an action.");
+      return;
+    }
     const before = selectedKeycode(activeLayer, selectedKey.slot);
     if (before !== value) {
       recordHistory();
@@ -549,6 +618,10 @@ export function App() {
   }
 
   function applyGeneratedAction() {
+    if (!selectedKey || !activeSavedLayout) {
+      setStatusMessage("Create or import a layout and select a key before applying an action.");
+      return;
+    }
     const dance = danceComposition.dance;
     const actionChanged = selectedKeycode(activeLayer, selectedKey.slot) !== generatedAction;
     const existingDance = dance ? dances[dance.name] : undefined;
@@ -854,6 +927,11 @@ export function App() {
       )));
       setStatusMessage(`Renamed project to ${name}.`);
     } else {
+      if (!model || !activeSavedLayout) {
+        setStatusMessage("Create or import a layout before renaming it.");
+        setRenameDialog(null);
+        return;
+      }
       const nextLayouts = baseProject.layouts.map((layout) => (
         layout.id === activeLayoutId
           ? cloneSavedLayout({ ...layout, name, updatedAt: now }, model)
@@ -876,19 +954,17 @@ export function App() {
   }
 
   function createBlankKeyboardProject() {
-    const project = createKeyboardProject("Untitled Keyboard Project", ergodoxInfinity, [
-      createLayout("Default Layout", createBlankKeymapDocument(ergodoxInfinity), ergodoxInfinity)
-    ]);
+    const project = createEmptyKeyboardProject();
     setKeyboardProjects((current) => [...current, project]);
     loadKeyboardProjectObject(project);
-    setStatusMessage("Created a keyboard project. Upload a KLE file to replace the default model.");
+    setStatusMessage("Created an empty keyboard project. Upload or edit KLE JSON to configure its model.");
   }
 
   function duplicateKeyboardProject() {
     const project = createKeyboardProject(
       `${keyboardProjectNameDraft || "Keyboard Project"} copy`,
       model,
-      availableLayouts,
+      model ? availableLayouts : [],
       activeKeyboardProject.defaultLayout.document
     );
     setKeyboardProjects((current) => [...current, project]);
@@ -897,24 +973,34 @@ export function App() {
   }
 
   function deleteKeyboardProject() {
-    if (keyboardProjects.length <= 1) {
-      setStatusMessage("Cannot delete the last keyboard project.");
-      return;
-    }
-
     const layoutCount = activeKeyboardProject.layouts.length;
     const versionCount = activeKeyboardProject.layouts.reduce((total, layout) => total + layout.versions.length, 0);
-    if (!window.confirm(`Delete project "${keyboardProjectNameDraft}" with ${layoutCount} layouts and ${versionCount} saved versions?`)) {
+    const isFinalProject = keyboardProjects.length <= 1;
+    const finalProjectNote = isFinalProject ? " A new empty project shell will be opened after deletion." : "";
+    if (!window.confirm(`Delete project "${keyboardProjectNameDraft}" with ${layoutCount} layouts and ${versionCount} saved versions?${finalProjectNote}`)) {
       return;
     }
 
+    recordHistory();
     const remaining = keyboardProjects.filter((project) => project.id !== activeKeyboardProjectId);
+    if (remaining.length === 0) {
+      const replacement = createEmptyKeyboardProject();
+      setKeyboardProjects([replacement]);
+      loadKeyboardProjectObject(replacement, replacement.activeLayoutId, { resetHistory: false });
+      setStatusMessage("Deleted the final keyboard project. Opened a new empty project.");
+      return;
+    }
+
     setKeyboardProjects(remaining);
-    loadKeyboardProjectObject(remaining[0]);
+    loadKeyboardProjectObject(remaining[0], remaining[0].activeLayoutId, { resetHistory: false });
     setStatusMessage("Deleted keyboard project.");
   }
 
   function createBlankLayoutForActiveProject(name?: string) {
+    if (!model) {
+      setStatusMessage("Upload or edit a KLE model before creating layouts.");
+      return;
+    }
     recordHistory();
     const baseProject = projectWithEditorState();
     const layout = createLayout(
@@ -949,6 +1035,10 @@ export function App() {
   }
 
   function duplicateLayout() {
+    if (!model || !activeSavedLayout) {
+      setStatusMessage("Create or import a layout before duplicating it.");
+      return;
+    }
     recordHistory();
     const layout = createLayout(
       uniqueLayoutName(`${layoutNameDraft || "Layout"} copy`, availableLayouts),
@@ -970,8 +1060,8 @@ export function App() {
   }
 
   function deleteLayout() {
-    if (availableLayouts.length <= 1) {
-      setStatusMessage("Cannot delete the last layout.");
+    if (!activeSavedLayout) {
+      setStatusMessage("No layout selected to delete.");
       return;
     }
 
@@ -986,20 +1076,25 @@ export function App() {
     const project = {
       ...baseProject,
       layouts: remaining,
-      activeLayoutId: nextLayout.id,
+      activeLayoutId: nextLayout?.id ?? "",
       updatedAt: new Date().toISOString()
     };
     setKeyboardProjects((current) => current.map((item) => (
       item.id === project.id ? project : item
     )));
-    loadLayoutObject(project, nextLayout, { resetHistory: false });
+    loadLayoutObject(project, nextLayout ?? null, { resetHistory: false });
     setStatusMessage("Deleted layout.");
   }
 
   function saveLayoutVersion() {
+    if (!model || !activeSavedLayout || !activeLayoutVersion) {
+      setStatusMessage("Create or import a layout before saving a version.");
+      return;
+    }
     recordHistory();
     const baseProject = projectWithEditorState();
     const layout = baseProject.layouts.find((item) => item.id === activeLayoutId) ?? baseProject.layouts[0];
+    if (!layout) return;
     const versionName = versionNameDraft.trim() || `Version ${layout.versions.length + 1}`;
     const version = createLayoutVersion(
       keymapDocument,
@@ -1030,6 +1125,7 @@ export function App() {
   }
 
   function loadLayoutVersion(versionId: string) {
+    if (!model || !activeSavedLayout) return;
     const version = activeSavedLayout.versions.find((item) => item.id === versionId);
     if (!version) return;
 
@@ -1037,6 +1133,7 @@ export function App() {
     const now = new Date().toISOString();
     const baseProject = projectWithEditorState();
     const layout = baseProject.layouts.find((item) => item.id === activeLayoutId) ?? baseProject.layouts[0];
+    if (!layout) return;
     const nextLayout = cloneSavedLayout({
       ...layout,
       document: cloneKeymapDocument(version.document),
@@ -1058,6 +1155,10 @@ export function App() {
   }
 
   function renameActiveVersion() {
+    if (!model || !activeSavedLayout || !activeLayoutVersion) {
+      setStatusMessage("Create or import a layout before renaming versions.");
+      return;
+    }
     const name = selectedVersionNameDraft.trim();
     if (!name) {
       setStatusMessage("Enter a version name before renaming.");
@@ -1073,6 +1174,7 @@ export function App() {
     const now = new Date().toISOString();
     const baseProject = projectWithEditorState();
     const layout = baseProject.layouts.find((item) => item.id === activeLayoutId) ?? baseProject.layouts[0];
+    if (!layout) return;
     const nextLayout = cloneSavedLayout({
       ...layout,
       versions: layout.versions.map((version) => (
@@ -1096,6 +1198,10 @@ export function App() {
   }
 
   function deleteActiveVersion() {
+    if (!model || !activeSavedLayout || !activeLayoutVersion) {
+      setStatusMessage("Create or import a layout before deleting versions.");
+      return;
+    }
     if (activeSavedLayout.versions.length <= 1) {
       setStatusMessage("Cannot delete the only saved version.");
       return;
@@ -1109,6 +1215,7 @@ export function App() {
     const now = new Date().toISOString();
     const baseProject = projectWithEditorState();
     const layout = baseProject.layouts.find((item) => item.id === activeLayoutId) ?? baseProject.layouts[0];
+    if (!layout) return;
     const remainingVersions = layout.versions
       .filter((version) => version.id !== activeLayoutVersion.id)
       .map((version) => (
@@ -1141,6 +1248,10 @@ export function App() {
   }
 
   function saveCurrentLayoutAsDefault() {
+    if (!activeSavedLayout) {
+      setStatusMessage("Create or import a layout before saving it as Default.");
+      return;
+    }
     recordHistory();
     const now = new Date().toISOString();
     const baseProject = projectWithEditorState();
@@ -1174,14 +1285,14 @@ export function App() {
       model: importedModel,
       defaultLayout: reconcileDefaultLayoutToModel(baseProject.defaultLayout, importedModel),
       layouts: nextLayouts,
-      activeLayoutId: nextLayout.id,
+      activeLayoutId: nextLayout?.id ?? "",
       updatedAt: new Date().toISOString()
     };
 
     setKeyboardProjects((current) => current.map((project) => (
       project.id === nextProject.id ? nextProject : project
     )));
-    loadLayoutObject(nextProject, nextLayout, {
+    loadLayoutObject(nextProject, nextLayout ?? null, {
       resetHistory: false,
       selectedSlot,
       activeLayerName
@@ -1194,6 +1305,10 @@ export function App() {
   }
 
   function uploadLayoutFromJson(raw: unknown, fallbackName: string) {
+    if (!model) {
+      setStatusMessage("Upload or edit a KLE model before importing layouts.");
+      return;
+    }
     const layout = parseLayoutUpload(raw, model, uniqueLayoutName(fallbackName, availableLayouts));
     recordHistory();
 
@@ -1227,10 +1342,6 @@ export function App() {
     importFullProjectFromJson(JSON.parse(await file.text()) as unknown, file.name);
   }
 
-  function openPasteJsonDialog(kind: PasteJsonKind) {
-    setPasteJsonDialog({ kind, value: "" });
-  }
-
   function currentProjectFileJson() {
     const projectFile: ProjectFile = {
       version: 1,
@@ -1241,32 +1352,16 @@ export function App() {
   }
 
   function openJsonEditDialog(kind: JsonEditKind) {
+    const valueByKind: Record<JsonEditKind, string> = {
+      project: currentProjectFileJson(),
+      layout: activeSavedLayout ? jsonOutput : "",
+      kle: model ? serializeKeyboardModelKle(model) : ""
+    };
+
     setJsonEditDialog({
       kind,
-      value: kind === "project" ? currentProjectFileJson() : jsonOutput
+      value: valueByKind[kind]
     });
-  }
-
-  function submitPasteJsonDialog(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!pasteJsonDialog) return;
-
-    if (!pasteJsonValidation.ok) {
-      setStatusMessage(pasteJsonValidation.message);
-      return;
-    }
-
-    const pasted = pasteJsonDialog.value.trim();
-
-    try {
-      const raw = JSON.parse(pasted) as unknown;
-      if (pasteJsonDialog.kind === "kle") {
-        updateActiveKeyboardModelFromJson(raw, "pasted-kle.json");
-      }
-      setPasteJsonDialog(null);
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Failed to import pasted JSON.");
-    }
   }
 
   function submitJsonEditDialog(event: FormEvent<HTMLFormElement>) {
@@ -1282,6 +1377,13 @@ export function App() {
 
     try {
       const raw = JSON.parse(edited) as unknown;
+
+      if (jsonEditDialog.kind === "kle") {
+        updateActiveKeyboardModelFromJson(raw, "edited-kle.json");
+        setJsonEditDialog(null);
+        return;
+      }
+
       recordHistory();
 
       if (jsonEditDialog.kind === "project") {
@@ -1293,10 +1395,18 @@ export function App() {
         loadKeyboardProjectObject(project, project.activeLayoutId, { resetHistory: false, selectedSlot, activeLayerName });
         setStatusMessage(`Saved edited project JSON for ${project.name}.`);
       } else {
+        if (!model || !activeSavedLayout) {
+          setStatusMessage("Create or import a layout before saving layout JSON.");
+          return;
+        }
         const parsedLayout = parseLayoutUpload(raw, model, layoutNameDraft || "Edited Layout");
         const now = new Date().toISOString();
         const baseProject = projectWithEditorState();
         const existingLayout = baseProject.layouts.find((layout) => layout.id === activeLayoutId) ?? baseProject.layouts[0];
+        if (!existingLayout) {
+          setStatusMessage("Create or import a layout before saving layout JSON.");
+          return;
+        }
         const nextLayout = cloneSavedLayout({
           ...existingLayout,
           name: parsedLayout.name,
@@ -1336,6 +1446,10 @@ export function App() {
   }
 
   function downloadJson() {
+    if (!model || !activeSavedLayout) {
+      setStatusMessage("Create or import a layout before downloading layout JSON.");
+      return;
+    }
     downloadText(jsonOutput, `${safeFileSlug(layoutNameDraft, "qmk-layout")}.json`);
   }
 
@@ -1344,10 +1458,18 @@ export function App() {
   }
 
   function downloadProjectKle() {
+    if (!model) {
+      setStatusMessage("Upload or edit a KLE model before downloading Project KLE.");
+      return;
+    }
     downloadText(serializeKeyboardModelKle(model), `${safeFileSlug(keyboardProjectNameDraft, "keyboard")}.kle.json`);
   }
 
   function downloadActiveLayerKle() {
+    if (!model || !activeSavedLayout) {
+      setStatusMessage("Create or import a layout before downloading Layer KLE.");
+      return;
+    }
     downloadText(serializeLayerKle(model, activeLayer), `${safeFileSlug(layoutNameDraft, "layout")}-${safeFileSlug(activeLayer.name, "layer")}.kle.json`);
   }
 
@@ -1401,15 +1523,15 @@ export function App() {
   }, [activeKeyboardProjectId, activeLayoutId, keyboardProjectNameDraft, keymapDocument, layoutNameDraft, model]);
 
   useEffect(() => {
-    setSelectedVersionNameDraft(activeLayoutVersion.name);
-  }, [activeLayoutVersion.id, activeLayoutVersion.name]);
+    setSelectedVersionNameDraft(activeLayoutVersion?.name ?? "");
+  }, [activeLayoutVersion?.id, activeLayoutVersion?.name]);
 
   useEffect(() => {
     setDraftAction(currentAction);
     if (syncComposerWithSelection) {
       syncComposerFromAction(currentAction);
     }
-  }, [currentAction, activeLayer.name, selectedKey.slot, syncComposerWithSelection, dances]);
+  }, [currentAction, activeLayer.name, selectedKey?.slot, syncComposerWithSelection, dances]);
 
   useEffect(() => {
     setLayerNameDraft(activeLayer.name);
@@ -1435,7 +1557,7 @@ export function App() {
           setStatusMessage(`Captured ${keycode} with modifiers for Simple composer.`);
         } else {
           setDraftAction(keycode);
-          setStatusMessage(`Captured ${keycode}. Apply raw to write it to ${selectedKey.slot}.`);
+          setStatusMessage(`Captured ${keycode}. Apply raw to write it to ${selectedKey?.slot ?? "the selected key"}.`);
         }
       } else {
         setStatusMessage(`Could not map "${event.key}" to a QMK keycode; type the raw identifier manually.`);
@@ -1445,7 +1567,7 @@ export function App() {
 
     window.addEventListener("keydown", captureKey, { capture: true });
     return () => window.removeEventListener("keydown", captureKey, { capture: true });
-  }, [captureTarget, selectedKey.slot]);
+  }, [captureTarget, selectedKey?.slot]);
 
   return (
     <main className={`app-shell page-${activePage}`}>
@@ -1475,11 +1597,11 @@ export function App() {
           </button>
           <button className="context-chip" onClick={() => setActivePage("editor")} type="button">
             <span>Layout</span>
-            <strong>{layoutNameDraft || availableLayouts.find((layout) => layout.id === activeLayoutId)?.name || "Layout"}</strong>
+            <strong>{layoutNameDraft || activeSavedLayout?.name || "No layout"}</strong>
           </button>
           <button className="context-chip" onClick={() => setActivePage("projects")} type="button">
             <span>Model</span>
-            <strong>{model.keys.length} keys</strong>
+            <strong>{model ? `${model.keys.length} keys` : "No KLE"}</strong>
           </button>
         </div>
         <div className="history-controls" aria-label="History">
@@ -1518,31 +1640,35 @@ export function App() {
             <div className="section-header">
               <div>
                 <p className="eyebrow">Active layout</p>
-                <h2>{layoutNameDraft}</h2>
+                <h2>{layoutNameDraft || activeSavedLayout?.name || "No layout selected"}</h2>
               </div>
-              <span className="metric-pill">{availableLayouts.length} layouts / {activeSavedLayout.versions.length} versions</span>
+              <span className="metric-pill">{availableLayouts.length} layouts / {activeSavedLayout?.versions.length ?? 0} versions</span>
             </div>
             <div className="editor-layout-controls">
               <label>
                 Layout
                 <select
                   data-testid="layout-select"
+                  disabled={!activeSavedLayout}
                   value={activeLayoutId}
                   onChange={(event) => loadLayout(event.target.value)}
                 >
-                  {availableLayouts.map((layout) => (
+                  {availableLayouts.length > 0 ? availableLayouts.map((layout) => (
                     <option key={layout.id} value={layout.id}>{layout.name}</option>
-                  ))}
+                  )) : (
+                    <option value="">No layouts</option>
+                  )}
                 </select>
               </label>
               <div className="button-row editor-layout-actions">
-                <button className="action-create" data-icon="+" data-testid="new-layout" onClick={openCreateLayoutDialog} type="button">Create Layout</button>
-                <button className="action-copy" data-icon="⧉" data-testid="duplicate-layout" onClick={duplicateLayout} type="button">Duplicate Layout</button>
-                <label className="file-import action-import" data-icon="⇣">
+                <button className="action-create" data-icon="+" data-testid="new-layout" disabled={!model} onClick={openCreateLayoutDialog} type="button">Create Layout</button>
+                <button className="action-copy" data-icon="⧉" data-testid="duplicate-layout" disabled={!activeSavedLayout} onClick={duplicateLayout} type="button">Duplicate Layout</button>
+                <label className={`file-import action-import ${!model ? "disabled" : ""}`} data-icon="⇣">
                   Import Layout
                   <input
                     data-testid="layout-upload"
                     accept="application/json,.json"
+                    disabled={!model}
                     onChange={(event) => {
                       const file = event.target.files?.[0];
                       if (file) {
@@ -1555,15 +1681,15 @@ export function App() {
                     type="file"
                   />
                 </label>
-                <button className="action-rename" data-icon="{}" data-testid="edit-layout-json" onClick={() => openJsonEditDialog("layout")} type="button">Edit Layout JSON</button>
-                <button className="action-export" data-icon="⇡" data-testid="download-layout" onClick={downloadJson} type="button">Download Layout</button>
-                <button className="action-rename" data-icon="✎" data-testid="rename-layout" onClick={openLayoutRenameDialog} type="button">Rename Layout</button>
-                <button className="action-default" data-icon="★" data-testid="save-default-layout" onClick={saveCurrentLayoutAsDefault} type="button">Save as Default</button>
+                <button className="action-rename" data-icon="{}" data-testid="edit-layout-json" disabled={!activeSavedLayout} onClick={() => openJsonEditDialog("layout")} type="button">Edit Layout JSON</button>
+                <button className="action-export" data-icon="⇡" data-testid="download-layout" disabled={!activeSavedLayout} onClick={downloadJson} type="button">Download Layout</button>
+                <button className="action-rename" data-icon="✎" data-testid="rename-layout" disabled={!activeSavedLayout} onClick={openLayoutRenameDialog} type="button">Rename Layout</button>
+                <button className="action-default" data-icon="★" data-testid="save-default-layout" disabled={!activeSavedLayout} onClick={saveCurrentLayoutAsDefault} type="button">Save as Default</button>
                 <button
                   className="danger-button action-danger"
                   data-icon="!"
                   data-testid="delete-layout"
-                  disabled={availableLayouts.length <= 1}
+                  disabled={!activeSavedLayout}
                   onClick={deleteLayout}
                   type="button"
                 >
@@ -1572,6 +1698,29 @@ export function App() {
               </div>
             </div>
           </div>
+          {!model ? (
+            <div className="editor-card setup-state-card" data-testid="missing-kle-state">
+              <p className="eyebrow">Keyboard model required</p>
+              <h2>No KLE model configured</h2>
+              <p>Create Project now starts with an empty project shell. Upload a KLE JSON file or use Edit KLE JSON on the Projects page to add key IDs before creating layouts.</p>
+              <button className="action-rename" data-icon="{}" data-testid="editor-edit-kle-json" onClick={() => {
+                setActivePage("projects");
+                openJsonEditDialog("kle");
+              }} type="button">
+                Edit KLE JSON
+              </button>
+            </div>
+          ) : !activeSavedLayout ? (
+            <div className="editor-card setup-state-card" data-testid="missing-layout-state">
+              <p className="eyebrow">Layout required</p>
+              <h2>No layouts in this project</h2>
+              <p>This project has a KLE model but no layouts. Create a layout from the project default template or import a saved layout JSON.</p>
+              <button className="action-create" data-icon="+" data-testid="editor-create-first-layout" onClick={openCreateLayoutDialog} type="button">
+                Create Layout
+              </button>
+            </div>
+          ) : selectedKey ? (
+            <>
           <div className="keyboard-panel">
           <div className="layer-tabs" role="tablist" aria-label="Layers">
             {layers.map((layer, index) => (
@@ -1663,13 +1812,22 @@ export function App() {
             </div>
           </div>
 
-          <div
-            className="keyboard-stage"
-            id="keyboard-stage"
-            role="tabpanel"
-            aria-labelledby={`tab-${activeLayer.name}`}
-            style={{ width: model.width * model.unit, height: model.height * model.unit }}
-          >
+          <div className="keyboard-stage-viewport" ref={keyboardViewportRef}>
+            <div
+              className="keyboard-stage-scaler"
+              style={{ width: keyboardVisualSize.width, height: keyboardVisualSize.height }}
+            >
+              <div
+                className="keyboard-stage"
+                id="keyboard-stage"
+                role="tabpanel"
+                aria-labelledby={`tab-${activeLayer.name}`}
+                style={{
+                  width: keyboardStageSize.width,
+                  height: keyboardStageSize.height,
+                  transform: `scale(${keyboardScale})`
+                }}
+              >
             {model.keys.map((key) => {
               const action = selectedKeycode(activeLayer, key.slot);
               const details = describeAction(action);
@@ -1691,8 +1849,8 @@ export function App() {
                   onDragEnd={() => handleKeyDragEnd(key)}
                   aria-pressed={key.slot === selectedSlot}
                   style={{
-                    left: (key.x + model.padding) * model.unit,
-                    top: (key.y + model.padding) * model.unit,
+                    left: (key.x + model.paddingX) * model.unit,
+                    top: (key.y + model.paddingY) * model.unit,
                     width: key.width * model.unit,
                     height: key.height * model.unit,
                     transform: `rotate(${key.rotation}deg)`,
@@ -1728,6 +1886,8 @@ export function App() {
                 </button>
               );
             })}
+              </div>
+            </div>
           </div>
           </div>
 
@@ -2237,7 +2397,7 @@ export function App() {
               <div className="section-header">
                 <div>
                   <p className="eyebrow">Version tree</p>
-                  <h2>{activeLayoutVersion.name}</h2>
+                  <h2>{activeLayoutVersion?.name ?? "No version"}</h2>
                 </div>
                 <span className="metric-pill">{activeSavedLayout.versions.length} versions</span>
               </div>
@@ -2294,6 +2454,14 @@ export function App() {
               <LayoutVersionTree layout={activeSavedLayout} onSelectVersion={loadLayoutVersion} />
             </div>
           </aside>
+            </>
+          ) : (
+            <div className="editor-card setup-state-card" data-testid="missing-key-state">
+              <p className="eyebrow">Keyboard model empty</p>
+              <h2>No key IDs found</h2>
+              <p>The active KLE model has no selectable key IDs. Edit the KLE JSON and put unique identifiers in the center legend entries.</p>
+            </div>
+          )}
         </section>
       )}
 
@@ -2373,7 +2541,6 @@ export function App() {
                   className="danger-button action-danger"
                   data-icon="!"
                   data-testid="delete-project"
-                  disabled={keyboardProjects.length <= 1}
                   onClick={deleteKeyboardProject}
                   type="button"
                 >
@@ -2385,27 +2552,28 @@ export function App() {
               <div className="section-header">
                 <div>
                   <p className="eyebrow">Keyboard model</p>
-                  <h2>{model.name}</h2>
+                  <h2>{model?.name ?? "No KLE model"}</h2>
                 </div>
-                <span className="metric-pill">{model.keys.length} keys</span>
+                <span className="metric-pill">{model?.keys.length ?? 0} keys</span>
               </div>
               <dl className="model-facts" data-testid="model-readout">
                 <div>
                   <dt>Keys</dt>
-                  <dd>{model.keys.length}</dd>
+                  <dd>{model?.keys.length ?? 0}</dd>
                 </div>
                 <div>
                   <dt>Canvas</dt>
-                  <dd>{model.width.toFixed(1)}u × {model.height.toFixed(1)}u</dd>
+                  <dd>{model ? `${model.width.toFixed(1)}u × ${model.height.toFixed(1)}u` : "Not configured"}</dd>
                 </div>
                 <div>
                   <dt>Author</dt>
-                  <dd>{model.author || "Not specified"}</dd>
+                  <dd>{model?.author || "Not specified"}</dd>
                 </div>
               </dl>
               <p>
-                Updating the KLE model is undoable. Existing layout keys survive when their slot IDs still exist in
-                the new KLE file.
+                {model
+                  ? "Updating the KLE model is undoable. Existing layout keys survive when their slot IDs still exist in the new KLE file."
+                  : "This project has no keyboard model yet. Upload a KLE file or edit KLE JSON to define the key IDs."}
               </p>
               <div className="button-row">
                 <label className="file-import action-import" data-icon="⇣">
@@ -2425,8 +2593,8 @@ export function App() {
                     type="file"
                   />
                 </label>
-                <button className="action-import" data-icon="{}" data-testid="paste-kle-json" onClick={() => openPasteJsonDialog("kle")} type="button">Paste KLE JSON</button>
-                <button className="action-export" data-icon="⇡" data-testid="download-kle" onClick={downloadProjectKle} type="button">Download KLE</button>
+                <button className="action-rename" data-icon="{}" data-testid="edit-kle-json" onClick={() => openJsonEditDialog("kle")} type="button">Edit KLE JSON</button>
+                <button className="action-export" data-icon="⇡" data-testid="download-kle" disabled={!model} onClick={downloadProjectKle} type="button">Download KLE</button>
               </div>
             </div>
             <div className="editor-card admin-card project-model-preview-card">
@@ -2436,7 +2604,13 @@ export function App() {
                   <h2>Marker preview</h2>
                 </div>
               </div>
-              <KeyboardModelPreview model={model} />
+              {model ? (
+                <KeyboardModelPreview model={model} />
+              ) : (
+                <div className="setup-state-card inline" data-testid="project-missing-kle-preview">
+                  <p>No marker preview until a KLE model is configured.</p>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -2452,17 +2626,17 @@ export function App() {
             </div>
             <div className="page-actions">
               <button onClick={copyJson} type="button">Copy JSON</button>
-              <button data-testid="download-layout-json" onClick={downloadJson} type="button">Layout JSON</button>
-              <button data-testid="download-layer-kle" onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
+              <button data-testid="download-layout-json" disabled={!model || !activeSavedLayout} onClick={downloadJson} type="button">Layout JSON</button>
+              <button data-testid="download-layer-kle" disabled={!model || !activeSavedLayout} onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
             </div>
           </div>
           <div className="editor-card export-card">
             <div className="section-header">
               <div>
                 <p className="eyebrow">Current layout JSON</p>
-                <h2>{keyboardProjectNameDraft} / {layoutNameDraft}</h2>
+                <h2>{keyboardProjectNameDraft} / {layoutNameDraft || "No layout"}</h2>
               </div>
-              <button data-testid="download-project-kle" onClick={downloadProjectKle} type="button">Project KLE</button>
+              <button data-testid="download-project-kle" disabled={!model} onClick={downloadProjectKle} type="button">Project KLE</button>
             </div>
             <textarea
               readOnly
@@ -2522,56 +2696,6 @@ export function App() {
                 Save JSON
               </button>
               <button className="action-disable" data-icon="×" data-testid="close-edit-json" onClick={() => setJsonEditDialog(null)} type="button">Close</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {pasteJsonDialog && (
-        <div className="modal-backdrop" role="presentation">
-          <form
-            className="rename-modal paste-json-modal"
-            aria-labelledby="paste-json-modal-title"
-            onSubmit={submitPasteJsonDialog}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">{pasteJsonLabels[pasteJsonDialog.kind].eyebrow}</p>
-                <h2 id="paste-json-modal-title">{pasteJsonLabels[pasteJsonDialog.kind].title}</h2>
-              </div>
-            </div>
-            <label>
-              JSON
-              <textarea
-                autoFocus
-                data-testid="paste-json-input"
-                placeholder={pasteJsonLabels[pasteJsonDialog.kind].placeholder}
-                value={pasteJsonDialog.value}
-                onChange={(event) => setPasteJsonDialog((current) => (
-                  current ? { ...current, value: event.target.value } : current
-                ))}
-                spellCheck={false}
-              />
-            </label>
-            <p
-              className={`action-validation ${pasteJsonValidation.ok ? "ok" : "warning"}`}
-              data-testid="paste-json-validation"
-            >
-              {pasteJsonValidation.message}
-            </p>
-            <div className="button-row rename-modal-actions">
-              <button
-                className="action-import"
-                data-icon="{}"
-                data-testid="submit-paste-json"
-                disabled={!pasteJsonValidation.ok}
-                type="submit"
-              >
-                Update KLE
-              </button>
-              <button className="action-disable" data-icon="×" onClick={() => setPasteJsonDialog(null)} type="button">Close</button>
             </div>
           </form>
         </div>

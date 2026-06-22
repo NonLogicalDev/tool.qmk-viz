@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "kind": "qmk-viz-project",
+  "project": {
+    "id": "starter/corne-42",
+    "name": "Corne 42-key Split",
+    "model": {
+      "id": "starter/corne-42/model",
+      "name": "Corne 42-key Split",
+      "author": "qmk-viz starter",
+      "source": "default-projects/corne-42.json",
+      "kle": [
+        {
+          "name": "Corne 42-key Split",
+          "author": "qmk-viz starter"
+        },
+        ["L00", "L01", "L02", "L03", "L04", "L05", { "x": 4 }, "R05", "R04", "R03", "R02", "R01", "R00"],
+        ["L10", "L11", "L12", "L13", "L14", "L15", { "x": 4 }, "R15", "R14", "R13", "R12", "R11", "R10"],
+        ["L20", "L21", "L22", "L23", "L24", "L25", { "x": 4 }, "R25", "R24", "R23", "R22", "R21", "R20"],
+        [{ "x": 3 }, "L30", "L31", "L32", { "x": 6 }, "R32", "R31", "R30"]
+      ]
+    },
+    "defaultLayout": {
+      "document": {
+        "version": 1,
+        "layers": [
+          {
+            "name": "BASE",
+            "keys": {
+              "L00": "KC_TAB",
+              "L01": "KC_Q",
+              "L02": "KC_W",
+              "L03": "KC_E",
+              "L04": "KC_R",
+              "L05": "KC_T",
+              "L10": "KC_ESC",
+              "L11": "KC_A",
+              "L12": "KC_S",
+              "L13": "KC_D",
+              "L14": "KC_F",
+              "L15": "KC_G",
+              "L20": "KC_LSFT",
+              "L21": "KC_Z",
+              "L22": "KC_X",
+              "L23": "KC_C",
+              "L24": "KC_V",
+              "L25": "KC_B",
+              "L30": "KC_LCTL",
+              "L31": "KC_LALT",
+              "L32": "KC_SPC",
+              "R00": "KC_BSPC",
+              "R01": "KC_P",
+              "R02": "KC_O",
+              "R03": "KC_I",
+              "R04": "KC_U",
+              "R05": "KC_Y",
+              "R10": "KC_QUOT",
+              "R11": "KC_SCLN",
+              "R12": "KC_L",
+              "R13": "KC_K",
+              "R14": "KC_J",
+              "R15": "KC_H",
+              "R20": "KC_RSFT",
+              "R21": "KC_SLSH",
+              "R22": "KC_DOT",
+              "R23": "KC_COMM",
+              "R24": "KC_M",
+              "R25": "KC_N",
+              "R30": "KC_RCTL",
+              "R31": "KC_RALT",
+              "R32": "KC_ENT"
+            }
+          }
+        ],
+        "dances": {},
+        "extKeys": [],
+        "layerColors": {
+          "BASE": "#0078a8"
+        }
+      },
+      "updatedAt": "2026-06-21T00:00:00.000Z"
+    },
+    "layouts": [
+      {
+        "id": "starter/corne-42/layout/default",
+        "name": "Default",
+        "document": {
+          "version": 1,
+          "layers": [
+            {
+              "name": "BASE",
+              "keys": {
+                "L00": "KC_TAB",
+                "L01": "KC_Q",
+                "L02": "KC_W",
+                "L03": "KC_E",
+                "L04": "KC_R",
+                "L05": "KC_T",
+                "L10": "KC_ESC",
+                "L11": "KC_A",
+                "L12": "KC_S",
+                "L13": "KC_D",
+                "L14": "KC_F",
+                "L15": "KC_G",
+                "L20": "KC_LSFT",
+                "L21": "KC_Z",
+                "L22": "KC_X",
+                "L23": "KC_C",
+                "L24": "KC_V",
+                "L25": "KC_B",
+                "L30": "KC_LCTL",
+                "L31": "KC_LALT",
+                "L32": "KC_SPC",
+                "R00": "KC_BSPC",
+                "R01": "KC_P",
+                "R02": "KC_O",
+                "R03": "KC_I",
+                "R04": "KC_U",
+                "R05": "KC_Y",
+                "R10": "KC_QUOT",
+                "R11": "KC_SCLN",
+                "R12": "KC_L",
+                "R13": "KC_K",
+                "R14": "KC_J",
+                "R15": "KC_H",
+                "R20": "KC_RSFT",
+                "R21": "KC_SLSH",
+                "R22": "KC_DOT",
+                "R23": "KC_COMM",
+                "R24": "KC_M",
+                "R25": "KC_N",
+                "R30": "KC_RCTL",
+                "R31": "KC_RALT",
+                "R32": "KC_ENT"
+              }
+            }
+          ],
+          "dances": {},
+          "extKeys": [],
+          "layerColors": {
+            "BASE": "#0078a8"
+          }
+        },
+        "versions": [],
+        "activeVersionId": "",
+        "updatedAt": "2026-06-21T00:00:00.000Z"
+      }
+    ],
+    "activeLayoutId": "starter/corne-42/layout/default",
+    "updatedAt": "2026-06-21T00:00:00.000Z"
+  }
+}

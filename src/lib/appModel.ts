@@ -2,6 +2,7 @@ import type { BehaviorSlots } from "./actions";
 import { buildKeyboardModelFromKle, type KeyboardModel } from "./keyboardModel";
 import {
   cloneKeymapDocument,
+  createEmptyKeymapDocument,
   createBlankKeymapDocument,
   reconcileKeymapDocumentToModel,
   type ExtKey,
@@ -9,9 +10,12 @@ import {
   type KeymapLayer
 } from "./keymap";
 import { cloneKleDocument } from "./kle";
-import { ergodoxInfinity, ergodoxInfinityDefaultLayers } from "../models/ergodoxInfinity";
 
 export const KEYBOARD_PROJECTS_STORAGE_KEY = "qmk-viz.keyboard-projects.v4";
+const starterProjectModules = import.meta.glob("../../../default-projects/*.json", {
+  eager: true,
+  import: "default"
+}) as Record<string, unknown>;
 
 export type VersionKeyboardModel = {
   id: string;
@@ -47,7 +51,7 @@ export type SavedDefaultLayout = {
 export type SavedKeyboardProject = {
   id: string;
   name: string;
-  model: KeyboardModel;
+  model: KeyboardModel | null;
   defaultLayout: SavedDefaultLayout;
   layouts: SavedLayout[];
   activeLayoutId: string;
@@ -122,7 +126,7 @@ export function createLayoutVersion(
   };
 }
 
-export function cloneLayoutVersion(version: SavedLayoutVersion, fallbackModel: KeyboardModel = ergodoxInfinity): SavedLayoutVersion {
+export function cloneLayoutVersion(version: SavedLayoutVersion, fallbackModel: KeyboardModel): SavedLayoutVersion {
   const keyboardModel = (version as Partial<SavedLayoutVersion>).keyboardModel;
   return {
     ...version,
@@ -140,7 +144,7 @@ export function cloneDefaultLayout(defaultLayout: SavedDefaultLayout): SavedDefa
   };
 }
 
-export function cloneSavedLayout(layout: SavedLayout, fallbackModel: KeyboardModel = ergodoxInfinity): SavedLayout {
+export function cloneSavedLayout(layout: SavedLayout, fallbackModel: KeyboardModel): SavedLayout {
   const document = cloneKeymapDocument(layout.document);
   const versions = layout.versions.length > 0
     ? layout.versions.map((version) => cloneLayoutVersion(version, fallbackModel))
@@ -175,16 +179,6 @@ export function reconcileDefaultLayoutToModel(defaultLayout: SavedDefaultLayout,
   };
 }
 
-export function createDefaultDocument(): KeymapDocument {
-  return {
-    version: 1,
-    layers: ergodoxInfinityDefaultLayers.map((layer) => ({ name: layer.name, keys: { ...layer.keys } })),
-    dances: {},
-    extKeys: [],
-    layerColors: {}
-  };
-}
-
 export function createLayout(name: string, document: KeymapDocument, model: KeyboardModel): SavedLayout {
   const now = new Date().toISOString();
   const clonedDocument = cloneKeymapDocument(document);
@@ -216,30 +210,33 @@ function createSavedDefaultLayout(document: KeymapDocument, updatedAt = new Date
 
 export function createKeyboardProject(
   name: string,
-  model: KeyboardModel,
+  model: KeyboardModel | null,
   layouts: SavedLayout[],
   defaultLayoutDocument?: KeymapDocument,
   defaultLayoutUpdatedAt?: string
 ): SavedKeyboardProject {
-  const safeLayouts = layouts.length > 0 ? layouts : [createLayout("Default Layout", createBlankKeymapDocument(model), model)];
-  const defaultDocument = defaultLayoutDocument
+  const safeLayouts = model ? layouts : [];
+  const defaultDocument = defaultLayoutDocument && model
     ? reconcileKeymapDocumentToModel(defaultLayoutDocument, model)
-    : cloneKeymapDocument(safeLayouts[0].document);
+    : defaultLayoutDocument
+      ? cloneKeymapDocument(defaultLayoutDocument)
+      : safeLayouts[0]
+        ? cloneKeymapDocument(safeLayouts[0].document)
+        : createEmptyKeymapDocument();
 
   return {
     id: newEntityId("keyboard-project"),
     name,
-    model: sanitizeKeyboardModel(model),
+    model: model ? sanitizeKeyboardModel(model) : null,
     defaultLayout: createSavedDefaultLayout(defaultDocument, defaultLayoutUpdatedAt),
-    layouts: safeLayouts.map((layout) => cloneSavedLayout(layout, model)),
-    activeLayoutId: safeLayouts[0].id,
+    layouts: model ? safeLayouts.map((layout) => cloneSavedLayout(layout, model)) : [],
+    activeLayoutId: safeLayouts[0]?.id ?? "",
     updatedAt: new Date().toISOString()
   };
 }
 
-export function defaultKeyboardProject(): SavedKeyboardProject {
-  const monsterLayout = createLayout("Monster", createDefaultDocument(), ergodoxInfinity);
-  return createKeyboardProject(ergodoxInfinity.name, ergodoxInfinity, [monsterLayout], monsterLayout.document);
+export function createEmptyKeyboardProject(name = "Untitled Keyboard Project"): SavedKeyboardProject {
+  return createKeyboardProject(name, null, [], createEmptyKeymapDocument());
 }
 
 export function normalizeLoadedLayout(raw: Partial<SavedLayout>, model: KeyboardModel, index: number): SavedLayout {
@@ -287,17 +284,18 @@ export function normalizeLoadedLayout(raw: Partial<SavedLayout>, model: Keyboard
 
 function normalizeLoadedDefaultLayout(
   rawDefaultLayout: unknown,
-  model: KeyboardModel,
+  model: KeyboardModel | null,
   fallbackDocument: KeymapDocument,
   fallbackUpdatedAt: string
 ): SavedDefaultLayout {
   if (typeof rawDefaultLayout !== "object" || rawDefaultLayout === null) {
-    return createSavedDefaultLayout(reconcileKeymapDocumentToModel(fallbackDocument, model), fallbackUpdatedAt);
+    return createSavedDefaultLayout(model ? reconcileKeymapDocumentToModel(fallbackDocument, model) : fallbackDocument, fallbackUpdatedAt);
   }
 
   const typedDefaultLayout = rawDefaultLayout as Partial<SavedDefaultLayout>;
+  const sourceDocument = typedDefaultLayout.document ?? fallbackDocument;
   return createSavedDefaultLayout(
-    reconcileKeymapDocumentToModel(typedDefaultLayout.document ?? fallbackDocument, model),
+    model ? reconcileKeymapDocumentToModel(sourceDocument, model) : sourceDocument,
     typeof typedDefaultLayout.updatedAt === "string" ? typedDefaultLayout.updatedAt : fallbackUpdatedAt
   );
 }
@@ -310,21 +308,22 @@ export function normalizeLoadedProject(raw: Partial<SavedKeyboardProject>, index
       author: raw.model.author,
       source: raw.model.source
     })
-    : ergodoxInfinity;
+    : null;
   const sourceLayouts = Array.isArray(raw.layouts) ? raw.layouts : [];
-  const layouts = sourceLayouts.length > 0
+  const layouts = model && sourceLayouts.length > 0
     ? sourceLayouts.map((layout, layoutIndex) => normalizeLoadedLayout(layout, model, layoutIndex))
-    : [createLayout("Default Layout", createBlankKeymapDocument(model), model)];
+    : [];
   const activeLayoutId = typeof raw.activeLayoutId === "string" && layouts.some((layout) => layout.id === raw.activeLayoutId)
     ? raw.activeLayoutId
-    : layouts[0].id;
+    : layouts[0]?.id ?? "";
   const updatedAt = typeof raw.updatedAt === "string" ? raw.updatedAt : new Date().toISOString();
+  const defaultDocument = layouts[0]?.document ?? createEmptyKeymapDocument();
 
   return {
     id: typeof raw.id === "string" ? raw.id : newEntityId("keyboard-project"),
     name: typeof raw.name === "string" && raw.name.trim() ? raw.name : `Keyboard Project ${index + 1}`,
-    model: sanitizeKeyboardModel(model),
-    defaultLayout: normalizeLoadedDefaultLayout(raw.defaultLayout, model, layouts[0].document, updatedAt),
+    model: model ? sanitizeKeyboardModel(model) : null,
+    defaultLayout: normalizeLoadedDefaultLayout(raw.defaultLayout, model, defaultDocument, updatedAt),
     layouts,
     activeLayoutId,
     updatedAt
@@ -332,7 +331,7 @@ export function normalizeLoadedProject(raw: Partial<SavedKeyboardProject>, index
 }
 
 export function loadKeyboardProjects(): SavedKeyboardProject[] {
-  const fallback = [defaultKeyboardProject()];
+  const fallback = defaultStarterProjects();
   try {
     const raw = localStorage.getItem(KEYBOARD_PROJECTS_STORAGE_KEY);
     if (!raw) return fallback;
@@ -345,8 +344,23 @@ export function loadKeyboardProjects(): SavedKeyboardProject[] {
   }
 }
 
-export function activeLayoutFor(project: SavedKeyboardProject): SavedLayout {
-  return project.layouts.find((layout) => layout.id === project.activeLayoutId) ?? project.layouts[0];
+function defaultStarterProjects(): SavedKeyboardProject[] {
+  const projects = Object.entries(starterProjectModules)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([source, raw]) => {
+      try {
+        return [parseProjectFile(raw, source)];
+      } catch (error) {
+        console.warn(`Skipping invalid starter project ${source}.`, error);
+        return [];
+      }
+    });
+
+  return projects.length > 0 ? projects : [createEmptyKeyboardProject()];
+}
+
+export function activeLayoutFor(project: SavedKeyboardProject): SavedLayout | null {
+  return project.layouts.find((layout) => layout.id === project.activeLayoutId) ?? project.layouts[0] ?? null;
 }
 
 export function uniqueLayoutName(base: string, layouts: SavedLayout[], ignoreId = ""): string {
@@ -415,35 +429,33 @@ export function parseProjectFile(raw: unknown, fallbackSource: string): SavedKey
   }
 
   const typedProject = project as Partial<SavedKeyboardProject>;
-  if (!typedProject.model?.kle) {
-    throw new Error("Project JSON is missing the KLE keyboard model.");
-  }
-
-  const model = buildKeyboardModelFromKle(typedProject.model.kle, {
-    id: typedProject.model.id,
-    name: typedProject.model.name,
-    author: typedProject.model.author,
-    source: typedProject.model.source || fallbackSource
-  });
+  const model = typedProject.model?.kle
+    ? buildKeyboardModelFromKle(typedProject.model.kle, {
+      id: typedProject.model.id,
+      name: typedProject.model.name,
+      author: typedProject.model.author,
+      source: typedProject.model.source || fallbackSource
+    })
+    : null;
   const sourceLayouts = Array.isArray(typedProject.layouts) ? typedProject.layouts : [];
-  const layouts = sourceLayouts.map((layout, index) => normalizeLoadedLayout(layout, model, index));
-  const safeLayouts = layouts.length > 0 ? layouts : [createLayout("Default Layout", createBlankKeymapDocument(model), model)];
+  const safeLayouts = model ? sourceLayouts.map((layout, index) => normalizeLoadedLayout(layout, model, index)) : [];
   const name = typeof typedProject.name === "string" && typedProject.name.trim()
     ? typedProject.name
-    : model.name;
+    : model?.name ?? "Keyboard Project";
   const updatedAt = typeof typedProject.updatedAt === "string" ? typedProject.updatedAt : new Date().toISOString();
   const activeLayoutId = typeof typedProject.activeLayoutId === "string" && safeLayouts.some((layout) => layout.id === typedProject.activeLayoutId)
     ? typedProject.activeLayoutId
-    : safeLayouts[0].id;
+    : safeLayouts[0]?.id ?? "";
+  const defaultDocument = safeLayouts[0]?.document ?? createEmptyKeymapDocument();
 
   return {
     id: typeof typedProject.id === "string" ? typedProject.id : newEntityId("keyboard-project"),
     name,
-    model: sanitizeKeyboardModel(model),
+    model: model ? sanitizeKeyboardModel(model) : null,
     defaultLayout: normalizeLoadedDefaultLayout(
       typedProject.defaultLayout,
       model,
-      safeLayouts[0].document,
+      defaultDocument,
       updatedAt
     ),
     layouts: safeLayouts,

@@ -195,15 +195,21 @@ code {
 }
 
 .project-actions button:hover:not(:disabled),
-.file-import:hover {
+.file-import:hover:not(.disabled) {
   background: var(--control-bg-hover);
   border-color: rgb(0 120 168 / 28%);
 }
 
-.project-actions button:disabled {
+.project-actions button:disabled,
+.file-import.disabled {
   background: #e8e1d5;
+  border-color: #ded5c6;
   color: #a59c8d;
   cursor: not-allowed;
+}
+
+.file-import.disabled {
+  pointer-events: none;
 }
 
 .file-import {
@@ -335,9 +341,11 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 18px;
   box-shadow: var(--shadow);
-  overflow-x: auto;
+  display: grid;
+  gap: 7px;
+  overflow-x: hidden;
   overflow-y: hidden;
-  padding: 12px 14px 16px;
+  padding: clamp(8px, 0.8vw, 12px) clamp(8px, 1vw, 14px) clamp(8px, 0.9vw, 12px);
   width: 100%;
 }
 
@@ -346,7 +354,7 @@ textarea {
   border-bottom: 1px solid var(--line);
   display: flex;
   gap: 3px;
-  margin: 0 -2px 12px;
+  margin: 0 -2px 1px;
   padding: 0 6px;
   position: sticky;
   top: 0;
@@ -409,8 +417,8 @@ textarea {
   display: flex;
   gap: 8px;
   justify-content: space-between;
-  margin: -4px 0 10px;
-  padding: 8px;
+  margin: 0 0 1px;
+  padding: 6px 8px;
 }
 
 .layer-toolbar label {
@@ -499,7 +507,8 @@ textarea {
 
 .button-row button:disabled,
 .generated button:disabled,
-.raw-input-row button:disabled {
+.raw-input-row button:disabled,
+.button-row .file-import.disabled {
   background: #e8e1d5;
   border-color: #ded5c6;
   color: #a59c8d;
@@ -591,9 +600,21 @@ textarea {
 }
 
 .keyboard-stage {
-  margin: 4px auto 0;
+  margin: 0;
   position: relative;
   transform-origin: top left;
+}
+
+.keyboard-stage-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1px 0 2px;
+  width: 100%;
+}
+
+.keyboard-stage-scaler {
+  margin: 0 auto;
+  position: relative;
 }
 
 .keycap {
@@ -885,7 +906,7 @@ textarea {
 }
 
 .page-actions button:hover:not(:disabled),
-.page-actions .file-import:hover {
+.page-actions .file-import:hover:not(.disabled) {
   background: var(--control-bg-hover);
   border-color: rgb(0 120 168 / 28%);
 }
@@ -1418,6 +1439,17 @@ button[data-icon]::before,
   display: grid;
   gap: 8px;
   padding: 10px;
+}
+
+.setup-state-card {
+  align-content: start;
+  grid-column: 1 / -1;
+  justify-items: start;
+  min-height: 220px;
+}
+
+.setup-state-card.inline {
+  min-height: 120px;
 }
 
 .section-header {

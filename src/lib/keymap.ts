@@ -52,6 +52,19 @@ export function selectedKeycode(layer: KeymapLayer, slot: string): string {
   return layer.keys[slot] ?? TRANSPARENT;
 }
 
+export function createEmptyKeymapDocument(layerName = "BASE"): KeymapDocument {
+  return {
+    version: 1,
+    layers: [{
+      name: layerName,
+      keys: {}
+    }],
+    dances: {},
+    extKeys: [],
+    layerColors: {}
+  };
+}
+
 export function createBlankKeymapDocument(model: KeyboardModel, layerName = "BASE"): KeymapDocument {
   return {
     version: 1,

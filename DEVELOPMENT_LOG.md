@@ -1,5 +1,75 @@
 # Development Log
 
+## 2026-06-21: qmk-viz starter projects and empty project shell
+
+Goal: replace hidden built-in default data with normal starter project JSON files, keep newly created projects empty until the user supplies a KLE model, and reduce keyboard viewer vertical padding while preserving side gutters.
+
+What worked:
+
+- Added `default-projects/` with three normal `qmk-viz-project` JSON starter files:
+  - ANSI 60%
+  - Corne 42-key Split
+  - Planck 4x12
+- Fresh browser storage now seeds from those project files through the same `parseProjectFile` path used for imported project backups.
+- `Create Project` still creates an empty project shell with `model: null`, zero layouts, and the `No KLE` setup state.
+- Existing browser-local projects remain authoritative; starter files are only fallback data when storage is empty or unusable.
+- Removed the implicit Ergodox fallback from the generic project lifecycle.
+- Keyboard model bounds now keep 100px left/right padding and only 10px top/bottom padding.
+- The rotated-key bounding-box calculation remains in place, so split/thumb clusters still get measured by transformed key corners rather than raw KLE coordinates.
+- Added disabled styling for label-based file import controls and sized empty-state cards explicitly.
+- Project deletion now allows deleting the final project. The deleted project is removed and the app opens a new empty project shell because the editor still needs an active workspace.
+- Final-project deletion records undo history before replacing the active workspace.
+
+What did not work:
+
+- Treating a built-in keyboard as fallback data made Ergodox special and leaked sample state into new projects.
+- A single `KeyboardModel.padding` value could not satisfy both requirements: wide left/right gutters and compact top/bottom space.
+- The existing `localhost` browser origin already had the user's Ergodox project in localStorage, so it correctly masked the starter-project fallback during validation.
+- `127.0.0.1:5176` failed because the existing Vite server was bound to `localhost`; a second dev server bound to `127.0.0.1:5177` was used for a clean-origin smoke test.
+- Blocking deletion of the final project conflicted with the empty-project model. A literal zero-project app state would require every page to handle no active project, so the pragmatic fix is deleting the requested project and opening a blank shell.
+
+Validation:
+
+- `just viz-build` passed.
+- In-app browser validation at `http://127.0.0.1:5177/` confirmed:
+  - fresh storage seeds `ANSI 60%`, `Corne 42-key Split`, and `Planck 4x12`
+  - ANSI 60% renders 61 keycaps and one `Default` layout
+  - Projects page shows each starter with one layout and one normalized initial version
+  - `Create Project` adds `Untitled Keyboard Project` with `No KLE`, zero layouts, zero versions, zero keys, and disabled KLE download
+  - deleting the final remaining project opens a new empty `Untitled Keyboard Project` shell instead of blocking deletion
+
+## 2026-06-21: qmk-viz KLE edit modal and responsive keyboard stage
+
+Goal: make KLE JSON editable through the same Save/Close modal as Project/Layout JSON, and make the editor keyboard stage automatically grow or shrink with available screen space while reducing wasted vertical padding.
+
+What worked:
+
+- Reused the existing JSON edit modal for KLE by adding `kle` as a `JsonEditKind`.
+- `Edit KLE JSON` now opens prefilled with the current serialized KLE model rather than a blank paste field.
+- KLE JSON edits validate live through `buildKeyboardModelFromKle`, including duplicate key identifier checks.
+- Saving edited KLE JSON goes through the existing keyboard-model update/reconcile path and keeps the project name unchanged.
+- Removed the old paste-only KLE modal state, validation path, submit handler, and UI.
+- Added a measured keyboard stage viewport in the editor.
+- The keyboard model still uses the same KLE-derived coordinates and unit; only the rendered stage is visually scaled.
+- The keyboard now scales up to fill wider editor panels, scales down on constrained screens, and keeps horizontal scrolling below the readable minimum.
+- Tightened top/bottom padding around layer tabs, the layer toolbar, and the keyboard viewport.
+
+What did not work:
+
+- A blank KLE paste modal was inconsistent with Project/Layout JSON editing and made it impossible to inspect the active KLE before editing.
+- Changing `KeyboardModel.unit` would have coupled responsive display behavior to KLE geometry and export semantics, so scaling had to stay in the presentation layer.
+- Letting the panel own horizontal overflow made the fixed-size stage feel disconnected from the editor surface; a dedicated stage viewport gives cleaner sizing behavior.
+
+Validation:
+
+- `just viz-build` passed.
+- In-app browser validation at `http://localhost:5174/` confirmed:
+  - the editor keyboard stage scaled to fill the available panel width
+  - key selection still targets the intended key after stage scaling
+  - the KLE edit modal opens prefilled with valid KLE JSON
+  - duplicate KLE key identifier `DUP` disables Save and shows the duplicate identifier error
+  - restoring valid KLE JSON re-enables Save
+
 ## 2026-06-21: qmk-viz JSON validation and KLE identifier checks
 
 Goal: prevent invalid Project/Layout/KLE JSON from being saved or applied, and reject KLE models that reuse the same key identifier.
