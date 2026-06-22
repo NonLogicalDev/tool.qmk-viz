@@ -10,9 +10,7 @@ The app is static-hostable and stores projects in `localStorage`. The intended f
 4. Edit the layout visually.
 5. Download either a single layout JSON or a full project JSON backup.
 
-The built-in starter project is `input_club/ergodox_infinity` and reads:
-
-- `../qmk/keyboards/input_club/ergodox_infinity/keymaps/monster/keyboard-layout.json`
+Starter projects live in `default-projects/` as full `qmk-viz-project` JSON files. A clean browser storage profile seeds from those files; creating a new project still starts with an empty project shell.
 
 ## KLE Model IDs
 
@@ -35,11 +33,11 @@ When a project KLE is updated later, layouts are preserved by these IDs. Matchin
 Run it from the repo root:
 
 ```bash
-just viz-dev
+just dev
 ```
 
 Build it from the repo root:
 
 ```bash
-just viz-build
+just build
 ```

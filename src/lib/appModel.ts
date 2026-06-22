@@ -12,7 +12,7 @@ import {
 import { cloneKleDocument } from "./kle";
 
 export const KEYBOARD_PROJECTS_STORAGE_KEY = "qmk-viz.keyboard-projects.v4";
-const starterProjectModules = import.meta.glob("../../../default-projects/*.json", {
+const starterProjectModules = import.meta.glob("../../default-projects/*.json", {
   eager: true,
   import: "default"
 }) as Record<string, unknown>;

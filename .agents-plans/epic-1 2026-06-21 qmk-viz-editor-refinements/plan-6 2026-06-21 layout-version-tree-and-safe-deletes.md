@@ -57,7 +57,7 @@ The scope expanded before pause:
 1. [x] Install `@xyflow/react`.
 2. [x] Add initial layout version types, clone helpers, normalize helpers, save-version action, and load-version action in `App.tsx`.
 3. [x] Add initial confirmation dialogs for project/layout deletion and attach `danger-button` classes.
-4. [x] Install the first split target as `qmk-viz/src/lib/appModel.ts`.
+4. [x] Install the first split target as `src/lib/appModel.ts`.
 5. [x] Finish the `App.tsx` split by importing from `src/lib/appModel.ts` and deleting duplicate local helper/type definitions.
 6. [x] Move QMK action/keycode constants and event-to-keycode helpers out of `App.tsx`.
 7. [x] Move `PreviewKeycap` and reusable keyboard key rendering helpers out of `App.tsx`.
@@ -90,8 +90,8 @@ The scope expanded before pause:
 - Undo is session-local and immediate; confirmation still matters for destructive project/layout removal because those actions remove larger containers.
 - Default layout should not be modeled as a tag, property, or selected version of a normal layout. It is a project-level read-only bootstrap document.
 - The current `App.tsx` size is now a real delivery risk. Further feature work should start by finishing the helper split, not by adding more JSX or state handlers to the same file.
-- The first extraction boundary is stable: project/layout/default-template model helpers now live in `qmk-viz/src/lib/appModel.ts`, and `App.tsx` imports them instead of duplicating that logic.
-- `qmk-viz/src/lib/qmkActions.ts`, `qmk-viz/src/components/PreviewKeycap.tsx`, and `qmk-viz/src/components/LayoutVersionTree.tsx` now own the second extraction boundary.
+- The first extraction boundary is stable: project/layout/default-template model helpers now live in `src/lib/appModel.ts`, and `App.tsx` imports them instead of duplicating that logic.
+- `src/lib/qmkActions.ts`, `src/components/PreviewKeycap.tsx`, and `src/components/LayoutVersionTree.tsx` now own the second extraction boundary.
 - The Projects page should render the keyboard model visually with marker IDs, not raw KLE JSON. Raw KLE remains available through the download action.
 - The Default template is copied by value into new layouts; it is not selected, tagged, or renamed from a normal layout.
 - Full project re-import should preserve the Default template timestamp as well as the template document, so the read-only Default metadata round-trips cleanly.

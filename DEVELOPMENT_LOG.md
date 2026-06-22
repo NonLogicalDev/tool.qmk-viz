@@ -1,5 +1,36 @@
 # Development Log
 
+## 2026-06-21: qmk-viz repository extraction
+
+Goal: split qmk-viz out of the parent keyboard repository into its own local repository while preserving qmk-viz history and moving qmk-viz agent plans with it.
+
+What worked:
+
+- Cloned the parent repository into the new local project path before any history rewrite.
+- Ran `git filter-repo` only inside the clone.
+- Filtered the new repo down to:
+  - qmk-viz app source rewritten to repository root
+  - `default-projects/`
+  - qmk-viz `.agents-plans/`
+  - `DEVELOPMENT_LOG.md`
+- Preserved qmk-viz history; `src/App.tsx` has 21 filtered commits.
+- Added a root `.gitignore` for `dist/`, `node_modules/`, and local noise.
+- Added a root `Justfile` with `dev`, `build`, and `preview`, plus compatibility aliases `viz-dev` and `viz-build`.
+- Updated the starter project import glob from the old parent-repo-relative path to the new root-relative path.
+- Rewrote qmk-viz plan/log file path references from the old `qmk-viz/src/...` shape to `src/...`.
+- Deleted the stale `src/models/ergodoxInfinity.ts` module because it imported KLE JSON from the old parent repo and is no longer used.
+
+What did not work:
+
+- `git-filter-repo` was not on PATH, so it had to be run through Nix.
+- The first standalone build failed because TypeScript still compiled the unused Ergodox module with an import that pointed outside the new repo.
+- `git-filter-repo` removed the clone's local `origin` remote, which is expected and safer than retaining a remote pointing back at the source repository.
+
+Validation:
+
+- `just build` passed from the new repo root.
+- Source repo status remained unchanged except for the pre-existing untracked `kle-library/`.
+
 ## 2026-06-21: qmk-viz starter projects and empty project shell
 
 Goal: replace hidden built-in default data with normal starter project JSON files, keep newly created projects empty until the user supplies a KLE model, and reduce keyboard viewer vertical padding while preserving side gutters.
@@ -510,10 +541,10 @@ Goal: finish the paused qmk-viz pass by making Layouts a read-only history/templ
 What worked:
 
 - Split the remaining non-UI helpers out of `App.tsx`:
-  - `qmk-viz/src/lib/appModel.ts` owns project/layout/default-template normalization, import/export, version creation, and KLE-model reconciliation.
-  - `qmk-viz/src/lib/qmkActions.ts` owns simple composer action metadata and key-capture conversion.
-  - `qmk-viz/src/components/PreviewKeycap.tsx` owns graphical key previews.
-  - `qmk-viz/src/components/LayoutVersionTree.tsx` owns the React Flow version tree.
+  - `src/lib/appModel.ts` owns project/layout/default-template normalization, import/export, version creation, and KLE-model reconciliation.
+  - `src/lib/qmkActions.ts` owns simple composer action metadata and key-capture conversion.
+  - `src/components/PreviewKeycap.tsx` owns graphical key previews.
+  - `src/components/LayoutVersionTree.tsx` owns the React Flow version tree.
 - Added a project-level read-only Default layout template:
   - New layouts copy from Default by value.
   - Saving the current layout as Default replaces only the project template.
@@ -571,18 +602,18 @@ What worked:
 What did not work:
 
 - Continuing to add features inside `App.tsx` is no longer sustainable. It has too much data-model, import/export, rendering, and page orchestration code in one file.
-- Implementation was paused mid-refactor. `qmk-viz/src/lib/appModel.ts` was created, but `App.tsx` has not yet been rewired to import it and delete duplicate local helpers.
+- Implementation was paused mid-refactor. `src/lib/appModel.ts` was created, but `App.tsx` has not yet been rewired to import it and delete duplicate local helpers.
 - The current uncommitted checkout should be assumed not build-clean until the split is finished and validated.
 
 Validation:
 
 - Not run after the mid-refactor pause.
 - Last clean checkpoint before this WIP: `d002e03 2026-06-21T09:30:00Z :: checkpoint :: qmk-viz layers stay in editor`.
-- Current WIP files include `qmk-viz/package.json`, `qmk-viz/package-lock.json`, `qmk-viz/src/App.tsx`, `qmk-viz/src/lib/appModel.ts`, and the active plan file.
+- Current WIP files include `package.json`, `package-lock.json`, `src/App.tsx`, `src/lib/appModel.ts`, and the active plan file.
 
 Follow-up stabilization:
 
-- Reconciled `qmk-viz/src/App.tsx` with `qmk-viz/src/lib/appModel.ts` so app-model helpers are no longer duplicated.
+- Reconciled `src/App.tsx` with `src/lib/appModel.ts` so app-model helpers are no longer duplicated.
 - `just viz-build` passed after the split reconciliation.
 - Extracted QMK action helpers, preview keycap rendering, and React Flow version tree rendering into separate modules.
 - Added the Layouts-page version tree card with `Save Version` and clickable saved-version nodes.
@@ -699,7 +730,7 @@ Validation:
 - `just build nonlogical-01` still passed after sanitizing the KLE model; firmware size remained `50072` bytes (`0xc398`).
 - Source KLE validation found 76 key labels, all with exactly one non-empty marker in the ID slot and no leftover visual legends.
 - Source KLE validation found no remaining `a` alignment properties after sanitizing the checked-in model.
-- Source scan found no remaining KLE-style `"a":` alignment fields in `qmk-viz/src` or the canonical Ergodox model.
+- Source scan found no remaining KLE-style `"a":` alignment fields in `src` or the canonical Ergodox model.
 - In-app browser validation after restarting Vite: project, project upload, KLE upload, layout selector, layout upload, KLE download, and full-project download controls are present.
 - In-app browser validation: fresh model export has 76 keyboard keys, `baseLT03 == KC_3`, no `baseL03`, and no old `L/R` or letter-derived key IDs.
 - In-app browser validation: creating a new layout adds it, enables undo, and undo removes it while preserving the `LT03` mapping and 76-key model.
@@ -711,7 +742,7 @@ Goal: keep the keyboard viewer as the primary surface, dynamically fit key ident
 
 What worked:
 
-- Installed `@chenglou/pretext` in `qmk-viz/` and used its `prepareWithSegments`, `measureNaturalWidth`, and `layout` APIs to measure labels before rendering them.
+- Installed `@chenglou/pretext` and used its `prepareWithSegments`, `measureNaturalWidth`, and `layout` APIs to measure labels before rendering them.
 - Added browser-measured dynamic key label fitting with a max font size and step-down behavior for both primary identifiers and bottom action-type labels.
 - Kept the keyboard viewer full width and increased the display unit to `60`, which makes the KLE-sourced geometry readable while still avoiding horizontal overflow at the 1440px in-app browser viewport.
 - Condensed the global header into a compact toolbar while preserving the model/layout selectors.
@@ -781,7 +812,7 @@ Goal: make `qmk-viz` usable as a visual TSV editor for the Ergodox Infinity layo
 
 What worked:
 
-- Started the Vite app with `npm run dev -- --host 127.0.0.1 --port 5178` from `qmk-viz/`.
+- Started the Vite app with `npm run dev -- --host 127.0.0.1 --port 5178`.
 - Reconnected the Codex in-app browser using the installed browser bundle at `~/.codex/plugins/cache/openai-bundled/browser/26.616.51431/`.
 - Loaded `http://127.0.0.1:5178/` in the in-app browser and verified the page title, DOM, screenshot, key count, and TSV output.
 - Verified browser-side selection flow: switch to `SYMB`, select `RT14`, and confirm the editor shows `KC_P7`.
@@ -817,8 +848,8 @@ Goal: stop approximating the Ergodox thumb clusters and place keys from `keyboar
 
 What did not work:
 
-- The previous `qmk-viz` renderer still made the thumb clusters look wrong because `qmk-viz/src/lib/kle.ts` ignored KLE `rx` and `ry` rotation-origin fields.
-- `qmk-viz/src/models/ergodoxInfinity.ts` compensated with a hand-written `thumbOverrides` table. That made the page usable, but it was not the exact JSON placement the keyboard model was supposed to express.
+- The previous `qmk-viz` renderer still made the thumb clusters look wrong because `src/lib/kle.ts` ignored KLE `rx` and `ry` rotation-origin fields.
+- `src/models/ergodoxInfinity.ts` compensated with a hand-written `thumbOverrides` table. That made the page usable, but it was not the exact JSON placement the keyboard model was supposed to express.
 - With exact KLE transform bounds at unit `46`, the keyboard produced a small horizontal overflow in the card. Dropping only the scale to unit `45` fixed the overflow without changing relative key placement.
 
 Changes made:
@@ -847,9 +878,9 @@ What did not work:
 
 Changes made:
 
-- Removed rotated-bound normalization from `qmk-viz/src/models/ergodoxInfinity.ts`.
+- Removed rotated-bound normalization from `src/models/ergodoxInfinity.ts`.
 - Kept the KLE parser's `x`, `y`, `w`, `h`, `r`, `rx`, and `ry` values as the source of truth for key placement.
-- Added a fixed `padding` field to the keyboard model and applied it only at render time in `qmk-viz/src/App.tsx`.
+- Added a fixed `padding` field to the keyboard model and applied it only at render time in `src/App.tsx`.
 - Set display scale to `unit: 42` so the raw JSON layout fits the desktop editor card without horizontal scrolling.
 
 Validation:
@@ -870,7 +901,7 @@ What did not work:
 
 Changes made:
 
-- In `qmk-viz/src/lib/kle.ts`, when a new `rx` starts a group and no `ry` is supplied, reset the row y cursor to the active `rotationY` before applying the row's `y` offset.
+- In `src/lib/kle.ts`, when a new `rx` starts a group and no `ry` is supplied, reset the row y cursor to the active `rotationY` before applying the row's `y` offset.
 - Kept placement otherwise raw: KLE `x`, `y`, `w`, `h`, `r`, `rx`, and `ry` still drive rendering.
 
 Validation:
