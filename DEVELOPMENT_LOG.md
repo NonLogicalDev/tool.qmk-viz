@@ -25,6 +25,7 @@ What worked:
 - Copy JSON now reports clipboard success or failure.
 - Export page buttons and Project KLE header button now use the same compact action styles and icons as the rest of the app.
 - Disabled file-import labels now stay visually disabled instead of being recolored by the later import action rule.
+- Screenshot validation exposed standalone icon buttons outside button rows, so `button[data-icon]` now has a generic compact control baseline.
 - Context chips, keycaps, color swatches, JSON output, and JSON validation messages now expose clearer accessibility labels or live-region behavior.
 - Section-header buttons now have normalized base, hover, disabled, and focus styling.
 
@@ -42,6 +43,10 @@ Validation:
 - `curl -s http://127.0.0.1:5181/` returned the Vite HTML app shell.
 - `git diff --check` passed.
 - `just build` passed after polish.
+- Screenshot capture produced:
+  - `/private/tmp/qmk-viz-editor-polish.png`
+  - `/private/tmp/qmk-viz-export-polish.png`
+  - `/private/tmp/qmk-viz-disabled-import-polish.png`
 
 ## 2026-06-21: qmk-viz repository extraction
 

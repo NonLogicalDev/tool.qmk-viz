@@ -946,9 +946,19 @@ textarea {
 button[data-icon],
 .file-import[data-icon] {
   align-items: center;
+  background: var(--control-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  color: var(--ink);
+  cursor: pointer;
   display: inline-flex;
+  font-size: var(--control-font-size);
+  font-weight: 850;
   gap: 5px;
   justify-content: center;
+  line-height: 1;
+  min-height: var(--control-height);
+  padding: var(--control-padding);
 }
 
 button[data-icon]::before,
