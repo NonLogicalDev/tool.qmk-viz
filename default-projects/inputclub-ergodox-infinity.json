@@ -1,0 +1,2417 @@
+{
+  "version": 1,
+  "kind": "qmk-viz-project",
+  "project": {
+    "id": "starter/input-club-ergodox-infinity",
+    "name": "Input Club Ergodox Infinity",
+    "model": {
+      "id": "starter/input-club-ergodox-infinity/model",
+      "name": "Input Club Ergodox Infinity",
+      "source": "default-projects/inputclub-ergodox-infinity.json",
+      "width": 19.833333333333332,
+      "height": 7.815384140902211,
+      "unit": 60,
+      "padding": 0.16666666666666666,
+      "paddingX": 0.16666666666666666,
+      "paddingY": 0.16666666666666666,
+      "kle": [
+        [
+          {
+            "x": 3.5
+          },
+          "LT03",
+          {
+            "x": 10.5
+          },
+          "RT03"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 2.5
+          },
+          "LT02",
+          {
+            "x": 1
+          },
+          "LT04",
+          {
+            "x": 8.5
+          },
+          "RT04",
+          {
+            "x": 1
+          },
+          "RT02"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 5.5
+          },
+          "LT05",
+          "LT06",
+          {
+            "x": 4.5
+          },
+          "RT06",
+          "RT05"
+        ],
+        [
+          {
+            "y": -0.875,
+            "w": 1.5
+          },
+          "LT00",
+          "LT01",
+          {
+            "x": 14.5
+          },
+          "RT01",
+          {
+            "w": 1.5
+          },
+          "RT00"
+        ],
+        [
+          {
+            "y": -0.375,
+            "x": 3.5
+          },
+          "LT13",
+          {
+            "x": 10.5
+          },
+          "RT13"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 2.5
+          },
+          "LT12",
+          {
+            "x": 1
+          },
+          "LT14",
+          {
+            "x": 8.5
+          },
+          "RT14",
+          {
+            "x": 1
+          },
+          "RT12"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 5.5
+          },
+          "LT15",
+          {
+            "h": 1.5
+          },
+          "LT16",
+          {
+            "x": 4.5,
+            "h": 1.5
+          },
+          "RT16",
+          "RT15"
+        ],
+        [
+          {
+            "y": -0.875,
+            "w": 1.5
+          },
+          "LT10",
+          "LT11",
+          {
+            "x": 14.5
+          },
+          "RT11",
+          {
+            "w": 1.5
+          },
+          "RT10"
+        ],
+        [
+          {
+            "y": -0.375,
+            "x": 3.5
+          },
+          "LT23",
+          {
+            "x": 10.5
+          },
+          "RT23"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 2.5
+          },
+          "LT22",
+          {
+            "x": 1
+          },
+          "LT24",
+          {
+            "x": 8.5
+          },
+          "RT24",
+          {
+            "x": 1
+          },
+          "RT22"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 5.5
+          },
+          "LT25",
+          {
+            "x": 6.5
+          },
+          "RT25"
+        ],
+        [
+          {
+            "y": -0.875,
+            "w": 1.5
+          },
+          "LT20",
+          "LT21",
+          {
+            "x": 14.5
+          },
+          "RT21",
+          {
+            "w": 1.5
+          },
+          "RT20"
+        ],
+        [
+          {
+            "y": -0.625,
+            "x": 6.5,
+            "h": 1.5
+          },
+          "LT36",
+          {
+            "x": 4.5,
+            "h": 1.5
+          },
+          "RT36"
+        ],
+        [
+          {
+            "y": -0.75,
+            "x": 3.5
+          },
+          "LT33",
+          {
+            "x": 10.5
+          },
+          "RT33"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 2.5
+          },
+          "LT32",
+          {
+            "x": 1
+          },
+          "LT34",
+          {
+            "x": 8.5
+          },
+          "RT34",
+          {
+            "x": 1
+          },
+          "RT32"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 5.5
+          },
+          "LT35",
+          {
+            "x": 6.5
+          },
+          "RT35"
+        ],
+        [
+          {
+            "y": -0.875,
+            "w": 1.5
+          },
+          "LT30",
+          "LT31",
+          {
+            "x": 14.5
+          },
+          "RT31",
+          {
+            "w": 1.5
+          },
+          "RT30"
+        ],
+        [
+          {
+            "y": -0.375,
+            "x": 3.5
+          },
+          "LT43",
+          {
+            "x": 10.5
+          },
+          "RT43"
+        ],
+        [
+          {
+            "y": -0.875,
+            "x": 2.5
+          },
+          "LT42",
+          {
+            "x": 1
+          },
+          "LT44",
+          {
+            "x": 8.5
+          },
+          "RT44",
+          {
+            "x": 1
+          },
+          "RT42"
+        ],
+        [
+          {
+            "y": -0.75,
+            "x": 0.5
+          },
+          "LT40",
+          "LT41",
+          {
+            "x": 14.5
+          },
+          "RT41",
+          "RT40"
+        ],
+        [
+          {
+            "r": 30,
+            "rx": 6.5,
+            "ry": 4.25,
+            "y": -1,
+            "x": 1
+          },
+          "LC01",
+          "LC02"
+        ],
+        [
+          {
+            "h": 2
+          },
+          "LC20",
+          {
+            "h": 2
+          },
+          "LC21",
+          "LC12"
+        ],
+        [
+          {
+            "x": 2
+          },
+          "LC22"
+        ],
+        [
+          {
+            "r": -30,
+            "rx": 13,
+            "y": -1,
+            "x": -3
+          },
+          "RC02",
+          "RC01"
+        ],
+        [
+          {
+            "x": -3
+          },
+          "RC12",
+          {
+            "h": 2
+          },
+          "RC21",
+          {
+            "h": 2
+          },
+          "RC20"
+        ],
+        [
+          {
+            "x": -3
+          },
+          "RC22"
+        ]
+      ],
+      "keys": [
+        {
+          "slot": "LT03",
+          "kleIndex": 0,
+          "legend": "LT03",
+          "x": 3.5,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT03",
+          "kleIndex": 1,
+          "legend": "RT03",
+          "x": 15,
+          "y": 0,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT02",
+          "kleIndex": 2,
+          "legend": "LT02",
+          "x": 2.5,
+          "y": 0.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT04",
+          "kleIndex": 3,
+          "legend": "LT04",
+          "x": 4.5,
+          "y": 0.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT04",
+          "kleIndex": 4,
+          "legend": "RT04",
+          "x": 14,
+          "y": 0.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT02",
+          "kleIndex": 5,
+          "legend": "RT02",
+          "x": 16,
+          "y": 0.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT05",
+          "kleIndex": 6,
+          "legend": "LT05",
+          "x": 5.5,
+          "y": 0.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT06",
+          "kleIndex": 7,
+          "legend": "LT06",
+          "x": 6.5,
+          "y": 0.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT06",
+          "kleIndex": 8,
+          "legend": "RT06",
+          "x": 12,
+          "y": 0.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT05",
+          "kleIndex": 9,
+          "legend": "RT05",
+          "x": 13,
+          "y": 0.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT00",
+          "kleIndex": 10,
+          "legend": "LT00",
+          "x": 0,
+          "y": 0.375,
+          "width": 1.5,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT01",
+          "kleIndex": 11,
+          "legend": "LT01",
+          "x": 1.5,
+          "y": 0.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT01",
+          "kleIndex": 12,
+          "legend": "RT01",
+          "x": 17,
+          "y": 0.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT00",
+          "kleIndex": 13,
+          "legend": "RT00",
+          "x": 18,
+          "y": 0.375,
+          "width": 1.5,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT13",
+          "kleIndex": 14,
+          "legend": "LT13",
+          "x": 3.5,
+          "y": 1,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT13",
+          "kleIndex": 15,
+          "legend": "RT13",
+          "x": 15,
+          "y": 1,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT12",
+          "kleIndex": 16,
+          "legend": "LT12",
+          "x": 2.5,
+          "y": 1.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT14",
+          "kleIndex": 17,
+          "legend": "LT14",
+          "x": 4.5,
+          "y": 1.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT14",
+          "kleIndex": 18,
+          "legend": "RT14",
+          "x": 14,
+          "y": 1.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT12",
+          "kleIndex": 19,
+          "legend": "RT12",
+          "x": 16,
+          "y": 1.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT15",
+          "kleIndex": 20,
+          "legend": "LT15",
+          "x": 5.5,
+          "y": 1.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT16",
+          "kleIndex": 21,
+          "legend": "LT16",
+          "x": 6.5,
+          "y": 1.25,
+          "width": 1,
+          "height": 1.5,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT16",
+          "kleIndex": 22,
+          "legend": "RT16",
+          "x": 12,
+          "y": 1.25,
+          "width": 1,
+          "height": 1.5,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT15",
+          "kleIndex": 23,
+          "legend": "RT15",
+          "x": 13,
+          "y": 1.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT10",
+          "kleIndex": 24,
+          "legend": "LT10",
+          "x": 0,
+          "y": 1.375,
+          "width": 1.5,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT11",
+          "kleIndex": 25,
+          "legend": "LT11",
+          "x": 1.5,
+          "y": 1.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT11",
+          "kleIndex": 26,
+          "legend": "RT11",
+          "x": 17,
+          "y": 1.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT10",
+          "kleIndex": 27,
+          "legend": "RT10",
+          "x": 18,
+          "y": 1.375,
+          "width": 1.5,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT23",
+          "kleIndex": 28,
+          "legend": "LT23",
+          "x": 3.5,
+          "y": 2,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT23",
+          "kleIndex": 29,
+          "legend": "RT23",
+          "x": 15,
+          "y": 2,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT22",
+          "kleIndex": 30,
+          "legend": "LT22",
+          "x": 2.5,
+          "y": 2.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT24",
+          "kleIndex": 31,
+          "legend": "LT24",
+          "x": 4.5,
+          "y": 2.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT24",
+          "kleIndex": 32,
+          "legend": "RT24",
+          "x": 14,
+          "y": 2.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT22",
+          "kleIndex": 33,
+          "legend": "RT22",
+          "x": 16,
+          "y": 2.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT25",
+          "kleIndex": 34,
+          "legend": "LT25",
+          "x": 5.5,
+          "y": 2.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT25",
+          "kleIndex": 35,
+          "legend": "RT25",
+          "x": 13,
+          "y": 2.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT20",
+          "kleIndex": 36,
+          "legend": "LT20",
+          "x": 0,
+          "y": 2.375,
+          "width": 1.5,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT21",
+          "kleIndex": 37,
+          "legend": "LT21",
+          "x": 1.5,
+          "y": 2.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT21",
+          "kleIndex": 38,
+          "legend": "RT21",
+          "x": 17,
+          "y": 2.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT20",
+          "kleIndex": 39,
+          "legend": "RT20",
+          "x": 18,
+          "y": 2.375,
+          "width": 1.5,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT36",
+          "kleIndex": 40,
+          "legend": "LT36",
+          "x": 6.5,
+          "y": 2.75,
+          "width": 1,
+          "height": 1.5,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT36",
+          "kleIndex": 41,
+          "legend": "RT36",
+          "x": 12,
+          "y": 2.75,
+          "width": 1,
+          "height": 1.5,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT33",
+          "kleIndex": 42,
+          "legend": "LT33",
+          "x": 3.5,
+          "y": 3,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT33",
+          "kleIndex": 43,
+          "legend": "RT33",
+          "x": 15,
+          "y": 3,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT32",
+          "kleIndex": 44,
+          "legend": "LT32",
+          "x": 2.5,
+          "y": 3.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT34",
+          "kleIndex": 45,
+          "legend": "LT34",
+          "x": 4.5,
+          "y": 3.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT34",
+          "kleIndex": 46,
+          "legend": "RT34",
+          "x": 14,
+          "y": 3.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT32",
+          "kleIndex": 47,
+          "legend": "RT32",
+          "x": 16,
+          "y": 3.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT35",
+          "kleIndex": 48,
+          "legend": "LT35",
+          "x": 5.5,
+          "y": 3.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT35",
+          "kleIndex": 49,
+          "legend": "RT35",
+          "x": 13,
+          "y": 3.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT30",
+          "kleIndex": 50,
+          "legend": "LT30",
+          "x": 0,
+          "y": 3.375,
+          "width": 1.5,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT31",
+          "kleIndex": 51,
+          "legend": "LT31",
+          "x": 1.5,
+          "y": 3.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT31",
+          "kleIndex": 52,
+          "legend": "RT31",
+          "x": 17,
+          "y": 3.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT30",
+          "kleIndex": 53,
+          "legend": "RT30",
+          "x": 18,
+          "y": 3.375,
+          "width": 1.5,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT43",
+          "kleIndex": 54,
+          "legend": "LT43",
+          "x": 3.5,
+          "y": 4,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT43",
+          "kleIndex": 55,
+          "legend": "RT43",
+          "x": 15,
+          "y": 4,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT42",
+          "kleIndex": 56,
+          "legend": "LT42",
+          "x": 2.5,
+          "y": 4.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT44",
+          "kleIndex": 57,
+          "legend": "LT44",
+          "x": 4.5,
+          "y": 4.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT44",
+          "kleIndex": 58,
+          "legend": "RT44",
+          "x": 14,
+          "y": 4.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT42",
+          "kleIndex": 59,
+          "legend": "RT42",
+          "x": 16,
+          "y": 4.125,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT40",
+          "kleIndex": 60,
+          "legend": "LT40",
+          "x": 0.5,
+          "y": 4.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LT41",
+          "kleIndex": 61,
+          "legend": "LT41",
+          "x": 1.5,
+          "y": 4.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT41",
+          "kleIndex": 62,
+          "legend": "RT41",
+          "x": 17,
+          "y": 4.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "RT40",
+          "kleIndex": 63,
+          "legend": "RT40",
+          "x": 18,
+          "y": 4.375,
+          "width": 1,
+          "height": 1,
+          "rotation": 0,
+          "rotationX": 0,
+          "rotationY": 0
+        },
+        {
+          "slot": "LC01",
+          "kleIndex": 64,
+          "legend": "LC01",
+          "x": 7.5,
+          "y": 3.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 30,
+          "rotationX": 6.5,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "LC02",
+          "kleIndex": 65,
+          "legend": "LC02",
+          "x": 8.5,
+          "y": 3.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 30,
+          "rotationX": 6.5,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "LC20",
+          "kleIndex": 66,
+          "legend": "LC20",
+          "x": 6.5,
+          "y": 4.25,
+          "width": 1,
+          "height": 2,
+          "rotation": 30,
+          "rotationX": 6.5,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "LC21",
+          "kleIndex": 67,
+          "legend": "LC21",
+          "x": 7.5,
+          "y": 4.25,
+          "width": 1,
+          "height": 2,
+          "rotation": 30,
+          "rotationX": 6.5,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "LC12",
+          "kleIndex": 68,
+          "legend": "LC12",
+          "x": 8.5,
+          "y": 4.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 30,
+          "rotationX": 6.5,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "LC22",
+          "kleIndex": 69,
+          "legend": "LC22",
+          "x": 8.5,
+          "y": 5.25,
+          "width": 1,
+          "height": 1,
+          "rotation": 30,
+          "rotationX": 6.5,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "RC02",
+          "kleIndex": 70,
+          "legend": "RC02",
+          "x": 10,
+          "y": 3.25,
+          "width": 1,
+          "height": 1,
+          "rotation": -30,
+          "rotationX": 13,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "RC01",
+          "kleIndex": 71,
+          "legend": "RC01",
+          "x": 11,
+          "y": 3.25,
+          "width": 1,
+          "height": 1,
+          "rotation": -30,
+          "rotationX": 13,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "RC12",
+          "kleIndex": 72,
+          "legend": "RC12",
+          "x": 10,
+          "y": 4.25,
+          "width": 1,
+          "height": 1,
+          "rotation": -30,
+          "rotationX": 13,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "RC21",
+          "kleIndex": 73,
+          "legend": "RC21",
+          "x": 11,
+          "y": 4.25,
+          "width": 1,
+          "height": 2,
+          "rotation": -30,
+          "rotationX": 13,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "RC20",
+          "kleIndex": 74,
+          "legend": "RC20",
+          "x": 12,
+          "y": 4.25,
+          "width": 1,
+          "height": 2,
+          "rotation": -30,
+          "rotationX": 13,
+          "rotationY": 4.25
+        },
+        {
+          "slot": "RC22",
+          "kleIndex": 75,
+          "legend": "RC22",
+          "x": 10,
+          "y": 5.25,
+          "width": 1,
+          "height": 1,
+          "rotation": -30,
+          "rotationX": 13,
+          "rotationY": 4.25
+        }
+      ],
+      "author": "qmk-viz starter"
+    },
+    "keymapTemplate": "#include QMK_KEYBOARD_H\n\n/*\n * Generated by qmk-viz.\n * Project: {{ ctx.keyboardProject.name }}\n * Keyboard: {{ ctx.keyboard.name }}\n * Layout: {{ ctx.layout.name }}\n */\n\nenum layer_names {\n{% for layer in ctx.layout.layers %}\n    {{ layer.name }},\n{% endfor %}\n};\n\n#ifdef ST7565_ENABLE\n#    include \"lcd_setup.h\"\n#endif\n\nenum custom_keycodes {\n    NL_MS_L5 = SAFE_RANGE,\n    NL_MS_R5,\n    NL_MS_U5,\n    NL_MS_D5,\n{% for key in ctx.layout.extKeys %}\n{% if key.kind == \"macro\" %}\n    {{ key.name }},\n{% endif %}\n{% endfor %}\n    QMK_VIZ_SAFE_RANGE,\n};\n\n{% for key in ctx.layout.extKeys %}\n{% if key.kind != \"macro\" %}\n#define {{ key.name }} {{ key.value }}\n{% endif %}\n{% endfor %}\n\n// Macros\n{% macro K(layer, slot) %}{{ layer.keys[slot] or \"KC_TRNS\" }}{% endmacro %}\n\ntap_dance_action_t tap_dance_actions[] = {\n{% for name, dance in ctx.layout.dances %}\n    /* Basic tap/double-tap fallback; advanced hold dances need generated handlers. */\n    [{{ loop.index0 }}] = ACTION_TAP_DANCE_DOUBLE({{ dance.tap or \"KC_NO\" }}, {{ dance.doubleTap or dance.tap or \"KC_NO\" }}),\n{% else %}\n    [0] = ACTION_TAP_DANCE_DOUBLE(KC_NO, KC_NO),\n{% endfor %}\n};\n\nconst uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {\n{% for layer in ctx.layout.layers %}\n    [{{ layer.name }}] = LAYOUT_ergodox(\n        // left hand\n        {{ K(layer, \"LT00\") }}, {{ K(layer, \"LT01\") }}, {{ K(layer, \"LT02\") }}, {{ K(layer, \"LT03\") }}, {{ K(layer, \"LT04\") }}, {{ K(layer, \"LT05\") }}, {{ K(layer, \"LT06\") }},\n        {{ K(layer, \"LT10\") }}, {{ K(layer, \"LT11\") }}, {{ K(layer, \"LT12\") }}, {{ K(layer, \"LT13\") }}, {{ K(layer, \"LT14\") }}, {{ K(layer, \"LT15\") }}, {{ K(layer, \"LT16\") }},\n        {{ K(layer, \"LT20\") }}, {{ K(layer, \"LT21\") }}, {{ K(layer, \"LT22\") }}, {{ K(layer, \"LT23\") }}, {{ K(layer, \"LT24\") }}, {{ K(layer, \"LT25\") }},\n        {{ K(layer, \"LT30\") }}, {{ K(layer, \"LT31\") }}, {{ K(layer, \"LT32\") }}, {{ K(layer, \"LT33\") }}, {{ K(layer, \"LT34\") }}, {{ K(layer, \"LT35\") }}, {{ K(layer, \"LT36\") }},\n        {{ K(layer, \"LT40\") }}, {{ K(layer, \"LT41\") }}, {{ K(layer, \"LT42\") }}, {{ K(layer, \"LT43\") }}, {{ K(layer, \"LT44\") }},\n        \n        // left thumb cluster\n        {{ K(layer, \"LC01\") }}, {{ K(layer, \"LC02\") }},\n        {{ K(layer, \"LC12\") }},\n        {{ K(layer, \"LC20\") }}, {{ K(layer, \"LC21\") }}, {{ K(layer, \"LC22\") }},\n\n        // right hand\n        {{ K(layer, \"RT06\") }}, {{ K(layer, \"RT05\") }}, {{ K(layer, \"RT04\") }}, {{ K(layer, \"RT03\") }}, {{ K(layer, \"RT02\") }}, {{ K(layer, \"RT01\") }}, {{ K(layer, \"RT00\") }},\n        {{ K(layer, \"RT16\") }}, {{ K(layer, \"RT15\") }}, {{ K(layer, \"RT14\") }}, {{ K(layer, \"RT13\") }}, {{ K(layer, \"RT12\") }}, {{ K(layer, \"RT11\") }}, {{ K(layer, \"RT10\") }},\n        {{ K(layer, \"RT25\") }}, {{ K(layer, \"RT24\") }}, {{ K(layer, \"RT23\") }}, {{ K(layer, \"RT22\") }}, {{ K(layer, \"RT21\") }}, {{ K(layer, \"RT20\") }},\n        {{ K(layer, \"RT36\") }}, {{ K(layer, \"RT35\") }}, {{ K(layer, \"RT34\") }}, {{ K(layer, \"RT33\") }}, {{ K(layer, \"RT32\") }}, {{ K(layer, \"RT31\") }}, {{ K(layer, \"RT30\") }},\n        {{ K(layer, \"RT44\") }}, {{ K(layer, \"RT43\") }}, {{ K(layer, \"RT42\") }}, {{ K(layer, \"RT41\") }}, {{ K(layer, \"RT40\") }},\n        \n        // right thumb cluster\n        {{ K(layer, \"RC02\") }}, {{ K(layer, \"RC01\") }},\n        {{ K(layer, \"RC12\") }},\n        {{ K(layer, \"RC22\") }}, {{ K(layer, \"RC21\") }}, {{ K(layer, \"RC20\") }}\n    ){% if not loop.last %},{% endif %}\n{% endfor %}\n};\n\nstatic void tap_code_times(uint16_t keycode, uint8_t times) {\n    for (uint8_t i = 0; i < times; ++i) {\n        tap_code16(keycode);\n    }\n}\n\nbool process_record_user(uint16_t keycode, keyrecord_t *record) {\n    if (!record->event.pressed) {\n        return true;\n    }\n\n    switch (keycode) {\n        case NL_MS_L5: tap_code_times(MS_LEFT, 5); return false;\n        case NL_MS_R5: tap_code_times(MS_RGHT, 5); return false;\n        case NL_MS_U5: tap_code_times(MS_UP, 5); return false;\n        case NL_MS_D5: tap_code_times(MS_DOWN, 5); return false;\n{% for key in ctx.layout.extKeys %}\n{% if key.kind == \"macro\" %}\n        case {{ key.name }}:\n            {{ key.value }};\n            return false;\n{% endif %}\n{% endfor %}\n    }\n\n    return true;\n}",
+    "defaultLayout": {
+      "document": {
+        "version": 1,
+        "layers": [
+          {
+            "name": "BASE",
+            "keys": {
+              "LT03": "KC_3",
+              "RT03": "KC_8",
+              "LT02": "KC_4",
+              "LT04": "KC_2",
+              "RT04": "KC_7",
+              "RT02": "KC_9",
+              "LT05": "KC_1",
+              "LT06": "KC_GRV",
+              "RT06": "KC_RBRC",
+              "RT05": "KC_6",
+              "LT00": "KC_LBRC",
+              "LT01": "KC_5",
+              "RT01": "KC_0",
+              "RT00": "KC_BSLS",
+              "LT13": "KC_E",
+              "RT13": "KC_I",
+              "LT12": "KC_W",
+              "LT14": "KC_R",
+              "RT14": "KC_U",
+              "RT12": "KC_O",
+              "LT15": "KC_T",
+              "LT16": "KC_ENT",
+              "RT16": "KC_ENT",
+              "RT15": "KC_Y",
+              "LT10": "KC_TAB",
+              "LT11": "KC_Q",
+              "RT11": "KC_P",
+              "RT10": "KC_MINS",
+              "LT23": "KC_D",
+              "RT23": "KC_K",
+              "LT22": "KC_S",
+              "LT24": "KC_F",
+              "RT24": "KC_J",
+              "RT22": "KC_L",
+              "LT25": "KC_G",
+              "RT25": "KC_H",
+              "LT20": "KC_ESC",
+              "LT21": "KC_A",
+              "RT21": "KC_SCLN",
+              "RT20": "KC_QUOT",
+              "LT36": "MO(SYMB)",
+              "RT36": "KC_NO",
+              "LT33": "KC_C",
+              "RT33": "KC_COMM",
+              "LT32": "KC_X",
+              "LT34": "KC_V",
+              "RT34": "KC_M",
+              "RT32": "KC_DOT",
+              "LT35": "KC_B",
+              "RT35": "KC_N",
+              "LT30": "KC_LSFT",
+              "LT31": "KC_Z",
+              "RT31": "KC_SLSH",
+              "RT30": "KC_RSFT",
+              "LT43": "KC_END",
+              "RT43": "KC_LEFT",
+              "LT42": "KC_PGUP",
+              "LT44": "KC_LGUI",
+              "RT44": "MO(SYMB)",
+              "RT42": "KC_DOWN",
+              "LT40": "KC_HOME",
+              "LT41": "KC_PGDN",
+              "RT41": "KC_UP",
+              "RT40": "KC_RGHT",
+              "LC01": "KC_LGUI",
+              "LC02": "MO(MDIA)",
+              "LC20": "KC_BSPC",
+              "LC21": "KC_LCTL",
+              "LC12": "KC_LSFT",
+              "LC22": "KC_LALT",
+              "RC02": "KC_RGUI",
+              "RC01": "KC_INS",
+              "RC12": "KC_RSFT",
+              "RC21": "KC_RCTL",
+              "RC20": "KC_SPC",
+              "RC22": "KC_RALT"
+            }
+          },
+          {
+            "name": "SYMB",
+            "keys": {
+              "LT03": "KC_F3",
+              "RT03": "KC_F8",
+              "LT02": "KC_F2",
+              "LT04": "KC_F4",
+              "RT04": "KC_F7",
+              "RT02": "KC_F9",
+              "LT05": "KC_F5",
+              "LT06": "KC_F11",
+              "RT06": "KC_F12",
+              "RT05": "KC_F6",
+              "LT00": "KC_TRNS",
+              "LT01": "KC_F1",
+              "RT01": "KC_F10",
+              "RT00": "KC_NUM",
+              "LT13": "KK_LPRN",
+              "RT13": "KC_P8",
+              "LT12": "KC_TRNS",
+              "LT14": "KK_RPRN",
+              "RT14": "KC_P7",
+              "RT12": "KC_P9",
+              "LT15": "KK_DQOT",
+              "LT16": "KC_TRNS",
+              "RT16": "KC_TRNS",
+              "RT15": "KC_TRNS",
+              "LT10": "KC_TRNS",
+              "LT11": "KC_TRNS",
+              "RT11": "KC_TRNS",
+              "RT10": "KC_TRNS",
+              "LT23": "KC_LBRC",
+              "RT23": "KC_TRNS",
+              "LT22": "KC_TRNS",
+              "LT24": "KC_RBRC",
+              "RT24": "KC_TRNS",
+              "RT22": "KC_TRNS",
+              "LT25": "KC_QUOT",
+              "RT25": "KC_TRNS",
+              "LT20": "KC_TRNS",
+              "LT21": "KC_TRNS",
+              "RT21": "KC_TRNS",
+              "RT20": "KC_TRNS",
+              "LT36": "KC_TRNS",
+              "RT36": "KC_TRNS",
+              "LT33": "KK_LCBR",
+              "RT33": "KC_P2",
+              "LT32": "KC_TRNS",
+              "LT34": "KK_RCBR",
+              "RT34": "KC_P1",
+              "RT32": "KC_P3",
+              "LT35": "KC_GRV",
+              "RT35": "KC_TRNS",
+              "LT30": "KC_TRNS",
+              "LT31": "KC_TRNS",
+              "RT31": "KC_TRNS",
+              "RT30": "KC_TRNS",
+              "LT43": "KC_TRNS",
+              "RT43": "KC_P0",
+              "LT42": "KC_TRNS",
+              "LT44": "KC_TRNS",
+              "RT44": "KC_TRNS",
+              "RT42": "KC_PDOT",
+              "LT40": "KC_TRNS",
+              "LT41": "KC_TRNS",
+              "RT41": "KC_TRNS",
+              "RT40": "KC_TRNS",
+              "LC01": "KC_TRNS",
+              "LC02": "KC_TRNS",
+              "LC20": "KC_TRNS",
+              "LC21": "KC_TRNS",
+              "LC12": "KC_TRNS",
+              "LC22": "KC_TRNS",
+              "RC02": "KC_TRNS",
+              "RC01": "KC_TRNS",
+              "RC12": "KC_TRNS",
+              "RC21": "KC_TRNS",
+              "RC20": "KC_TRNS",
+              "RC22": "KC_TRNS"
+            }
+          },
+          {
+            "name": "MDIA",
+            "keys": {
+              "LT03": "KC_TRNS",
+              "RT03": "KC_TRNS",
+              "LT02": "KC_TRNS",
+              "LT04": "KC_TRNS",
+              "RT04": "KC_TRNS",
+              "RT02": "KC_TRNS",
+              "LT05": "KC_TRNS",
+              "LT06": "QK_BOOT",
+              "RT06": "QK_BOOT",
+              "RT05": "KC_TRNS",
+              "LT00": "KC_TRNS",
+              "LT01": "KC_TRNS",
+              "RT01": "KC_TRNS",
+              "RT00": "KC_TRNS",
+              "LT13": "MS_BTN1",
+              "RT13": "KC_TRNS",
+              "LT12": "MS_BTN2",
+              "LT14": "KC_TRNS",
+              "RT14": "KC_TRNS",
+              "RT12": "KC_TRNS",
+              "LT15": "KC_TRNS",
+              "LT16": "KC_TRNS",
+              "RT16": "KC_TRNS",
+              "RT15": "KC_VOLU",
+              "LT10": "KC_TRNS",
+              "LT11": "KC_TRNS",
+              "RT11": "KC_TRNS",
+              "RT10": "KC_TRNS",
+              "LT23": "MS_UP",
+              "RT23": "KC_TRNS",
+              "LT22": "MS_DOWN",
+              "LT24": "MS_RGHT",
+              "RT24": "KC_TRNS",
+              "RT22": "KC_TRNS",
+              "LT25": "KC_TRNS",
+              "RT25": "KC_TRNS",
+              "LT20": "KC_TRNS",
+              "LT21": "MS_LEFT",
+              "RT21": "KC_TRNS",
+              "RT20": "KC_TRNS",
+              "LT36": "KC_TRNS",
+              "RT36": "KC_TRNS",
+              "LT33": "NL_MS_U5",
+              "RT33": "KC_TRNS",
+              "LT32": "NL_MS_D5",
+              "LT34": "NL_MS_R5",
+              "RT34": "KC_TRNS",
+              "RT32": "KC_TRNS",
+              "LT35": "KC_TRNS",
+              "RT35": "KC_MUTE",
+              "LT30": "KC_TRNS",
+              "LT31": "NL_MS_L5",
+              "RT31": "KC_TRNS",
+              "RT30": "KC_TRNS",
+              "LT43": "KC_TRNS",
+              "RT43": "KC_TRNS",
+              "LT42": "KC_TRNS",
+              "LT44": "KC_TRNS",
+              "RT44": "KC_TRNS",
+              "RT42": "KC_TRNS",
+              "LT40": "KC_TRNS",
+              "LT41": "KC_TRNS",
+              "RT41": "KC_TRNS",
+              "RT40": "KC_TRNS",
+              "LC01": "KC_TRNS",
+              "LC02": "KC_TRNS",
+              "LC20": "KC_DEL",
+              "LC21": "KC_TRNS",
+              "LC12": "KC_CAPS",
+              "LC22": "KC_TRNS",
+              "RC02": "KC_TRNS",
+              "RC01": "KC_TRNS",
+              "RC12": "KC_CAPS",
+              "RC21": "KC_TRNS",
+              "RC20": "KC_DEL",
+              "RC22": "KC_TRNS"
+            }
+          }
+        ],
+        "dances": {},
+        "extKeys": [],
+        "layerColors": {}
+      },
+      "updatedAt": "2026-06-22T00:00:00.000Z"
+    },
+    "layouts": [
+      {
+        "id": "starter/input-club-ergodox-infinity/layout/monster",
+        "name": "Monster",
+        "document": {
+          "version": 1,
+          "layers": [
+            {
+              "name": "BASE",
+              "keys": {
+                "LT03": "KC_3",
+                "RT03": "KC_8",
+                "LT02": "KC_4",
+                "LT04": "KC_2",
+                "RT04": "KC_7",
+                "RT02": "KC_9",
+                "LT05": "KC_1",
+                "LT06": "KC_GRV",
+                "RT06": "KC_RBRC",
+                "RT05": "KC_6",
+                "LT00": "KC_LBRC",
+                "LT01": "KC_5",
+                "RT01": "KC_0",
+                "RT00": "KC_MINS",
+                "LT13": "KC_E",
+                "RT13": "KC_I",
+                "LT12": "KC_W",
+                "LT14": "KC_R",
+                "RT14": "KC_U",
+                "RT12": "KC_O",
+                "LT15": "KC_T",
+                "LT16": "KC_ENT",
+                "RT16": "KC_ENT",
+                "RT15": "KC_Y",
+                "LT10": "KC_TAB",
+                "LT11": "KC_Q",
+                "RT11": "KC_P",
+                "RT10": "KC_BSLS",
+                "LT23": "KC_D",
+                "RT23": "KC_K",
+                "LT22": "KC_S",
+                "LT24": "KC_F",
+                "RT24": "KC_J",
+                "RT22": "KC_L",
+                "LT25": "KC_G",
+                "RT25": "KC_H",
+                "LT20": "KC_ESC",
+                "LT21": "KC_A",
+                "RT21": "KC_SCLN",
+                "RT20": "KC_QUOT",
+                "LT36": "MO(SYMB)",
+                "RT36": "KC_NO",
+                "LT33": "KC_C",
+                "RT33": "KC_COMM",
+                "LT32": "KC_X",
+                "LT34": "KC_V",
+                "RT34": "KC_M",
+                "RT32": "KC_DOT",
+                "LT35": "KC_B",
+                "RT35": "KC_N",
+                "LT30": "KC_LSFT",
+                "LT31": "KC_Z",
+                "RT31": "KC_SLSH",
+                "RT30": "KC_RSFT",
+                "LT43": "KC_END",
+                "RT43": "KC_LEFT",
+                "LT42": "KC_PGUP",
+                "LT44": "KC_LGUI",
+                "RT44": "MO(SYMB)",
+                "RT42": "KC_DOWN",
+                "LT40": "KC_HOME",
+                "LT41": "KC_PGDN",
+                "RT41": "KC_UP",
+                "RT40": "KC_RGHT",
+                "LC01": "KC_LGUI",
+                "LC02": "MO(MDIA)",
+                "LC20": "KC_BSPC",
+                "LC21": "KC_LCTL",
+                "LC12": "KC_LSFT",
+                "LC22": "KC_LALT",
+                "RC02": "KC_RGUI",
+                "RC01": "KC_INS",
+                "RC12": "KC_RSFT",
+                "RC21": "KC_RCTL",
+                "RC20": "KC_SPC",
+                "RC22": "KC_RALT"
+              }
+            },
+            {
+              "name": "SYMB",
+              "keys": {
+                "LT03": "KC_F3",
+                "RT03": "KC_F8",
+                "LT02": "KC_F2",
+                "LT04": "KC_F4",
+                "RT04": "KC_F7",
+                "RT02": "KC_F9",
+                "LT05": "KC_F5",
+                "LT06": "KC_F11",
+                "RT06": "KC_F12",
+                "RT05": "KC_F6",
+                "LT00": "KC_TRNS",
+                "LT01": "KC_F1",
+                "RT01": "KC_F10",
+                "RT00": "KC_NUM",
+                "LT13": "KK_LPRN",
+                "RT13": "KC_P8",
+                "LT12": "KC_TRNS",
+                "LT14": "KK_RPRN",
+                "RT14": "KC_P7",
+                "RT12": "KC_P9",
+                "LT15": "KK_DQOT",
+                "LT16": "KC_TRNS",
+                "RT16": "KC_TRNS",
+                "RT15": "KC_TRNS",
+                "LT10": "KC_TRNS",
+                "LT11": "KC_TRNS",
+                "RT11": "KC_TRNS",
+                "RT10": "KC_TRNS",
+                "LT23": "KC_LBRC",
+                "RT23": "KC_TRNS",
+                "LT22": "KC_TRNS",
+                "LT24": "KC_RBRC",
+                "RT24": "KC_TRNS",
+                "RT22": "KC_TRNS",
+                "LT25": "KC_QUOT",
+                "RT25": "KC_TRNS",
+                "LT20": "KC_TRNS",
+                "LT21": "KC_TRNS",
+                "RT21": "KC_TRNS",
+                "RT20": "KC_TRNS",
+                "LT36": "KC_TRNS",
+                "RT36": "KC_TRNS",
+                "LT33": "KK_LCBR",
+                "RT33": "KC_P2",
+                "LT32": "KC_TRNS",
+                "LT34": "KK_RCBR",
+                "RT34": "KC_P1",
+                "RT32": "KC_P3",
+                "LT35": "KC_GRV",
+                "RT35": "KC_TRNS",
+                "LT30": "KC_TRNS",
+                "LT31": "KC_TRNS",
+                "RT31": "KC_TRNS",
+                "RT30": "KC_TRNS",
+                "LT43": "KC_TRNS",
+                "RT43": "KC_P0",
+                "LT42": "KC_TRNS",
+                "LT44": "KC_TRNS",
+                "RT44": "KC_TRNS",
+                "RT42": "KC_PDOT",
+                "LT40": "KC_TRNS",
+                "LT41": "KC_TRNS",
+                "RT41": "KC_TRNS",
+                "RT40": "KC_TRNS",
+                "LC01": "KC_TRNS",
+                "LC02": "KC_TRNS",
+                "LC20": "KC_TRNS",
+                "LC21": "KC_TRNS",
+                "LC12": "KC_TRNS",
+                "LC22": "KC_TRNS",
+                "RC02": "KC_TRNS",
+                "RC01": "KC_TRNS",
+                "RC12": "KC_TRNS",
+                "RC21": "KC_TRNS",
+                "RC20": "KC_TRNS",
+                "RC22": "KC_TRNS"
+              }
+            },
+            {
+              "name": "MDIA",
+              "keys": {
+                "LT03": "KC_TRNS",
+                "RT03": "KC_TRNS",
+                "LT02": "KC_TRNS",
+                "LT04": "KC_TRNS",
+                "RT04": "KC_TRNS",
+                "RT02": "KC_TRNS",
+                "LT05": "KC_TRNS",
+                "LT06": "QK_BOOT",
+                "RT06": "QK_BOOT",
+                "RT05": "KC_TRNS",
+                "LT00": "KC_TRNS",
+                "LT01": "KC_TRNS",
+                "RT01": "KC_TRNS",
+                "RT00": "KC_TRNS",
+                "LT13": "MS_BTN1",
+                "RT13": "KC_TRNS",
+                "LT12": "MS_BTN2",
+                "LT14": "KC_TRNS",
+                "RT14": "KC_TRNS",
+                "RT12": "KC_TRNS",
+                "LT15": "KC_TRNS",
+                "LT16": "KC_TRNS",
+                "RT16": "KC_TRNS",
+                "RT15": "KC_VOLU",
+                "LT10": "KC_TRNS",
+                "LT11": "KC_TRNS",
+                "RT11": "KC_TRNS",
+                "RT10": "KC_TRNS",
+                "LT23": "MS_UP",
+                "RT23": "KC_TRNS",
+                "LT22": "MS_DOWN",
+                "LT24": "MS_RGHT",
+                "RT24": "KC_TRNS",
+                "RT22": "KC_TRNS",
+                "LT25": "KC_TRNS",
+                "RT25": "KC_TRNS",
+                "LT20": "KC_TRNS",
+                "LT21": "MS_LEFT",
+                "RT21": "KC_TRNS",
+                "RT20": "KC_TRNS",
+                "LT36": "KC_TRNS",
+                "RT36": "KC_TRNS",
+                "LT33": "NL_MS_U5",
+                "RT33": "KC_TRNS",
+                "LT32": "NL_MS_D5",
+                "LT34": "NL_MS_R5",
+                "RT34": "KC_TRNS",
+                "RT32": "KC_TRNS",
+                "LT35": "KC_TRNS",
+                "RT35": "KC_MUTE",
+                "LT30": "KC_TRNS",
+                "LT31": "NL_MS_L5",
+                "RT31": "KC_TRNS",
+                "RT30": "KC_TRNS",
+                "LT43": "KC_TRNS",
+                "RT43": "KC_TRNS",
+                "LT42": "KC_TRNS",
+                "LT44": "KC_TRNS",
+                "RT44": "KC_TRNS",
+                "RT42": "KC_TRNS",
+                "LT40": "KC_TRNS",
+                "LT41": "KC_TRNS",
+                "RT41": "KC_TRNS",
+                "RT40": "KC_TRNS",
+                "LC01": "KC_TRNS",
+                "LC02": "KC_TRNS",
+                "LC20": "KC_DEL",
+                "LC21": "KC_TRNS",
+                "LC12": "KC_CAPS",
+                "LC22": "KC_TRNS",
+                "RC02": "KC_TRNS",
+                "RC01": "KC_TRNS",
+                "RC12": "KC_CAPS",
+                "RC21": "KC_TRNS",
+                "RC20": "KC_DEL",
+                "RC22": "KC_TRNS"
+              }
+            }
+          ],
+          "dances": {},
+          "extKeys": [],
+          "layerColors": {}
+        },
+        "versions": [
+          {
+            "id": "starter/input-club-ergodox-infinity/layout/monster/version/initial",
+            "parentId": null,
+            "name": "Initial version",
+            "createdAt": "2026-06-22T00:00:00.000Z",
+            "keyboardModel": {
+              "id": "starter/input-club-ergodox-infinity/model",
+              "name": "Input Club Ergodox Infinity",
+              "source": "default-projects/inputclub-ergodox-infinity.json",
+              "kle": [
+                [
+                  {
+                    "x": 3.5
+                  },
+                  "LT03",
+                  {
+                    "x": 10.5
+                  },
+                  "RT03"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 2.5
+                  },
+                  "LT02",
+                  {
+                    "x": 1
+                  },
+                  "LT04",
+                  {
+                    "x": 8.5
+                  },
+                  "RT04",
+                  {
+                    "x": 1
+                  },
+                  "RT02"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 5.5
+                  },
+                  "LT05",
+                  "LT06",
+                  {
+                    "x": 4.5
+                  },
+                  "RT06",
+                  "RT05"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "w": 1.5
+                  },
+                  "LT00",
+                  "LT01",
+                  {
+                    "x": 14.5
+                  },
+                  "RT01",
+                  {
+                    "w": 1.5
+                  },
+                  "RT00"
+                ],
+                [
+                  {
+                    "y": -0.375,
+                    "x": 3.5
+                  },
+                  "LT13",
+                  {
+                    "x": 10.5
+                  },
+                  "RT13"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 2.5
+                  },
+                  "LT12",
+                  {
+                    "x": 1
+                  },
+                  "LT14",
+                  {
+                    "x": 8.5
+                  },
+                  "RT14",
+                  {
+                    "x": 1
+                  },
+                  "RT12"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 5.5
+                  },
+                  "LT15",
+                  {
+                    "h": 1.5
+                  },
+                  "LT16",
+                  {
+                    "x": 4.5,
+                    "h": 1.5
+                  },
+                  "RT16",
+                  "RT15"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "w": 1.5
+                  },
+                  "LT10",
+                  "LT11",
+                  {
+                    "x": 14.5
+                  },
+                  "RT11",
+                  {
+                    "w": 1.5
+                  },
+                  "RT10"
+                ],
+                [
+                  {
+                    "y": -0.375,
+                    "x": 3.5
+                  },
+                  "LT23",
+                  {
+                    "x": 10.5
+                  },
+                  "RT23"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 2.5
+                  },
+                  "LT22",
+                  {
+                    "x": 1
+                  },
+                  "LT24",
+                  {
+                    "x": 8.5
+                  },
+                  "RT24",
+                  {
+                    "x": 1
+                  },
+                  "RT22"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 5.5
+                  },
+                  "LT25",
+                  {
+                    "x": 6.5
+                  },
+                  "RT25"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "w": 1.5
+                  },
+                  "LT20",
+                  "LT21",
+                  {
+                    "x": 14.5
+                  },
+                  "RT21",
+                  {
+                    "w": 1.5
+                  },
+                  "RT20"
+                ],
+                [
+                  {
+                    "y": -0.625,
+                    "x": 6.5,
+                    "h": 1.5
+                  },
+                  "LT36",
+                  {
+                    "x": 4.5,
+                    "h": 1.5
+                  },
+                  "RT36"
+                ],
+                [
+                  {
+                    "y": -0.75,
+                    "x": 3.5
+                  },
+                  "LT33",
+                  {
+                    "x": 10.5
+                  },
+                  "RT33"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 2.5
+                  },
+                  "LT32",
+                  {
+                    "x": 1
+                  },
+                  "LT34",
+                  {
+                    "x": 8.5
+                  },
+                  "RT34",
+                  {
+                    "x": 1
+                  },
+                  "RT32"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 5.5
+                  },
+                  "LT35",
+                  {
+                    "x": 6.5
+                  },
+                  "RT35"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "w": 1.5
+                  },
+                  "LT30",
+                  "LT31",
+                  {
+                    "x": 14.5
+                  },
+                  "RT31",
+                  {
+                    "w": 1.5
+                  },
+                  "RT30"
+                ],
+                [
+                  {
+                    "y": -0.375,
+                    "x": 3.5
+                  },
+                  "LT43",
+                  {
+                    "x": 10.5
+                  },
+                  "RT43"
+                ],
+                [
+                  {
+                    "y": -0.875,
+                    "x": 2.5
+                  },
+                  "LT42",
+                  {
+                    "x": 1
+                  },
+                  "LT44",
+                  {
+                    "x": 8.5
+                  },
+                  "RT44",
+                  {
+                    "x": 1
+                  },
+                  "RT42"
+                ],
+                [
+                  {
+                    "y": -0.75,
+                    "x": 0.5
+                  },
+                  "LT40",
+                  "LT41",
+                  {
+                    "x": 14.5
+                  },
+                  "RT41",
+                  "RT40"
+                ],
+                [
+                  {
+                    "r": 30,
+                    "rx": 6.5,
+                    "ry": 4.25,
+                    "y": -1,
+                    "x": 1
+                  },
+                  "LC01",
+                  "LC02"
+                ],
+                [
+                  {
+                    "h": 2
+                  },
+                  "LC20",
+                  {
+                    "h": 2
+                  },
+                  "LC21",
+                  "LC12"
+                ],
+                [
+                  {
+                    "x": 2
+                  },
+                  "LC22"
+                ],
+                [
+                  {
+                    "r": -30,
+                    "rx": 13,
+                    "y": -1,
+                    "x": -3
+                  },
+                  "RC02",
+                  "RC01"
+                ],
+                [
+                  {
+                    "x": -3
+                  },
+                  "RC12",
+                  {
+                    "h": 2
+                  },
+                  "RC21",
+                  {
+                    "h": 2
+                  },
+                  "RC20"
+                ],
+                [
+                  {
+                    "x": -3
+                  },
+                  "RC22"
+                ]
+              ],
+              "author": "qmk-viz starter"
+            },
+            "document": {
+              "version": 1,
+              "layers": [
+                {
+                  "name": "BASE",
+                  "keys": {
+                    "LT03": "KC_3",
+                    "RT03": "KC_8",
+                    "LT02": "KC_4",
+                    "LT04": "KC_2",
+                    "RT04": "KC_7",
+                    "RT02": "KC_9",
+                    "LT05": "KC_1",
+                    "LT06": "KC_GRV",
+                    "RT06": "KC_RBRC",
+                    "RT05": "KC_6",
+                    "LT00": "KC_LBRC",
+                    "LT01": "KC_5",
+                    "RT01": "KC_0",
+                    "RT00": "KC_BSLS",
+                    "LT13": "KC_E",
+                    "RT13": "KC_I",
+                    "LT12": "KC_W",
+                    "LT14": "KC_R",
+                    "RT14": "KC_U",
+                    "RT12": "KC_O",
+                    "LT15": "KC_T",
+                    "LT16": "KC_ENT",
+                    "RT16": "KC_ENT",
+                    "RT15": "KC_Y",
+                    "LT10": "KC_TAB",
+                    "LT11": "KC_Q",
+                    "RT11": "KC_P",
+                    "RT10": "KC_MINS",
+                    "LT23": "KC_D",
+                    "RT23": "KC_TRNS",
+                    "LT22": "KC_S",
+                    "LT24": "KC_F",
+                    "RT24": "KC_TRNS",
+                    "RT22": "KC_TRNS",
+                    "LT25": "KC_G",
+                    "RT25": "KC_TRNS",
+                    "LT20": "KC_ESC",
+                    "LT21": "KC_A",
+                    "RT21": "KC_TRNS",
+                    "RT20": "KC_QUOT",
+                    "LT36": "MO(SYMB)",
+                    "RT36": "KC_NO",
+                    "LT33": "KC_C",
+                    "RT33": "KC_COMM",
+                    "LT32": "KC_X",
+                    "LT34": "KC_V",
+                    "RT34": "KC_M",
+                    "RT32": "KC_DOT",
+                    "LT35": "KC_B",
+                    "RT35": "KC_N",
+                    "LT30": "KC_LSFT",
+                    "LT31": "KC_Z",
+                    "RT31": "KC_SLSH",
+                    "RT30": "KC_RSFT",
+                    "LT43": "KC_END",
+                    "RT43": "KC_LEFT",
+                    "LT42": "KC_PGUP",
+                    "LT44": "KC_LGUI",
+                    "RT44": "MO(SYMB)",
+                    "RT42": "KC_DOWN",
+                    "LT40": "KC_HOME",
+                    "LT41": "KC_PGDN",
+                    "RT41": "KC_UP",
+                    "RT40": "KC_RGHT",
+                    "LC01": "KC_TRNS",
+                    "LC02": "KC_INS",
+                    "LC20": "KC_BSPC",
+                    "LC21": "KC_LCTL",
+                    "LC12": "KC_LSFT",
+                    "LC22": "KC_LALT",
+                    "RC02": "KC_RGUI",
+                    "RC01": "MO(MDIA)",
+                    "RC12": "KC_RSFT",
+                    "RC21": "KC_RCTL",
+                    "RC20": "KC_SPC",
+                    "RC22": "KC_RALT"
+                  }
+                },
+                {
+                  "name": "SYMB",
+                  "keys": {
+                    "LT03": "KC_F3",
+                    "RT03": "KC_F8",
+                    "LT02": "KC_F2",
+                    "LT04": "KC_F4",
+                    "RT04": "KC_F7",
+                    "RT02": "KC_F9",
+                    "LT05": "KC_F5",
+                    "LT06": "KC_F11",
+                    "RT06": "KC_F12",
+                    "RT05": "KC_F6",
+                    "LT00": "KC_TRNS",
+                    "LT01": "KC_F1",
+                    "RT01": "KC_F10",
+                    "RT00": "KC_NUM",
+                    "LT13": "KK_LPRN",
+                    "RT13": "KC_P8",
+                    "LT12": "KC_TRNS",
+                    "LT14": "KK_RPRN",
+                    "RT14": "KC_P7",
+                    "RT12": "KC_P9",
+                    "LT15": "KK_DQOT",
+                    "LT16": "KC_TRNS",
+                    "RT16": "KC_TRNS",
+                    "RT15": "KC_TRNS",
+                    "LT10": "KC_TRNS",
+                    "LT11": "KC_TRNS",
+                    "RT11": "KC_TRNS",
+                    "RT10": "KC_TRNS",
+                    "LT23": "KC_LBRC",
+                    "RT23": "KC_TRNS",
+                    "LT22": "KC_TRNS",
+                    "LT24": "KC_RBRC",
+                    "RT24": "KC_TRNS",
+                    "RT22": "KC_TRNS",
+                    "LT25": "KC_QUOT",
+                    "RT25": "KC_TRNS",
+                    "LT20": "KC_TRNS",
+                    "LT21": "KC_TRNS",
+                    "RT21": "KC_TRNS",
+                    "RT20": "KC_TRNS",
+                    "LT36": "KC_TRNS",
+                    "RT36": "KC_TRNS",
+                    "LT33": "KK_LCBR",
+                    "RT33": "KC_P2",
+                    "LT32": "KC_TRNS",
+                    "LT34": "KK_RCBR",
+                    "RT34": "KC_P1",
+                    "RT32": "KC_P3",
+                    "LT35": "KC_GRV",
+                    "RT35": "KC_TRNS",
+                    "LT30": "KC_TRNS",
+                    "LT31": "KC_TRNS",
+                    "RT31": "KC_TRNS",
+                    "RT30": "KC_TRNS",
+                    "LT43": "KC_TRNS",
+                    "RT43": "KC_P0",
+                    "LT42": "KC_TRNS",
+                    "LT44": "KC_TRNS",
+                    "RT44": "KC_TRNS",
+                    "RT42": "KC_PDOT",
+                    "LT40": "KC_TRNS",
+                    "LT41": "KC_TRNS",
+                    "RT41": "KC_TRNS",
+                    "RT40": "KC_TRNS",
+                    "LC01": "KC_TRNS",
+                    "LC02": "KC_TRNS",
+                    "LC20": "KC_TRNS",
+                    "LC21": "KC_TRNS",
+                    "LC12": "KC_TRNS",
+                    "LC22": "KC_TRNS",
+                    "RC02": "KC_TRNS",
+                    "RC01": "KC_TRNS",
+                    "RC12": "KC_TRNS",
+                    "RC21": "KC_TRNS",
+                    "RC20": "KC_TRNS",
+                    "RC22": "KC_TRNS"
+                  }
+                },
+                {
+                  "name": "MDIA",
+                  "keys": {
+                    "LT03": "KC_TRNS",
+                    "RT03": "KC_TRNS",
+                    "LT02": "KC_TRNS",
+                    "LT04": "KC_TRNS",
+                    "RT04": "KC_TRNS",
+                    "RT02": "KC_TRNS",
+                    "LT05": "KC_TRNS",
+                    "LT06": "QK_BOOT",
+                    "RT06": "QK_BOOT",
+                    "RT05": "KC_TRNS",
+                    "LT00": "KC_TRNS",
+                    "LT01": "KC_TRNS",
+                    "RT01": "KC_TRNS",
+                    "RT00": "KC_TRNS",
+                    "LT13": "MS_BTN1",
+                    "RT13": "KC_TRNS",
+                    "LT12": "MS_BTN2",
+                    "LT14": "KC_TRNS",
+                    "RT14": "KC_TRNS",
+                    "RT12": "KC_TRNS",
+                    "LT15": "KC_TRNS",
+                    "LT16": "KC_TRNS",
+                    "RT16": "KC_TRNS",
+                    "RT15": "KC_VOLU",
+                    "LT10": "KC_TRNS",
+                    "LT11": "KC_TRNS",
+                    "RT11": "KC_TRNS",
+                    "RT10": "KC_TRNS",
+                    "LT23": "MS_UP",
+                    "RT23": "KC_TRNS",
+                    "LT22": "MS_DOWN",
+                    "LT24": "MS_RGHT",
+                    "RT24": "KC_TRNS",
+                    "RT22": "KC_TRNS",
+                    "LT25": "KC_TRNS",
+                    "RT25": "KC_TRNS",
+                    "LT20": "KC_TRNS",
+                    "LT21": "MS_LEFT",
+                    "RT21": "KC_TRNS",
+                    "RT20": "KC_TRNS",
+                    "LT36": "KC_TRNS",
+                    "RT36": "KC_TRNS",
+                    "LT33": "NL_MS_U5",
+                    "RT33": "KC_TRNS",
+                    "LT32": "NL_MS_D5",
+                    "LT34": "NL_MS_R5",
+                    "RT34": "KC_TRNS",
+                    "RT32": "KC_TRNS",
+                    "LT35": "KC_TRNS",
+                    "RT35": "KC_MUTE",
+                    "LT30": "KC_TRNS",
+                    "LT31": "NL_MS_L5",
+                    "RT31": "KC_TRNS",
+                    "RT30": "KC_TRNS",
+                    "LT43": "KC_TRNS",
+                    "RT43": "KC_TRNS",
+                    "LT42": "KC_TRNS",
+                    "LT44": "KC_TRNS",
+                    "RT44": "KC_TRNS",
+                    "RT42": "KC_TRNS",
+                    "LT40": "KC_TRNS",
+                    "LT41": "KC_TRNS",
+                    "RT41": "KC_TRNS",
+                    "RT40": "KC_TRNS",
+                    "LC01": "KC_TRNS",
+                    "LC02": "KC_TRNS",
+                    "LC20": "KC_DEL",
+                    "LC21": "KC_TRNS",
+                    "LC12": "KC_CAPS",
+                    "LC22": "KC_TRNS",
+                    "RC02": "KC_TRNS",
+                    "RC01": "KC_TRNS",
+                    "RC12": "KC_CAPS",
+                    "RC21": "KC_TRNS",
+                    "RC20": "KC_DEL",
+                    "RC22": "KC_TRNS"
+                  }
+                }
+              ],
+              "dances": {},
+              "extKeys": [],
+              "layerColors": {}
+            }
+          }
+        ],
+        "activeVersionId": "starter/input-club-ergodox-infinity/layout/monster/version/initial",
+        "updatedAt": "2026-06-22T00:00:00.000Z"
+      }
+    ],
+    "activeLayoutId": "starter/input-club-ergodox-infinity/layout/monster",
+    "updatedAt": "2026-06-22T00:00:00.000Z"
+  }
+}

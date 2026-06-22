@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-06-22: qmk-viz Ergodox Infinity starter example
+
+Goal: ship the downloaded Input Club Ergodox Infinity project as a default example.
+
+What worked:
+
+- Added `default-projects/inputclub-ergodox-infinity.json`.
+- Sanitized names, IDs, and source metadata to stable starter conventions.
+- Renamed the starter layout to `Monster`.
+- Preserved the embedded keymap template from the downloaded project.
+- Normalized the cluster key marker from `LC1` to `LC01` across KLE/model/layout/version data.
+
+What did not work:
+
+- The first normalization pass was too broad and changed `LC12` to `LC012`; a structural mismatch check caught it, and exact-token regeneration fixed it.
+- Vite still emits the existing warning that the built JavaScript chunk is larger than 500 kB after minification.
+- Browser validation checked example availability only; it did not import/copy the example into user projects to avoid mutating localStorage.
+
+Validation:
+
+- JSON parses and has no model/layout slot mismatches.
+- Search found no stale `LC1`, `LC012`, `Uploaded Keyboard`, `keyboard-layout (4).json`, `New Layout`, or old downloaded-project UUIDs.
+- `npm run build` passed.
+- In-app browser showed Project Browser Examples count `4` and `Input Club Ergodox Infinity` with `76` keys.
+
 ## 2026-06-21: qmk-viz transparent JSON and keyboard sizing cleanup
 
 Goal: remove TSV-era transparent markers from current JSON/UI output and make keyboard previews spend more width on keys.
