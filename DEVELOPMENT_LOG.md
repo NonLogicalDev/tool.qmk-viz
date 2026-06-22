@@ -1909,3 +1909,26 @@ Validation:
 - Starter layout name scan shows every default project layout now displays `Default`.
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
+
+## 2026-06-22: qmk-viz mobile nav tab folding
+
+Goal: make the top nav tabs fold cleanly on small screens instead of rendering as a broken square with one missing quadrant.
+
+What did not work:
+
+- The `max-width: 760px` media query changed the three-tab page nav into a two-column grid.
+- With three tabs, that put the third tab alone on a second row and made the segmented control look visually broken.
+
+Changes made:
+
+- Kept `.app-nav` as three equal columns at mobile widths.
+- Added ellipsis protection for nav labels.
+- Added a narrow-phone media query that tightens topbar gap, nav padding, tab radius, font size, and button padding below 430px.
+
+Validation:
+
+- In-app browser validation at `390x844`: Project/Layout/Export render as one row of three equal 115px tabs; document scroll width equals 390px.
+- In-app browser validation at `320x720`: Project/Layout/Export render as one row of three equal 91px tabs; document scroll width equals 320px.
+- Screenshot captured at `/private/tmp/qmk-viz-mobile-nav-tabs.png`.
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.
