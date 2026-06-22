@@ -59,16 +59,6 @@ function arrayBufferFromBytes(bytes: Uint8Array): ArrayBuffer {
   return copy.buffer;
 }
 
-async function gzipBytes(bytes: Uint8Array): Promise<Uint8Array | null> {
-  if (typeof CompressionStream === "undefined") return null;
-
-  const stream = new CompressionStream("gzip");
-  const writer = stream.writable.getWriter();
-  await writer.write(arrayBufferFromBytes(bytes));
-  await writer.close();
-  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
-}
-
 async function gunzipBytes(bytes: Uint8Array): Promise<Uint8Array> {
   if (typeof DecompressionStream === "undefined") {
     throw new Error("This browser cannot open compressed share URLs.");
@@ -87,11 +77,9 @@ function assertProjectFile(value: unknown): asserts value is ProjectFile {
   }
 }
 
-export async function encodeShareProjectFile(projectFile: ProjectFile): Promise<string> {
+export function encodeShareProjectFile(projectFile: ProjectFile): string {
   const jsonBytes = textEncoder.encode(JSON.stringify(projectFile));
-  const compressed = await gzipBytes(jsonBytes);
-  const encoding = compressed ? "gz" : "raw";
-  return `${shareTokenVersion}.${encoding}.${bytesToBase64Url(compressed ?? jsonBytes)}`;
+  return `${shareTokenVersion}.raw.${bytesToBase64Url(jsonBytes)}`;
 }
 
 export async function decodeShareProjectFile(token: string): Promise<ProjectFile> {

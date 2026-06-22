@@ -1855,9 +1855,9 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Loaded example project ${importedProject.name}.`);
   }
 
-  function uniqueKeyboardProjectName(base: string): string {
+  function uniqueKeyboardProjectName(base: string, projects = keyboardProjects): string {
     const cleanBase = base.trim() || "Shared Keyboard Project";
-    const taken = new Set(keyboardProjects.map((project) => project.name));
+    const taken = new Set(projects.map((project) => project.name));
     if (!taken.has(cleanBase)) return cleanBase;
 
     let suffix = 1;
@@ -1923,11 +1923,12 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
 
   function importSharedProject(projectFile: ProjectFile) {
     const parsedProject = parseProjectFile(projectFile, "share-url");
+    const currentProjects = useAppStore.getState().keyboardProjects;
     const importedProject = cloneKeyboardProjectForLibrary(
       parsedProject,
-      uniqueKeyboardProjectName(`${parsedProject.name} shared`)
+      uniqueKeyboardProjectName(`${parsedProject.name} shared`, currentProjects)
     );
-    setKeyboardProjects((current) => [...current, importedProject]);
+    setKeyboardProjects([...currentProjects, importedProject]);
     loadKeyboardProjectObject(importedProject, importedProject.activeLayoutId, { resetHistory: true });
     setActivePage("editor");
     setStatusMessage(`Imported shared layout ${activeLayoutFor(importedProject)?.name ?? importedProject.name}.`);
@@ -2049,8 +2050,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     }
 
     try {
-      const token = await encodeShareProjectFile(projectFile);
-      await navigator.clipboard.writeText(shareUrlForToken(token));
+      await navigator.clipboard.writeText(shareUrlForToken(encodeShareProjectFile(projectFile)));
       setStatusMessage("Copied share URL for the current layout.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "Could not create share URL.");
@@ -2232,24 +2232,17 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     if (!token || importedShareTokenRef.current === token) return;
 
     importedShareTokenRef.current = token;
-    let canceled = false;
 
     void decodeShareProjectFile(token)
       .then((projectFile) => {
-        if (canceled) return;
         importSharedProject(projectFile);
         const nextHash = hashWithoutShareToken(window.location.hash);
         window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${nextHash}`);
       })
       .catch((error: unknown) => {
-        if (canceled) return;
         setStatusMessage(error instanceof Error ? error.message : "Could not import shared layout URL.");
       });
-
-    return () => {
-      canceled = true;
-    };
-  }, [enableGlobalEffects, keyboardProjects]);
+  }, [enableGlobalEffects]);
 
   useEffect(() => {
     if (!enableGlobalEffects) return;

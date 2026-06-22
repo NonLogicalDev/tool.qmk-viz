@@ -211,12 +211,18 @@ function routeHashForPage(page: AppPage) {
   return `#${pathForPage(page)}`;
 }
 
+function hashPath(hash: string) {
+  const cleanHash = hash.startsWith("#") ? hash.slice(1) : hash;
+  return cleanHash.split("?", 1)[0] || "/";
+}
+
 function setLocationHashForPage(page: AppPage) {
   if (typeof window === "undefined") return;
+  const nextPath = pathForPage(page);
+  if (hashPath(window.location.hash) === nextPath) return;
+
   const nextHash = routeHashForPage(page);
-  if (window.location.hash !== nextHash) {
-    window.location.hash = nextHash;
-  }
+  window.location.hash = nextHash;
 }
 
 function createActivePageSetter(

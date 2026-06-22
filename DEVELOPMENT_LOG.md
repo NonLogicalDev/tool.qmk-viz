@@ -2083,3 +2083,20 @@ Validation:
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
 - `npm run build:pages` passed. Existing Vite large-chunk warning remains.
+
+Follow-up fix after browser testing:
+
+- Reproduced the user-visible failure: `Copy Share URL` was enabled and clickable, but the clipboard remained unchanged.
+- The first attempted fix, `navigator.clipboard.write()` with a deferred `ClipboardItem`, also did not update the app clipboard in this environment.
+- Existing export copy buttons using `navigator.clipboard.writeText()` worked, so share copy now generates a raw JSON base64url token synchronously and uses the same `writeText()` path.
+- Raw Ergodox share URLs are long, around 26.7 KB in the tested example, but they copy reliably and still remain self-contained.
+- Fresh-origin testing showed that importing on the same localhost port was a false positive because an existing localStorage project masked failed imports.
+- The active-page setter was stripping `#/layout?share=...` to `#/layout` before the importer could read the token. It now preserves same-page hash query params.
+- The share importer now appends against the latest Zustand store state and no longer cancels the one-shot decode during effect cleanup.
+
+Validation:
+
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- `npm run build:pages` passed. Existing Vite large-chunk warning remains.
+- In-app browser fresh-origin round trip on `127.0.0.1:5195` passed: opening a share URL created `Input Club Ergodox Infinity shared`, `Copy Share URL` changed the clipboard from a sentinel to a `qv1.raw` URL, and opening that copied URL imported another shared project with no visible errors or 5195 console warnings.

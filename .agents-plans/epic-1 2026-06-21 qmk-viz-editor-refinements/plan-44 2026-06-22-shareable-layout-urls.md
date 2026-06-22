@@ -26,7 +26,9 @@ qmk-viz is localStorage-first and already supports full project/workspace JSON e
 - Share URLs encode a full `qmk-viz-project` file containing the keyboard model, template, default layout, and exactly one active layout.
 - The shared layout carries exactly one version snapshot: the currently active saved version name when available, with the current unsaved editor document as its document.
 - Opening a share URL imports a fresh local copy with new IDs, selects it, navigates to the Layout page, then removes the `share` parameter from the URL.
-- URL payloads use gzip when `CompressionStream` is available and fall back to raw JSON base64url so local tests and older browsers still work.
+- URL payloads are encoded as raw JSON base64url so `Copy Share URL` can call the proven synchronous `navigator.clipboard.writeText` path during the click gesture.
+- The decoder still accepts `gz` payloads, but copy generation intentionally avoids async compression because it made clipboard writes unreliable in the browser.
+- The active-page hash setter must preserve same-page query params such as `share`; otherwise route synchronization strips the token before the importer can read it.
 
 # Implementation Steps
 
@@ -43,6 +45,10 @@ qmk-viz is localStorage-first and already supports full project/workspace JSON e
 - The current `projectWithEditorState()` path already centralizes unsaved editor state into a `SavedKeyboardProject`; share URLs should build from that to include unsaved key edits.
 - Encoding only the layout JSON would not be enough for a recipient because qmk-viz also needs the KLE model to render and edit the layout.
 - TypeScript requires a concrete `ArrayBuffer` when writing into `CompressionStream`; copied bytes avoid the `ArrayBufferLike` mismatch.
+- Browser validation showed `navigator.clipboard.write(ClipboardItem)` did not update the app clipboard in this environment, while the existing `writeText` copy buttons did. The fix is a synchronous raw-token `writeText` path.
+- Fresh-origin testing exposed that same-origin tests were masked by existing localStorage projects. Share URL import must be verified on an origin/port with no existing projects.
+- `setActivePage()` previously rewrote `#/layout?share=...` to `#/layout`; same-page route synchronization now preserves the query string until the importer removes `share` after a successful import.
+- The share import effect no longer uses a cancellation branch or `keyboardProjects` dependency; the one-shot token decode appends against the latest Zustand store state instead.
 
 # Work Log
 
@@ -50,6 +56,7 @@ qmk-viz is localStorage-first and already supports full project/workspace JSON e
 - [x] 2026-06-22 11:24 - Added share URL encode/decode helpers, Export page Copy Share URL, and hash-route import flow.
 - [x] 2026-06-22 11:28 - Verified `npm run build` passes after fixing the CompressionStream typing issue.
 - [x] 2026-06-22 11:31 - Verified `git diff --check`, `npm run build`, and `npm run build:pages` pass before checkpointing.
+- [x] 2026-06-22 12:04 - Reproduced Copy Share URL leaving the clipboard unchanged, replaced async compressed copy with sync raw `writeText`, preserved share query params during route sync, and verified fresh-origin share import/copy/re-import in the browser.
 
 # Unfinished Work
 
