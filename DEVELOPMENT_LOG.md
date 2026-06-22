@@ -1621,3 +1621,40 @@ Validation:
 - In-app browser validation: Ergodox `RT00` rendered as backslash, `RT10` rendered as minus, `LC01`/`LC02` rendered as `LGui`/`MDIA`, and `RC01`/`RC02` rendered as `Ins`/`RGui`.
 - In-app browser validation: the layout version tree rendered with zero `.react-flow__minimap` elements.
 - In-app browser validation at `320x520`: the keyboard panel computed `overflow-x/y: auto` and exposed horizontal scroll (`panelScrollWidth` greater than `panelClientWidth`) instead of clipping.
+
+## 2026-06-22: qmk-viz editor toolbelt and selected-key cleanup
+
+Goal: make keyboard-level operations spatial and compact by moving Swap, Copy, Paste, Transparent, and No-op into the keyboard toolbelt, while reducing Selected Key and Action Composer duplication.
+
+What did not work:
+
+- Swap lived inside the Selected Key action menu even though it is a two-key keyboard-canvas operation.
+- The Selected Key card duplicated graphical/current-action preview information already visible on the keyboard and in the composer.
+- The first copy-toolbelt pass added a copied readout in the toolbelt, which duplicated selected/current information and wasted vertical space.
+- Transparent and No-op remained hidden under a Selected Key action menu after copy/paste moved to the toolbelt, leaving two competing places for key actions.
+- Selected Key still exposed a Capture button even though capture belongs with structured composer keycode entry.
+- Active Cancel Swap initially inherited the generic pale hover background while keeping white text, causing poor hover contrast.
+- Browser validation initially used unsupported DOM helpers in the in-app browser evaluate sandbox; switching to simpler selector/count/rect reads worked reliably.
+
+Changes made:
+
+- Added app-local copied-key state and workspace handlers for copy, paste, and cancel-copy.
+- Moved Swap into a compact keyboard toolbelt directly under the keyboard viewer.
+- Added Copy Key and Paste Key to the toolbelt; Copy Key transforms into Cancel Copy while a copied key is active.
+- Highlighted the copied source key with a `copy` badge on the keycap, matching the existing swap-source visual pattern.
+- Moved Transparent and No-op out of the Selected Key menu and into the toolbelt as direct key operations.
+- Simplified Selected Key to current mapping, raw QMK input, and Apply raw; moved the selected key id into a small top-right badge.
+- Removed Selected Key capture and narrowed key capture state to the Simple composer.
+- Moved the generated Action Composer expression below the composer action buttons and kept only Follow selected in the composer header.
+- Made active Cancel Copy and Cancel Swap use solid button states with explicit darker hover/focus styling and white text.
+
+Validation:
+
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: toolbelt renders five actions: Swap Key, Copy Key, Paste Key, Transparent, and No-op.
+- In-app browser validation: Selected Key has no Capture button, no Key actions menu, and the key id badge is positioned in the top-right of the card.
+- In-app browser validation: Action Composer header has no generated-expression code, and the generated-expression preview renders below the action buttons.
+- In-app browser validation: Copy Key changes to Cancel Copy, marks the copied source key with `.copy-source`, enables Paste Key, then Cancel Copy clears the badge and disables Paste Key.
+- In-app browser validation: active Cancel Copy computes to white text on dark purple; active Cancel Swap computes to white text on dark orange, preserving hover contrast.
+- In-app browser validation: Transparent writes `KC_TRNS`, No-op writes `KC_NO`, and the test key was restored to its original mapping afterward.

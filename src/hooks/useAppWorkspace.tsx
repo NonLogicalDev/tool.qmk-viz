@@ -179,6 +179,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     behaviorSlots,
     captureTarget,
     composerMode,
+    copiedKeyAction,
     createLayoutNameDraft,
     danceDraftName,
     danceDraftSlots,
@@ -259,6 +260,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setOpenContextPicker,
     setContextPickerActiveIndex,
     setContextPickerSearch,
+    setCopiedKeyAction,
     setProjectBrowserPage,
     setProjectBrowserTab,
     setProjectSearchDraft,
@@ -653,6 +655,46 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   function cancelKeySwap() {
     setSwapSourceSlot(null);
     setStatusMessage("Canceled key swap.");
+  }
+
+  function copySelectedKeyAction() {
+    if (copiedKeyAction) {
+      setCopiedKeyAction(null);
+      setStatusMessage("Canceled copied key.");
+      return;
+    }
+
+    if (!selectedKey) {
+      setStatusMessage("Select a key before copying.");
+      return;
+    }
+
+    setCopiedKeyAction({
+      action: currentAction,
+      layerName: activeLayer.name,
+      slot: selectedKey.slot
+    });
+    setStatusMessage(`Copied ${selectedKey.slot} on ${activeLayer.name}.`);
+  }
+
+  function pasteCopiedKeyAction() {
+    if (!copiedKeyAction) {
+      setStatusMessage("Copy a key before pasting.");
+      return;
+    }
+    if (!selectedKey || !activeSavedLayout) {
+      setStatusMessage("Create or import a layout and select a key before pasting.");
+      return;
+    }
+
+    const before = selectedKeycode(activeLayer, selectedKey.slot);
+    if (before !== copiedKeyAction.action) {
+      recordHistory();
+      setLayers((current) => updateKeycode(current, activeLayer.name, selectedKey.slot, copiedKeyAction.action));
+    }
+    setDraftAction(copiedKeyAction.action);
+    setSwapSourceSlot(null);
+    setStatusMessage(`Pasted ${copiedKeyAction.slot} from ${copiedKeyAction.layerName} into ${selectedKey.slot} on ${activeLayer.name}.`);
   }
 
   function swapKeySlots(sourceSlot: string, targetKey: KeySlot) {
@@ -1986,21 +2028,16 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
       event.preventDefault();
       event.stopPropagation();
 
-      if (captureTarget === "simple" && isModifierKeyEvent(event)) {
+      if (isModifierKeyEvent(event)) {
         setStatusMessage("Hold modifiers, then press the key to capture for Simple composer.");
         return;
       }
 
       const keycode = qmkKeycodeFromEvent(event);
       if (keycode) {
-        if (captureTarget === "simple") {
-          setSimpleKeycode(keycode);
-          setSimpleKeycodeModifiers(simpleModifiersFromEvent(event));
-          setStatusMessage(`Captured ${keycode} with modifiers for Simple composer.`);
-        } else {
-          setDraftAction(keycode);
-          setStatusMessage(`Captured ${keycode}. Apply raw to write it to ${selectedKey?.slot ?? "the selected key"}.`);
-        }
+        setSimpleKeycode(keycode);
+        setSimpleKeycodeModifiers(simpleModifiersFromEvent(event));
+        setStatusMessage(`Captured ${keycode} with modifiers for Simple composer.`);
       } else {
         setStatusMessage(`Could not map "${event.key}" to a QMK keycode; type the raw identifier manually.`);
       }
@@ -2009,7 +2046,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
 
     window.addEventListener("keydown", captureKey, { capture: true });
     return () => window.removeEventListener("keydown", captureKey, { capture: true });
-  }, [captureTarget, enableEditorEffects, selectedKey?.slot]);
+  }, [captureTarget, enableEditorEffects]);
 
 
   return {
@@ -2021,6 +2058,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     behaviorSlots,
     captureTarget,
     composerMode,
+    copiedKeyAction,
     createLayoutNameDraft,
     danceDraftName,
     danceDraftSlots,
@@ -2101,6 +2139,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setOpenContextPicker,
     setContextPickerActiveIndex,
     setContextPickerSearch,
+    setCopiedKeyAction,
     setProjectBrowserPage,
     setProjectBrowserTab,
     setProjectSearchDraft,
@@ -2187,6 +2226,8 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     selectKey,
     startKeySwap,
     cancelKeySwap,
+    copySelectedKeyAction,
+    pasteCopiedKeyAction,
     swapKeySlots,
     swapKeyWithSource,
     handleKeyDragStart,

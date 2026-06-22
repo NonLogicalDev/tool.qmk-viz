@@ -23,9 +23,15 @@ export type JsonEditDialog = {
   value: string;
 };
 
-export type CaptureTarget = "raw" | "simple";
+export type CaptureTarget = "simple";
 
 export type ContextPickerId = "top-project" | "top-layout" | "editor-layout" | "simple-kind" | "mod-tap-modifier" | "simple-layer";
+
+export type CopiedKeyAction = {
+  action: string;
+  layerName: string;
+  slot: string;
+};
 
 export type KeyboardViewportSize = {
   width: number;
@@ -44,6 +50,7 @@ type AppStoreValues = {
   composerMode: ComposerMode;
   contextPickerActiveIndex: number;
   contextPickerSearch: string;
+  copiedKeyAction: CopiedKeyAction | null;
   createLayoutNameDraft: string | null;
   danceDraftName: string;
   danceDraftSlots: BehaviorSlots;
@@ -123,6 +130,7 @@ function createInitialValues(): AppStoreValues {
     composerMode: "simple",
     contextPickerActiveIndex: 0,
     contextPickerSearch: "",
+    copiedKeyAction: null,
     createLayoutNameDraft: null,
     danceDraftName: "DANCE_0",
     danceDraftSlots: { tap: "", hold: "", doubleTap: "", tapHold: "" },
@@ -199,6 +207,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setComposerMode: createSetter(set, "composerMode"),
   setContextPickerActiveIndex: createSetter(set, "contextPickerActiveIndex"),
   setContextPickerSearch: createSetter(set, "contextPickerSearch"),
+  setCopiedKeyAction: createSetter(set, "copiedKeyAction"),
   setCreateLayoutNameDraft: createSetter(set, "createLayoutNameDraft"),
   setDanceDraftName: createSetter(set, "danceDraftName"),
   setDanceDraftSlots: createSetter(set, "danceDraftSlots"),

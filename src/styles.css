@@ -858,6 +858,31 @@ textarea {
   position: relative;
 }
 
+.keyboard-toolbelt {
+  align-items: center;
+  background: rgb(247 242 232 / 82%);
+  border: 1px solid rgb(217 210 196 / 82%);
+  border-radius: 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+  padding: 6px 8px;
+}
+
+.keyboard-toolbelt-actions {
+  flex-wrap: nowrap;
+  justify-content: start;
+}
+
+.selected-key-current span,
+.generated-expression span {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .keycap {
   align-items: center;
   background: rgb(255 255 255 / 86%);
@@ -903,6 +928,29 @@ textarea {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 2px var(--accent), 0 14px 34px rgb(0 120 168 / 24%);
   z-index: 3;
+}
+
+.keycap.copy-source {
+  border-color: #5f53b8;
+  box-shadow: inset 0 0 0 2px #5f53b8, 0 12px 28px rgb(95 83 184 / 20%);
+  z-index: 3;
+}
+
+.keycap.copy-source::before {
+  background: #5f53b8;
+  border-radius: 999px;
+  color: #fff;
+  content: "copy";
+  font-size: 0.48rem;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 3px 5px;
+  position: absolute;
+  right: 5px;
+  text-transform: uppercase;
+  top: 5px;
+  z-index: 1;
 }
 
 .keycap.swap-source {
@@ -1280,6 +1328,25 @@ button[data-icon]::before,
   color: #4b4590;
 }
 
+.action-copy.active:not(:disabled) {
+  background: #5f53b8;
+  border-color: #4e449c;
+  color: #fff;
+}
+
+.button-row button.action-copy.active:hover:not(:disabled),
+.button-row button.action-copy.active:focus-visible:not(:disabled) {
+  background: #4b4298;
+  border-color: #3d347c;
+  color: #fff;
+}
+
+.action-paste:not(:disabled) {
+  background: #eef7fb;
+  border-color: rgb(0 120 168 / 30%);
+  color: #075f85;
+}
+
 button.action-import:not(:disabled),
 .file-import.action-import:not(.disabled),
 .action-link.action-import {
@@ -1344,6 +1411,13 @@ button.action-import:not(:disabled),
 .action-swap.active:not(:disabled) {
   background: var(--accent-2);
   border-color: #d34f34;
+  color: #fff;
+}
+
+.button-row button.action-swap.active:hover:not(:disabled),
+.button-row button.action-swap.active:focus-visible:not(:disabled) {
+  background: #bf422a;
+  border-color: #9f3420;
   color: #fff;
 }
 
@@ -2018,11 +2092,54 @@ button.action-import:not(:disabled),
   min-width: 0;
 }
 
-.selected-summary h2 {
+.key-editor-card {
+  position: relative;
+}
+
+.selected-key-id {
+  align-items: end;
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.selected-key-id span {
+  color: var(--muted);
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.selected-key-id strong {
+  color: var(--ink);
   font-family: "SF Mono", "Menlo", monospace;
-  font-size: 1.25rem;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.selected-summary {
+  padding-right: 72px;
+}
+
+.selected-summary h2 {
+  font-size: 0.98rem;
   line-height: 1;
   margin: 0;
+}
+
+.selected-key-current,
+.generated-expression {
+  background: #f7f2e8;
+  border: 1px solid rgb(217 210 196 / 80%);
+  border-radius: 9px;
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
 }
 
 .section-header h2 {
@@ -2183,6 +2300,13 @@ button.action-import:not(:disabled),
   justify-content: space-between;
 }
 
+.composer-output-preview {
+  align-items: stretch;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .extra-key-save-row {
   align-items: center;
   display: flex;
@@ -2205,6 +2329,7 @@ button.action-import:not(:disabled),
 .generated code,
 .selected-summary code,
 .current-action,
+.generated-expression code,
 .section-header code {
   background: #f1ede3;
   border-radius: 7px;
@@ -2222,7 +2347,29 @@ button.action-import:not(:disabled),
   max-width: 260px;
 }
 
+.generated-expression code {
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.72rem;
+}
+
+.composer-output-preview .generated-expression {
+  align-content: center;
+  min-width: 0;
+  padding: 6px 7px;
+}
+
+.composer-output-preview .key-preview {
+  height: 48px;
+  padding: 10px 5px 4px;
+  width: 70px;
+}
+
 .section-header code.needs-code {
+  background: #fff2dc;
+  color: #8a4f12;
+}
+
+.generated-expression code.needs-code {
   background: #fff2dc;
   color: #8a4f12;
 }
@@ -2588,6 +2735,10 @@ button.action-import:not(:disabled),
     grid-template-columns: 1fr;
   }
 
+  .keyboard-toolbelt-actions {
+    justify-content: start;
+  }
+
   .editor-layout-controls {
     grid-template-columns: 1fr;
   }
@@ -2648,5 +2799,13 @@ button.action-import:not(:disabled),
 
   .model-facts {
     grid-template-columns: 1fr;
+  }
+
+  .composer-output-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .composer-output-preview .key-preview {
+    display: none;
   }
 }

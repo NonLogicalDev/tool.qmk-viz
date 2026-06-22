@@ -30,9 +30,9 @@ export function EditorPage() {
     keyboardScale,
     selectedSlot,
     swapSourceSlot,
+    copiedKeyAction,
     selectedKey,
     currentAction,
-    selectedDetails,
     draftAction,
     draftDetails,
     captureTarget,
@@ -40,7 +40,6 @@ export function EditorPage() {
     syncComposerWithSelection,
     showSaveAliasDialog,
     generatedAction,
-    composerNote,
     simpleKind,
     simpleComposerPickerOptions,
     simpleAction,
@@ -101,6 +100,8 @@ export function EditorPage() {
     setCaptureTarget,
     cancelKeySwap,
     startKeySwap,
+    copySelectedKeyAction,
+    pasteCopiedKeyAction,
     setSyncComposerWithSelection,
     setComposerMode,
     setShowSaveAliasDialog,
@@ -339,7 +340,7 @@ export function EditorPage() {
               const secondaryFit = fitSecondaryKeyLabel(actionType, keyWidth);
               return (
                 <button
-                  className={`keycap ${details.tone} ${key.slot === selectedSlot ? "selected" : ""} ${key.slot === swapSourceSlot ? "swap-source" : ""}`}
+                  className={`keycap ${details.tone} ${key.slot === selectedSlot ? "selected" : ""} ${key.slot === swapSourceSlot ? "swap-source" : ""} ${copiedKeyAction?.layerName === activeLayer.name && copiedKeyAction.slot === key.slot ? "copy-source" : ""}`}
                   key={key.slot}
                   data-testid={`key-${key.slot}`}
                   draggable
@@ -391,31 +392,84 @@ export function EditorPage() {
               </div>
             </div>
           </div>
+
+          <div className="keyboard-toolbelt" aria-label="Keyboard key tools" data-testid="keyboard-toolbelt">
+            <div className="button-row keyboard-toolbelt-actions">
+              <button
+                className={swapSourceSlot ? "action-swap active" : "action-swap"}
+                data-icon="⇄"
+                data-testid="swap-action"
+                onClick={swapSourceSlot ? cancelKeySwap : startKeySwap}
+                type="button"
+              >
+                {swapSourceSlot ? "Cancel Swap" : "Swap Key"}
+              </button>
+              <button
+                className={copiedKeyAction ? "action-copy active" : "action-copy"}
+                data-icon={copiedKeyAction ? "×" : "⧉"}
+                data-testid="copy-key-action"
+                onClick={copySelectedKeyAction}
+                type="button"
+              >
+                {copiedKeyAction ? "Cancel Copy" : "Copy Key"}
+              </button>
+              <button
+                className="action-paste"
+                data-icon="⇣"
+                data-testid="paste-key-action"
+                disabled={!copiedKeyAction}
+                onClick={pasteCopiedKeyAction}
+                type="button"
+              >
+                Paste Key
+              </button>
+              <button
+                className="action-transparent"
+                data-icon="↓"
+                data-testid="transparent-action"
+                onClick={() => {
+                  writeAction(TRANSPARENT);
+                  setStatusMessage(`${selectedKey.slot} is transparent on ${activeLayer.name}.`);
+                }}
+                type="button"
+              >
+                Transparent
+              </button>
+              <button
+                className="action-disable"
+                data-icon="×"
+                data-testid="noop-action"
+                onClick={() => {
+                  writeAction("KC_NO");
+                  setStatusMessage(`${selectedKey.slot} is disabled on ${activeLayer.name}.`);
+                }}
+                type="button"
+              >
+                No-op
+              </button>
+            </div>
+          </div>
           </div>
 
           <aside className="editor-panel">
             <div className="editor-card key-editor-card">
+            <div className="selected-key-id" title="Selected key id">
+              <span>Key ID</span>
+              <strong>{selectedKey.slot}</strong>
+            </div>
             <div className="section-header selected-summary">
               <div>
                 <p className="eyebrow">Selected key</p>
-                <h2>{selectedKey.slot}</h2>
-              </div>
-              <div className="action-preview">
-                <strong>{selectedDetails.primary}</strong>
-                {selectedDetails.secondary && <span>{selectedDetails.secondary}</span>}
+                <h2>Mapping</h2>
               </div>
             </div>
-            <code className="current-action">{currentAction}</code>
-            <div className="preview-strip">
-              <PreviewKeycap action={draftAction} layerColors={layerColorMap} slot={selectedKey.slot} testId="draft-key-preview" />
-              <div>
-                <span>Raw string preview</span>
-                <strong>{draftAction || "blank identifier"}</strong>
-              </div>
+            <div className="selected-key-current">
+              <span>Current on {activeLayer.name}</span>
+              <code className="current-action">{currentAction}</code>
             </div>
             <label>
               Raw QMK identifier for {activeLayer.name}
-              <div className={`raw-input-row ${captureTarget === "raw" ? "capturing" : ""}`}>
+              <div className="raw-input-row">
                 <input
                   data-testid="action-input"
                   value={draftAction}
@@ -428,18 +482,6 @@ export function EditorPage() {
                   }}
                   spellCheck={false}
                 />
-                <button
-                  className="action-capture"
-                  data-icon="⌘"
-                  data-testid="capture-key"
-                  onClick={() => {
-                    setCaptureTarget("raw");
-                    setStatusMessage("Press a key to capture its QMK identifier.");
-                  }}
-                  type="button"
-                >
-                  {captureTarget === "raw" ? "Press key" : "Capture"}
-                </button>
               </div>
             </label>
             {draftDetails.validation && (
@@ -460,46 +502,6 @@ export function EditorPage() {
               >
                 Apply raw
               </button>
-              {renderActionMenu("key-actions", "Key actions", (
-                <>
-                  <button
-                    className="action-transparent"
-                    data-icon="↓"
-                    data-testid="transparent-action"
-                    onClick={() => runMenuAction(() => {
-                      writeAction(TRANSPARENT);
-                      setStatusMessage(`${selectedKey.slot} is transparent on ${activeLayer.name}.`);
-                    })}
-                    role="menuitem"
-                    type="button"
-                  >
-                    Transparent
-                  </button>
-                  <button
-                    className="action-disable"
-                    data-icon="×"
-                    data-testid="noop-action"
-                    onClick={() => runMenuAction(() => {
-                      writeAction("KC_NO");
-                      setStatusMessage(`${selectedKey.slot} is disabled on ${activeLayer.name}.`);
-                    })}
-                    role="menuitem"
-                    type="button"
-                  >
-                    No-op
-                  </button>
-                  <button
-                    className={swapSourceSlot ? "action-swap active" : "action-swap"}
-                    data-icon="⇄"
-                    data-testid="swap-action"
-                    onClick={() => runMenuAction(swapSourceSlot ? cancelKeySwap : startKeySwap)}
-                    role="menuitem"
-                    type="button"
-                  >
-                    {swapSourceSlot ? "Cancel swap" : "Start swap"}
-                  </button>
-                </>
-              ))}
             </div>
             </div>
 
@@ -519,7 +521,6 @@ export function EditorPage() {
                   />
                   Follow selected
                 </label>
-                <code className={composerMode === "dance" ? "needs-code" : ""}>{generatedAction}</code>
               </div>
             </div>
             <div className="composer-mode-tabs" role="tablist" aria-label="Composer mode">
@@ -541,13 +542,6 @@ export function EditorPage() {
               >
                 Dance
               </button>
-            </div>
-            <div className={`preview-strip composer-preview ${composerMode === "dance" ? "needs-code" : ""}`}>
-              <PreviewKeycap action={generatedAction} layerColors={layerColorMap} slot={selectedKey.slot} testId="composer-key-preview" />
-              <div>
-                <span>Graphical key preview</span>
-                <strong>{composerNote}</strong>
-              </div>
             </div>
             {composerMode === "simple" ? (
               <>
@@ -715,6 +709,13 @@ export function EditorPage() {
               >
                 Use generated
               </button>
+            </div>
+            <div className={`composer-output-preview ${composerMode === "dance" ? "needs-code" : ""}`}>
+              <div className="generated-expression">
+                <span>Generated expression</span>
+                <code className={composerMode === "dance" ? "needs-code" : ""}>{generatedAction}</code>
+              </div>
+              <PreviewKeycap action={generatedAction} layerColors={layerColorMap} slot={selectedKey.slot} testId="composer-key-preview" />
             </div>
             {composerMode === "dance" && danceComposition.supportCode && (
               <details className="support-code-preview">
