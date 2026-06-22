@@ -11,6 +11,7 @@ export type SimpleKeycodeModifier = {
   id: string;
   label: string;
   wrapper: string;
+  group: "regular" | "exclusive";
 };
 
 export const behaviorFields: BehaviorField[] = [
@@ -42,11 +43,27 @@ export const layerPalette = [
 ];
 
 export const simpleKeycodeMods: SimpleKeycodeModifier[] = [
-  { id: "shift", label: "Shift", wrapper: "LSFT" },
-  { id: "ctrl", label: "Ctrl", wrapper: "LCTL" },
-  { id: "alt", label: "Alt", wrapper: "LALT" },
-  { id: "gui", label: "Gui", wrapper: "LGUI" }
+  { id: "shift", label: "Shift", wrapper: "LSFT", group: "regular" },
+  { id: "ctrl", label: "Ctrl", wrapper: "LCTL", group: "regular" },
+  { id: "alt", label: "Alt", wrapper: "LALT", group: "regular" },
+  { id: "gui", label: "Gui", wrapper: "LGUI", group: "regular" },
+  { id: "meh", label: "Meh", wrapper: "MEH", group: "exclusive" },
+  { id: "hyper", label: "Hyper", wrapper: "HYPR", group: "exclusive" }
 ];
+
+const exclusiveModifierIds = new Set(simpleKeycodeMods.filter((modifier) => modifier.group === "exclusive").map((modifier) => modifier.id));
+
+export function toggleSimpleKeycodeModifier(current: string[], modifierId: string): string[] {
+  if (current.includes(modifierId)) {
+    return current.filter((item) => item !== modifierId);
+  }
+
+  if (exclusiveModifierIds.has(modifierId)) {
+    return [modifierId];
+  }
+
+  return [...current.filter((item) => !exclusiveModifierIds.has(item)), modifierId];
+}
 
 export function applySimpleKeycodeModifiers(keycode: string, modifiers: string[]): string {
   const cleanKeycode = keycode.trim() || "KC_NO";

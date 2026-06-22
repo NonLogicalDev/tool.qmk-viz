@@ -95,6 +95,7 @@ const eventCodeAliases: Record<string, string> = {
 };
 
 const wrapperToModifier: Record<string, string> = {
+  HYPR: "hyper",
   LALT: "alt",
   RALT: "alt",
   LCTL: "ctrl",
@@ -102,10 +103,11 @@ const wrapperToModifier: Record<string, string> = {
   LGUI: "gui",
   RGUI: "gui",
   LSFT: "shift",
+  MEH: "meh",
   RSFT: "shift"
 };
 
-const modifierOrder = ["shift", "ctrl", "alt", "gui"];
+const modifierOrder = ["shift", "ctrl", "alt", "gui", "meh", "hyper"];
 
 function cleanAction(value: string): string {
   return value.trim();
@@ -186,6 +188,12 @@ function unwrapKeycodeModifiers(value: string): { keycode: string; modifiers: st
   }
 
   const uniqueModifiers = modifierOrder.filter((modifier) => modifiers.includes(modifier));
+  if (uniqueModifiers.includes("hyper")) {
+    return { keycode: stripRedundantParens(current) || "KC_NO", modifiers: ["hyper"] };
+  }
+  if (uniqueModifiers.includes("meh")) {
+    return { keycode: stripRedundantParens(current) || "KC_NO", modifiers: ["meh"] };
+  }
   return { keycode: stripRedundantParens(current) || "KC_NO", modifiers: uniqueModifiers };
 }
 

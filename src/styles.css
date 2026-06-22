@@ -554,7 +554,7 @@ textarea {
   box-shadow: var(--shadow);
   display: grid;
   gap: 7px;
-  overflow: auto;
+  overflow: visible;
   padding: clamp(8px, 0.8vw, 12px) clamp(8px, 1vw, 14px) clamp(8px, 0.9vw, 12px);
   width: 100%;
 }
@@ -857,7 +857,7 @@ textarea {
 
 .keyboard-stage-viewport {
   overflow: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
   padding: 0;
   width: 100%;
 }
@@ -2101,25 +2101,42 @@ button.action-import:not(:disabled),
   min-width: 0;
 }
 
-.key-editor-card {
-  position: relative;
-}
-
-.selected-key-id {
+.selected-key-row {
   align-items: end;
+  align-self: start;
   display: grid;
-  gap: 2px;
-  justify-items: end;
-  position: absolute;
-  right: 10px;
-  top: 10px;
+  gap: 7px;
+  grid-template-columns: auto minmax(82px, 0.75fr) minmax(120px, 1fr) auto;
 }
 
-.selected-key-id span {
+.key-editor-card {
+  align-content: start;
+  align-self: start;
+}
+
+.selected-key-id,
+.selected-key-current,
+.selected-key-raw {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.selected-key-id,
+.selected-key-current {
+  background: #f7f2e8;
+  border: 1px solid rgb(217 210 196 / 80%);
+  border-radius: 9px;
+  padding: 6px 7px;
+}
+
+.selected-key-id span,
+.selected-key-current span,
+.selected-key-raw > span {
   color: var(--muted);
-  font-size: 0.52rem;
+  font-size: 0.56rem;
   font-weight: 900;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -2127,21 +2144,14 @@ button.action-import:not(:disabled),
 .selected-key-id strong {
   color: var(--ink);
   font-family: "SF Mono", "Menlo", monospace;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   line-height: 1;
 }
 
-.selected-summary {
-  padding-right: 72px;
+.selected-key-raw input {
+  min-height: 31px;
 }
 
-.selected-summary h2 {
-  font-size: 0.98rem;
-  line-height: 1;
-  margin: 0;
-}
-
-.selected-key-current,
 .generated-expression {
   background: #f7f2e8;
   border: 1px solid rgb(217 210 196 / 80%);
@@ -2272,6 +2282,21 @@ button.action-import:not(:disabled),
 .keycode-mod-row input {
   margin: 0;
   min-height: 0;
+}
+
+.keycode-mod-divider {
+  color: rgb(124 112 93 / 55%);
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 0 1px;
+}
+
+.keycode-mod-caveat {
+  color: #8c867a;
+  display: block;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  margin-top: -2px;
 }
 
 .composer-heading-actions {
@@ -2854,4 +2879,5 @@ button.action-import:not(:disabled),
   .composer-action-buttons {
     justify-content: end;
   }
+
 }

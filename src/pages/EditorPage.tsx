@@ -5,7 +5,7 @@ import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "../lib/textFit";
 import { LayoutVersionTree } from "../components/LayoutVersionTree";
 import { PreviewKeycap, actionTypeLabel } from "../components/PreviewKeycap";
 import { SaveKeyAliasModal } from "../components/AppModals";
-import { danceBehaviorFields, layerPalette, simpleKeycodeMods } from "../lib/editorConfig";
+import { danceBehaviorFields, layerPalette, simpleKeycodeMods, toggleSimpleKeycodeModifier } from "../lib/editorConfig";
 import { useAppWorkspace } from "../hooks/useAppWorkspace";
 
 export function EditorPage() {
@@ -455,23 +455,17 @@ export function EditorPage() {
 
           <aside className="editor-panel">
             <div className="editor-card key-editor-card">
-            <div className="selected-key-id" title="Selected key id">
-              <span>Key ID</span>
-              <strong>{selectedKey.slot}</strong>
-            </div>
-            <div className="section-header selected-summary">
-              <div>
-                <p className="eyebrow">Selected key</p>
-                <h2>Mapping</h2>
+            <div className="selected-key-row">
+              <div className="selected-key-id" title="Selected key id">
+                <span>Key</span>
+                <strong>{selectedKey.slot}</strong>
               </div>
-            </div>
-            <div className="selected-key-current">
-              <span>Current on {activeLayer.name}</span>
-              <code className="current-action">{currentAction}</code>
-            </div>
-            <label>
-              Raw QMK identifier for {activeLayer.name}
-              <div className="raw-input-row">
+              <div className="selected-key-current">
+                <span>{activeLayer.name}</span>
+                <code className="current-action">{currentAction}</code>
+              </div>
+              <label className="selected-key-raw">
+                <span>Raw</span>
                 <input
                   data-testid="action-input"
                   value={draftAction}
@@ -484,14 +478,7 @@ export function EditorPage() {
                   }}
                   spellCheck={false}
                 />
-              </div>
-            </label>
-            {draftDetails.validation && (
-              <p className={`action-validation ${draftDetails.validation.level}`} data-testid="action-validation">
-                {draftDetails.validation.message}
-              </p>
-            )}
-            <div className="button-row">
+              </label>
               <button
                 className="action-save"
                 data-icon="✓"
@@ -505,6 +492,11 @@ export function EditorPage() {
                 Apply raw
               </button>
             </div>
+            {draftDetails.validation && (
+              <p className={`action-validation ${draftDetails.validation.level}`} data-testid="action-validation">
+                {draftDetails.validation.message}
+              </p>
+            )}
             </div>
 
             <div className="editor-card composer-card">
@@ -578,23 +570,43 @@ export function EditorPage() {
                     <label>
                       Keycode
                       <div className="keycode-mod-row">
-                        <span>mods</span>
-                        {simpleKeycodeMods.map((modifier) => (
+                        {simpleKeycodeMods.filter((modifier) => modifier.group === "regular").map((modifier) => (
                           <label key={modifier.id}>
                             {modifier.label}
                             <input
                               checked={simpleKeycodeModifiers.includes(modifier.id)}
                               data-testid={`simple-keycode-mod-${modifier.id}`}
-                              onChange={() => setSimpleKeycodeModifiers((current) => (
-                                current.includes(modifier.id)
-                                  ? current.filter((item) => item !== modifier.id)
-                                  : [...current, modifier.id]
-                              ))}
+                              onChange={() => setSimpleKeycodeModifiers((current) => toggleSimpleKeycodeModifier(current, modifier.id))}
+                              type="checkbox"
+                            />
+                          </label>
+                        ))}
+                        <span className="keycode-mod-divider" aria-hidden="true">|</span>
+                        {simpleKeycodeMods.filter((modifier) => modifier.id === "meh").map((modifier) => (
+                          <label key={modifier.id}>
+                            {modifier.label}
+                            <input
+                              checked={simpleKeycodeModifiers.includes(modifier.id)}
+                              data-testid={`simple-keycode-mod-${modifier.id}`}
+                              onChange={() => setSimpleKeycodeModifiers((current) => toggleSimpleKeycodeModifier(current, modifier.id))}
+                              type="checkbox"
+                            />
+                          </label>
+                        ))}
+                        <span className="keycode-mod-divider" aria-hidden="true">|</span>
+                        {simpleKeycodeMods.filter((modifier) => modifier.id === "hyper").map((modifier) => (
+                          <label key={modifier.id}>
+                            {modifier.label}
+                            <input
+                              checked={simpleKeycodeModifiers.includes(modifier.id)}
+                              data-testid={`simple-keycode-mod-${modifier.id}`}
+                              onChange={() => setSimpleKeycodeModifiers((current) => toggleSimpleKeycodeModifier(current, modifier.id))}
                               type="checkbox"
                             />
                           </label>
                         ))}
                       </div>
+                      <small className="keycode-mod-caveat">Meh and Hyper are exclusive chords; selecting either clears regular modifiers.</small>
                       <div className={`raw-input-row ${captureTarget === "simple" ? "capturing" : ""}`}>
                         <input
                           data-testid="simple-keycode"

@@ -1696,3 +1696,32 @@ Validation:
 - In-app browser validation: Layer actions popover opens inside the viewport from the left toolbar group.
 - In-app browser validation: Hold Modifier picker opens left-preferred inside the viewport instead of forcing right alignment.
 - In-app browser validation: the bottom composer action row shows `Apply generated`.
+
+## 2026-06-22: qmk-viz Hyper/Meh keycode modifiers and compact Selected Key row
+
+Goal: add Hyper and Meh to the Simple composer keycode modifier list, make those choices exclusive from ordinary modifiers, and repair the editor density regressions found while validating the change.
+
+What did not work:
+
+- Hyper and Meh were only represented as mod-tap hold choices, so the Keycode MODS list could not generate `HYPR(<keycode>)` or `MEH(<keycode>)`.
+- Treating Hyper/Meh like ordinary checkboxes would allow confusing stacked expressions such as `HYPR(LSFT(KC_A))`.
+- A first UI pass used the literal label `Regular Mods`, which was too noisy; pipes are enough to show the grouping.
+- The Selected Key card looked structurally horizontal in JSX, but CSS grid stretching made the row render as a 200px-tall bottom-aligned area.
+- Scrolling while the cursor was over the keyboard did not scroll the page because the keyboard viewport used `overscroll-behavior: contain`.
+
+Changes made:
+
+- Added exclusive `Meh` and `Hyper` chips to the Simple composer Keycode MODS row, visually separated from Shift/Ctrl/Alt/Gui with pipe delimiters.
+- Added modifier-toggle logic so selecting Meh or Hyper clears ordinary modifiers, and selecting any ordinary modifier clears Meh/Hyper.
+- Added parser and display support for `MEH(...)` and `HYPR(...)` so follow-selected state and keycap labels stay coherent.
+- Added a compact caveat under the modifier chips explaining that Meh and Hyper clear regular modifiers.
+- Made the Selected Key card align to its content and render as a compact horizontal row.
+- Let wheel input over the keyboard viewport chain to the page when the keyboard itself has no vertical overflow to consume.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: Shift+Ctrl generated `LCTL(LSFT(KC_SPC))`; selecting Meh cleared those modifiers and generated `MEH(KC_SPC)`; selecting Hyper cleared Meh and generated `HYPR(KC_SPC)`.
+- In-app browser validation: the Keycode MODS row rendered `ShiftCtrlAltGui|Meh|Hyper` and did not contain the literal text `Regular Mods`.
+- In-app browser validation: Selected Key measured as a 55px row instead of the previous 200px stretched row.
+- In-app browser validation: wheel scrolling over the keyboard moved page scroll from `168` to `588` while the keyboard viewport stayed at `scrollTop: 0`.

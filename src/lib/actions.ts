@@ -86,10 +86,12 @@ const modTapLabels: Record<string, string> = {
 };
 
 const modifierWrapperLabels: Record<string, string> = {
+  HYPR: "Hyper",
   LALT: "Alt",
   LCTL: "Ctrl",
   LGUI: "Gui",
   LSFT: "Shift",
+  MEH: "Meh",
   RALT: "RAlt",
   RCTL: "RCtrl",
   RGUI: "Gui",
