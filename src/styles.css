@@ -141,28 +141,27 @@ code {
 .context-strip {
   display: grid;
   gap: 6px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   min-width: 0;
 }
 
-.context-chip {
+.context-picker {
   background: rgb(255 253 247 / 72%);
   border: 1px solid rgb(217 210 196 / 82%);
   border-radius: 10px;
   color: var(--ink);
-  cursor: pointer;
   display: grid;
   gap: 2px;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 4px 6px 6px;
   text-align: left;
 }
 
-.context-chip:hover {
+.context-picker:hover {
   border-color: rgb(0 120 168 / 34%);
 }
 
-.context-chip span {
+.context-picker span {
   color: var(--muted);
   font-size: 0.56rem;
   font-weight: 900;
@@ -171,12 +170,16 @@ code {
   text-transform: uppercase;
 }
 
-.context-chip strong {
+.context-picker select {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
   font-size: 0.72rem;
-  line-height: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 850;
+  min-height: 22px;
+  min-width: 0;
+  padding: 1px 18px 1px 0;
 }
 
 .eyebrow {
@@ -196,7 +199,8 @@ code {
 }
 
 .project-actions button,
-.file-import {
+.file-import,
+.action-link {
   align-items: center;
   background: var(--control-bg);
   border: 1px solid var(--line);
@@ -209,10 +213,12 @@ code {
   line-height: 1;
   min-height: var(--control-height);
   padding: var(--control-padding);
+  text-decoration: none;
 }
 
 .project-actions button:hover:not(:disabled),
-.file-import:hover:not(.disabled) {
+.file-import:hover:not(.disabled),
+.action-link:hover {
   background: var(--control-bg-hover);
   border-color: rgb(0 120 168 / 28%);
 }
@@ -486,7 +492,7 @@ textarea {
 
 .layer-tabs button:focus-visible,
 .app-nav button:focus-visible,
-.context-chip:focus-visible,
+.context-picker:focus-within,
 .composer-mode-tabs button:focus-visible,
 .keycap:focus-visible,
 .history-controls button:focus-visible,
@@ -496,8 +502,10 @@ textarea {
 .file-import:focus-within,
 .action-menu button:focus-visible,
 .page-actions button:focus-visible,
+.page-actions .action-link:focus-visible,
 .section-header > button:focus-visible,
 .button-row button:focus-visible,
+.button-row .action-link:focus-visible,
 .generated button:focus-visible,
 .raw-input-row button:focus-visible {
   outline: 3px solid rgb(0 120 168 / 28%);
@@ -913,7 +921,8 @@ textarea {
 }
 
 .page-actions button,
-.page-actions .file-import {
+.page-actions .file-import,
+.page-actions .action-link {
   background: var(--control-bg);
   border: 1px solid var(--line);
   border-radius: var(--control-radius);
@@ -926,7 +935,8 @@ textarea {
 }
 
 .page-actions button:hover:not(:disabled),
-.page-actions .file-import:hover:not(.disabled) {
+.page-actions .file-import:hover:not(.disabled),
+.page-actions .action-link:hover {
   background: var(--control-bg-hover);
   border-color: rgb(0 120 168 / 28%);
 }
@@ -945,7 +955,8 @@ textarea {
 }
 
 button[data-icon],
-.file-import[data-icon] {
+.file-import[data-icon],
+.action-link[data-icon] {
   align-items: center;
   background: var(--control-bg);
   border: 1px solid var(--line);
@@ -963,7 +974,8 @@ button[data-icon],
 }
 
 button[data-icon]::before,
-.file-import[data-icon]::before {
+.file-import[data-icon]::before,
+.action-link[data-icon]::before {
   align-items: center;
   border-radius: 999px;
   content: attr(data-icon);
@@ -1042,7 +1054,8 @@ button[data-icon]::before,
 }
 
 button.action-import:not(:disabled),
-.file-import.action-import:not(.disabled) {
+.file-import.action-import:not(.disabled),
+.action-link.action-import {
   background: #eef7fb;
   border-color: rgb(0 120 168 / 30%);
   color: #075f85;
@@ -1287,6 +1300,44 @@ button.action-import:not(:disabled),
 
 .project-model-preview-card {
   grid-column: 1 / -1;
+}
+
+.examples-card {
+  align-self: start;
+}
+
+.example-project-list {
+  display: grid;
+  gap: 6px;
+}
+
+.example-project {
+  align-items: center;
+  background: #fffdf7;
+  border: 1px solid rgb(217 210 196 / 78%);
+  border-radius: 9px;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding: 8px 9px;
+  text-align: left;
+}
+
+.example-project:hover {
+  background: #fff9ee;
+  border-color: rgb(0 120 168 / 30%);
+}
+
+.example-project strong {
+  font-size: 0.78rem;
+}
+
+.example-project span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 800;
 }
 
 .model-preview-viewport {
@@ -1899,6 +1950,32 @@ button.action-import:not(:disabled),
   font-size: 0.72rem;
   min-height: 260px;
   resize: vertical;
+}
+
+.kle-help-modal {
+  max-width: 760px;
+  width: min(100%, 760px);
+}
+
+.help-content {
+  color: var(--ink);
+  display: grid;
+  gap: 10px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.help-content p,
+.help-content ol {
+  margin: 0;
+}
+
+.help-content ol {
+  padding-left: 1.25rem;
+}
+
+.help-content li + li {
+  margin-top: 7px;
 }
 
 .rename-modal-actions {

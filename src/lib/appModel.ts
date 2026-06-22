@@ -161,6 +161,44 @@ export function cloneSavedLayout(layout: SavedLayout, fallbackModel: KeyboardMod
   };
 }
 
+export function cloneKeyboardProjectForLibrary(project: SavedKeyboardProject, name = project.name): SavedKeyboardProject {
+  const now = new Date().toISOString();
+  const model = project.model ? sanitizeKeyboardModel(project.model) : null;
+  const layoutIdMap = new Map(project.layouts.map((layout) => [layout.id, newEntityId("layout")]));
+  const layouts = model
+    ? project.layouts.map((layout) => {
+      const clonedLayout = cloneSavedLayout(layout, model);
+      const versionIdMap = new Map(clonedLayout.versions.map((version) => [version.id, newEntityId("layout-version")]));
+      const firstVersionId = clonedLayout.versions[0] ? versionIdMap.get(clonedLayout.versions[0].id) ?? "" : "";
+
+      return {
+        ...clonedLayout,
+        id: layoutIdMap.get(layout.id) ?? newEntityId("layout"),
+        versions: clonedLayout.versions.map((version) => ({
+          ...version,
+          id: versionIdMap.get(version.id) ?? newEntityId("layout-version"),
+          parentId: version.parentId ? versionIdMap.get(version.parentId) ?? null : null,
+          keyboardModel: cloneVersionKeyboardModel(version.keyboardModel),
+          document: cloneKeymapDocument(version.document)
+        })),
+        activeVersionId: versionIdMap.get(clonedLayout.activeVersionId) ?? firstVersionId,
+        updatedAt: now
+      };
+    })
+    : [];
+
+  return {
+    ...project,
+    id: newEntityId("keyboard-project"),
+    name,
+    model,
+    defaultLayout: cloneDefaultLayout(project.defaultLayout),
+    layouts,
+    activeLayoutId: project.activeLayoutId ? layoutIdMap.get(project.activeLayoutId) ?? layouts[0]?.id ?? "" : layouts[0]?.id ?? "",
+    updatedAt: now
+  };
+}
+
 export function reconcileSavedLayoutToModel(layout: SavedLayout, model: KeyboardModel): SavedLayout {
   const document = reconcileKeymapDocumentToModel(layout.document, model);
   const versions = layout.versions.map((version) => cloneLayoutVersion(version, model));
@@ -331,21 +369,20 @@ export function normalizeLoadedProject(raw: Partial<SavedKeyboardProject>, index
 }
 
 export function loadKeyboardProjects(): SavedKeyboardProject[] {
-  const fallback = defaultStarterProjects();
   try {
     const raw = localStorage.getItem(KEYBOARD_PROJECTS_STORAGE_KEY);
-    if (!raw) return fallback;
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as Array<Partial<SavedKeyboardProject>>;
-    return Array.isArray(parsed) && parsed.length > 0
+    return Array.isArray(parsed)
       ? parsed.map((project, index) => normalizeLoadedProject(project, index))
-      : fallback;
+      : [];
   } catch {
-    return fallback;
+    return [];
   }
 }
 
-function defaultStarterProjects(): SavedKeyboardProject[] {
-  const projects = Object.entries(starterProjectModules)
+export function loadExampleProjects(): SavedKeyboardProject[] {
+  return Object.entries(starterProjectModules)
     .sort(([left], [right]) => left.localeCompare(right))
     .flatMap(([source, raw]) => {
       try {
@@ -355,11 +392,10 @@ function defaultStarterProjects(): SavedKeyboardProject[] {
         return [];
       }
     });
-
-  return projects.length > 0 ? projects : [createEmptyKeyboardProject()];
 }
 
-export function activeLayoutFor(project: SavedKeyboardProject): SavedLayout | null {
+export function activeLayoutFor(project: SavedKeyboardProject | null | undefined): SavedLayout | null {
+  if (!project) return null;
   return project.layouts.find((layout) => layout.id === project.activeLayoutId) ?? project.layouts[0] ?? null;
 }
 

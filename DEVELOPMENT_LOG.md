@@ -1112,3 +1112,37 @@ Validation:
 - In-app browser validation: exactly one `undo-action` and one `redo-action` exist, both inside `.history-controls`.
 - In-app browser validation: no Undo/Redo text buttons remain in `.key-editor-card .button-row`.
 - In-app browser validation: editing `LT00` to `KC_F13`, pressing the header Undo icon, and pressing the header Redo icon correctly changed the selected key and history disabled states.
+
+## 2026-06-21: qmk-viz active project library rework
+
+Goal: make the user project library first-class, keep examples separate, move active Project/Layout picking into the top bar, and stop using inline status rows for transient feedback.
+
+What did not work:
+
+- The first implementation interpretation treated `Project / Layout / Export` as page tabs to reduce, but the intended target was the adjacent active-name fields. The page tabs now remain `Project`, `Layout`, and `Export`.
+- The old storage loader silently injected starter projects whenever localStorage was empty, which made example data indistinguishable from user-owned projects.
+- The initial composer layer dropdown still carried the old `SYMB` default into layouts that only had `BASE`. It now clamps choices to actual current layer names.
+- The in-app browser read-only evaluate scope does not expose `localStorage`, so zero-project validation used a fresh dev-server origin/port instead of direct storage mutation.
+
+Changes made:
+
+- `loadKeyboardProjects()` now returns only saved user projects. No saved projects is a valid state.
+- Added explicit example-project loading from bundled `default-projects/`; loading an example clones it into the user library with fresh IDs.
+- Added a top-bar Project selector and Layout selector, and removed the model context field.
+- Removed the duplicate Project page active-project dropdown and replaced it with project-name search plus a selectable project list.
+- Added Workspace Backup export for all current user projects and active selection metadata.
+- Added KLE website link and a KLE mapping help modal explaining center-legend identifiers and uniqueness.
+- Installed `sonner` and routed transient status messages through toasts; removed visible inline global/editor status rows.
+- Changed Simple composer layer actions (`MO`, `TG`, `TT`, `LT`) to use a layer dropdown.
+- Removed redundant Layer Actions `Rename`; the layer-name field is the rename path.
+- Layer renames now reject duplicate names and rewrite layer references in mappings, dances, and extra key values.
+
+Validation:
+
+- `npm run build` passed after the state/UI changes. Existing Vite chunk-size warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: fresh origin renders zero user projects, Project picker disabled, three example templates visible, and no inline status rows present.
+- In-app browser validation: loading `ANSI 60%` example switches to Layout, top Project picker shows `ANSI 60%`, and top Layout picker shows `Default`.
+- In-app browser validation: Simple composer `MO` layer field is a `select` with only current layer options.
+- In-app browser validation: applying `MO(BASE)` then renaming `BASE` to `NAVI` rewrites the selected key action to `MO(NAVI)`.
+- In-app browser validation: adding `LAYER_1` and attempting to rename it to existing `NAVI` is rejected and restores the input to `LAYER_1`.
+- In-app browser validation: Project search filters the user project list and KLE help opens with the expected instructions and KLE link.
