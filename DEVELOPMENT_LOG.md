@@ -11,6 +11,8 @@ What worked:
 - Added `npm run build:pages`, which builds with Vite base `/tool.qmk-viz/`.
 - Added `.github/workflows/pages.yml` to deploy `dist/` through GitHub Pages on every `master` push.
 - Documented the public URL and Pages build command in `README.md`.
+- Created `https://github.com/NonLogicalDev/tool.qmk-viz` and pushed `master`.
+- Enabled GitHub Pages in workflow mode and verified the deployed page at `https://nonlogicaldev.github.io/tool.qmk-viz/`.
 
 What did not work:
 
@@ -18,13 +20,16 @@ What did not work:
 - The local branch was still named `main`; publishing requires renaming or pushing a `master` branch to match the requested workflow trigger.
 - `npm install --package-lock-only --ignore-scripts` reported two existing npm audit findings; these were not fixed because that would be an unrelated dependency upgrade.
 - The first GitHub Pages run failed because Pages was not enabled yet and `actions/configure-pages` defaults to `enablement: false`; the workflow now passes `enablement: true`.
+- The workflow token still could not create the Pages site on a brand-new repo, even with `enablement: true`; enabling Pages once with the authenticated GitHub CLI token fixed the bootstrap.
 
 Validation:
 
 - `git diff --check` passed.
 - `npm run build` passed.
 - `npm run build:pages` passed and emitted a GitHub Pages base path for `/tool.qmk-viz/`.
-- First GitHub push succeeded; final Pages workflow validation is pending after the enablement fix.
+- GitHub Actions run `27936741380` completed successfully after Pages was enabled.
+- `curl -I https://nonlogicaldev.github.io/tool.qmk-viz/` returned HTTP 200.
+- The deployed HTML references `/tool.qmk-viz/assets/...` for both JS and CSS.
 
 ## 2026-06-22: qmk-viz Ergodox Infinity starter example
 

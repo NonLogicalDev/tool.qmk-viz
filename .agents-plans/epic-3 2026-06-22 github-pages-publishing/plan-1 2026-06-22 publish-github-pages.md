@@ -1,6 +1,6 @@
 ---
 date: 2026-06-22
-status: in-progress
+status: complete
 subject: publish-github-pages
 ---
 
@@ -34,15 +34,16 @@ The repo is currently local-only, on branch `main`, with no remote. GitHub CLI a
 2. [x] Add GitHub Pages workflow and Pages build script.
 3. [x] Update README and development log with publish workflow details.
 4. [x] Validate local build and Pages build.
-5. [ ] Checkpoint local publishing setup.
-6. [ ] Create GitHub repo, push `master`, and set remote.
-7. [ ] Confirm GitHub Pages workflow/repo configuration.
+5. [x] Checkpoint local publishing setup.
+6. [x] Create GitHub repo, push `master`, and set remote.
+7. [x] Confirm GitHub Pages workflow/repo configuration.
 
 # Learning Log
 
 - GitHub CLI is authenticated as `NonLogicalDev`; the target repo did not exist before this publish slice.
 - `npm install --package-lock-only --ignore-scripts` reported two audit findings, but fixing them would be separate dependency-upgrade work.
 - `actions/configure-pages@v5` defaults to `enablement: false`; a new repository needs `enablement: true` or the configure step fails with "Get Pages site failed".
+- Even with `enablement: true`, the workflow `GITHUB_TOKEN` could not create the Pages site in the new repo. Creating Pages once with `gh api -X POST repos/NonLogicalDev/tool.qmk-viz/pages -f build_type=workflow` allowed the same workflow to deploy successfully.
 
 # Work Log
 
@@ -50,7 +51,9 @@ The repo is currently local-only, on branch `main`, with no remote. GitHub CLI a
 - [x] 2026-06-22 00:26 - Added MIT license, Pages workflow, `build:pages`, package metadata, README notes, and development log entry.
 - [x] 2026-06-22 00:27 - Validated `git diff --check`, `npm run build`, and `npm run build:pages`.
 - [x] 2026-06-22 00:28 - Created `NonLogicalDev/tool.qmk-viz`, pushed `master`, and found the initial Pages run failed before Pages enablement.
+- [x] 2026-06-22 00:29 - Added `enablement: true`, pushed the fix, then enabled Pages once through the GitHub API after the workflow token could not provision Pages.
+- [x] 2026-06-22 00:32 - Reran the deploy workflow successfully and verified the public URL returns HTTP 200 with `/tool.qmk-viz/assets/...` paths.
 
 # Unfinished Work
 
-- [ ] Push the Pages enablement fix and confirm deployment.
+N/A
