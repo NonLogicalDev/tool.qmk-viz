@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, type ComponentProps, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "../lib/actions";
-import { buildKeyboardModelFromKle, type KeySlot } from "../lib/keyboardModel";
+import { buildKeyboardModelFromKle, keyboardGeometryForModel, type KeySlot } from "../lib/keyboardModel";
 import {
   cloneKeymapDocument,
   createKeymapExportDocument,
@@ -15,6 +15,7 @@ import {
   type KeymapLayer
 } from "../lib/keymap";
 import { serializeKeyboardModelKle, serializeLayerKle } from "../lib/kleExport";
+import { keyboardScaleForViewport, keyboardStageSizeForGeometry } from "../lib/keyboardStage";
 import { ActionMenu } from "../components/ActionMenu";
 import { ContextPicker, type ContextPickerOption } from "../components/ContextPicker";
 import type { ProjectBrowserItem, ProjectBrowserTab } from "../components/ProjectBrowserModal";
@@ -35,10 +36,12 @@ import {
   reconcileSavedLayoutToModel,
   safeFileSlug,
   sanitizeKeyboardModel,
+  serializeKeyboardProject,
   uniqueLayoutName,
   type ProjectFile,
   type SavedKeyboardProject,
-  type SavedLayout
+  type SavedLayout,
+  type SerializedWorkspaceFile
 } from "../lib/appModel";
 import {
   DEFAULT_KEYMAP_TEMPLATE,
@@ -131,10 +134,6 @@ function validateJsonText(value: string, emptyMessage: string, validateRaw: (raw
 
 function isModifierKeyEvent(event: KeyboardEvent): boolean {
   return event.key === "Shift" || event.key === "Control" || event.key === "Alt" || event.key === "Meta";
-}
-
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
 
 function escapeRegExp(value: string): string {
@@ -336,20 +335,9 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   ), [layerColors, layers]);
   const selectedKey = model?.keys.find((key) => key.slot === selectedSlot) ?? model?.keys[0] ?? null;
   const currentAction = selectedKey ? selectedKeycode(activeLayer, selectedKey.slot) : TRANSPARENT;
-  const keyboardStageSize = useMemo(() => ({
-    width: model ? model.width * model.unit : 0,
-    height: model ? model.height * model.unit : 0
-  }), [model]);
-  const keyboardScale = useMemo(() => {
-    if (!keyboardStageSize.width || !keyboardStageSize.height) return 1;
-    const measuredWidth = keyboardViewportSize.width || keyboardStageSize.width;
-    const widthScale = Math.max(0.1, (measuredWidth - 8) / keyboardStageSize.width);
-    const maxVisualHeight = Math.max(360, keyboardViewportSize.screenHeight * 0.68);
-    const heightScale = maxVisualHeight / keyboardStageSize.height;
-    const fitScale = Math.min(widthScale, heightScale);
-
-    return clampNumber(Number.isFinite(fitScale) ? fitScale : 1, 0.2, 1.35);
-  }, [keyboardStageSize.height, keyboardStageSize.width, keyboardViewportSize.screenHeight, keyboardViewportSize.width]);
+  const keyboardGeometry = useMemo(() => model ? keyboardGeometryForModel(model) : null, [model]);
+  const keyboardStageSize = useMemo(() => keyboardStageSizeForGeometry(keyboardGeometry), [keyboardGeometry]);
+  const keyboardScale = useMemo(() => keyboardScaleForViewport(keyboardStageSize, keyboardViewportSize), [keyboardStageSize, keyboardViewportSize]);
   const keyboardVisualSize = useMemo(() => ({
     width: keyboardStageSize.width * keyboardScale,
     height: keyboardStageSize.height * keyboardScale
@@ -1605,7 +1593,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     const projectFile: ProjectFile = {
       version: 1,
       kind: "qmk-viz-project",
-      project
+      project: serializeKeyboardProject(project)
     };
     return JSON.stringify(projectFile, null, 2);
   }
@@ -1759,15 +1747,15 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   }
 
   function downloadWorkspaceBackup() {
-    const backup = {
+    const backup: SerializedWorkspaceFile = {
       version: 1,
       kind: "qmk-viz-workspace",
       exportedAt: new Date().toISOString(),
       activeProjectId: activeKeyboardProjectId || null,
       activeLayoutId: activeLayoutId || null,
       projects: activeKeyboardProject
-        ? keyboardProjects.map((project) => project.id === activeKeyboardProject.id ? projectWithEditorState() ?? project : project)
-        : keyboardProjects
+        ? keyboardProjects.map((project) => serializeKeyboardProject(project.id === activeKeyboardProject.id ? projectWithEditorState() ?? project : project))
+        : keyboardProjects.map(serializeKeyboardProject)
     };
     const filename = `qmk-viz-workspace-${new Date().toISOString().slice(0, 10)}.json`;
     downloadText(JSON.stringify(backup, null, 2), filename);
@@ -1882,7 +1870,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
 
   useEffect(() => {
     if (!enableGlobalEffects) return;
-    localStorage.setItem(KEYBOARD_PROJECTS_STORAGE_KEY, JSON.stringify(keyboardProjects));
+    localStorage.setItem(KEYBOARD_PROJECTS_STORAGE_KEY, JSON.stringify(keyboardProjects.map(serializeKeyboardProject)));
   }, [enableGlobalEffects, keyboardProjects]);
 
   useEffect(() => {
@@ -2113,6 +2101,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     layerColorMap,
     selectedKey,
     currentAction,
+    keyboardGeometry,
     keyboardStageSize,
     keyboardScale,
     keyboardVisualSize,

@@ -1,5 +1,33 @@
 # Development Log
 
+## 2026-06-22: qmk-viz derived keyboard geometry
+
+Goal: keep KLE as the only serialized source of truth for keyboard layout geometry.
+
+What worked:
+
+- Removed derived model geometry from `KeyboardModel`: `width`, `height`, `unit`, `padding`, `paddingX`, and `paddingY`.
+- Added runtime-only keyboard geometry and shared stage scaling helpers.
+- Updated editor rendering, Project marker preview, and Project model stats to compute geometry from parsed KLE keys.
+- Added explicit project/workspace serialization so exported JSON and localStorage store keyboard model metadata plus `kle`, not parsed `keys` or stage geometry.
+- Normalized all starter projects to remove model `keys` and derived geometry.
+- Copied the editor scaling behavior into the Project marker preview by sharing the same stage sizing/scale helper.
+
+What did not work:
+
+- Removing only the Ergodox JSON fields would have been a one-off and would not have stopped exports/localStorage from persisting runtime-only data.
+- The Project marker preview still spilled past about 1252px after using derived geometry because `.model-marker-stage` had preview-only auto-centering; the editor stage does not. Removing that rule made the preview match editor behavior.
+- Vite still emits the existing warning that the built JavaScript chunk is larger than 500 kB after minification.
+
+Validation:
+
+- `git diff --check` passed.
+- `npm run build` passed.
+- `npm run build:pages` passed.
+- Source search found no direct `model.width`, `model.height`, `model.unit`, or `model.padding*` reads.
+- Starter model invariant check confirmed no default project model stores derived geometry or parsed `keys`.
+- In-app browser validation on the Ergodox Project page at `1252x900`, `1440x900`, and `1600x900` confirmed the marker stage and scaler stay within the preview viewport with no horizontal page overflow.
+
 ## 2026-06-22: qmk-viz GitHub Pages publishing setup
 
 Goal: publish qmk-viz as `NonLogicalDev/tool.qmk-viz` with an MIT license and automatic GitHub Pages deploys.

@@ -23,6 +23,7 @@ export function EditorPage() {
     activeLayer,
     activeLayerIndex,
     layerColorMap,
+    keyboardGeometry,
     keyboardVisualSize,
     keyboardStageSize,
     keyboardScale,
@@ -130,6 +131,9 @@ export function EditorPage() {
     deleteActiveVersion,
     loadLayoutVersion,
   } = useAppWorkspace({ enableEditorEffects: true });
+  const keyboardUnit = keyboardGeometry?.unit ?? 60;
+  const keyboardPaddingX = keyboardGeometry?.paddingX ?? 0;
+  const keyboardPaddingY = keyboardGeometry?.paddingY ?? 0;
 
   return (
 <section className="workspace editor-workspace">
@@ -323,7 +327,7 @@ export function EditorPage() {
               const action = selectedKeycode(activeLayer, key.slot);
               const details = describeAction(action);
               const layerColor = details.layer ? layerColorMap[details.layer] : undefined;
-              const keyWidth = key.width * model.unit;
+              const keyWidth = key.width * keyboardUnit;
               const actionType = actionTypeLabel(details);
               const primaryFit = fitPrimaryKeyLabel(details.primary, keyWidth);
               const secondaryFit = fitSecondaryKeyLabel(actionType, keyWidth);
@@ -341,12 +345,12 @@ export function EditorPage() {
                   aria-label={`${key.slot} on ${activeLayer.name}: ${action}`}
                   aria-pressed={key.slot === selectedSlot}
                   style={{
-                    left: (key.x + model.paddingX) * model.unit,
-                    top: (key.y + model.paddingY) * model.unit,
-                    width: key.width * model.unit,
-                    height: key.height * model.unit,
+                    left: (key.x + keyboardPaddingX) * keyboardUnit,
+                    top: (key.y + keyboardPaddingY) * keyboardUnit,
+                    width: key.width * keyboardUnit,
+                    height: key.height * keyboardUnit,
                     transform: `rotate(${key.rotation}deg)`,
-                    transformOrigin: `${(key.rotationX - key.x) * model.unit}px ${(key.rotationY - key.y) * model.unit}px`
+                    transformOrigin: `${(key.rotationX - key.x) * keyboardUnit}px ${(key.rotationY - key.y) * keyboardUnit}px`
                   }}
                   title={`${key.slot}: ${action}`}
                   type="button"

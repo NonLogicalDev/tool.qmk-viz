@@ -1595,10 +1595,6 @@ button.action-import:not(:disabled),
   position: relative;
 }
 
-.model-marker-stage {
-  margin: 0 auto;
-}
-
 .model-marker-key {
   background: #fffdf7;
   border-color: #d9d2c4;

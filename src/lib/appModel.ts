@@ -1,5 +1,10 @@
 import type { BehaviorSlots } from "./actions";
-import { buildKeyboardModelFromKle, type KeyboardModel } from "./keyboardModel";
+import {
+  buildKeyboardModelFromKle,
+  keyboardModelToSpec,
+  type KeyboardModel,
+  type KeyboardModelSpec
+} from "./keyboardModel";
 import { DEFAULT_KEYMAP_TEMPLATE, normalizeKeymapTemplate } from "./keymapTemplate";
 import {
   cloneKeymapDocument,
@@ -60,10 +65,14 @@ export type SavedKeyboardProject = {
   updatedAt: string;
 };
 
+export type SerializedKeyboardProject = Omit<SavedKeyboardProject, "model"> & {
+  model: KeyboardModelSpec | null;
+};
+
 export type ProjectFile = {
   version: 1;
   kind: "qmk-viz-project";
-  project: SavedKeyboardProject;
+  project: SerializedKeyboardProject;
 };
 
 export type WorkspaceFile = {
@@ -73,6 +82,10 @@ export type WorkspaceFile = {
   activeProjectId: string | null;
   activeLayoutId: string | null;
   projects: SavedKeyboardProject[];
+};
+
+export type SerializedWorkspaceFile = Omit<WorkspaceFile, "projects"> & {
+  projects: SerializedKeyboardProject[];
 };
 
 export function newEntityId(prefix: string): string {
@@ -246,8 +259,35 @@ export function createLayout(name: string, document: KeymapDocument, model: Keyb
 
 export function sanitizeKeyboardModel(model: KeyboardModel): KeyboardModel {
   return {
-    ...model,
-    kle: cloneKleDocument(model.kle)
+    id: model.id,
+    name: model.name,
+    author: model.author,
+    source: model.source,
+    kle: cloneKleDocument(model.kle),
+    keys: model.keys.map((key) => ({ ...key }))
+  };
+}
+
+export function serializeKeyboardProject(project: SavedKeyboardProject): SerializedKeyboardProject {
+  return {
+    ...project,
+    model: project.model ? keyboardModelToSpec(project.model) : null,
+    defaultLayout: cloneDefaultLayout(project.defaultLayout),
+    layouts: project.layouts.map((layout) => {
+      if (!project.model) {
+        return {
+          ...layout,
+          document: cloneKeymapDocument(layout.document),
+          versions: layout.versions.map((version) => ({
+            ...version,
+            keyboardModel: cloneVersionKeyboardModel(version.keyboardModel),
+            document: cloneKeymapDocument(version.document)
+          }))
+        };
+      }
+
+      return cloneSavedLayout(layout, project.model);
+    })
   };
 }
 

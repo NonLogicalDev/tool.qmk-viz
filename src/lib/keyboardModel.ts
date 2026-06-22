@@ -18,14 +18,26 @@ export type KeyboardModel = {
   name: string;
   author?: string;
   source: string;
+  kle: KleDocument;
+  keys: KeySlot[];
+};
+
+export type KeyboardModelSpec = {
+  id: string;
+  name: string;
+  author?: string;
+  source: string;
+  kle: KleDocument;
+};
+
+export type KeyboardGeometry = {
+  naturalWidth: number;
+  naturalHeight: number;
   width: number;
   height: number;
   unit: number;
-  padding: number;
   paddingX: number;
   paddingY: number;
-  kle: KleDocument;
-  keys: KeySlot[];
 };
 
 type Bounds = {
@@ -133,11 +145,6 @@ export function buildKeyboardModelFromKle(raw: unknown, options: {
   const name = options.name || metadataString(metadata, "name") || "Uploaded Keyboard";
   const author = options.author || metadataString(metadata, "author");
   const bounds = keyboardBounds(keys);
-  const naturalWidth = bounds.maxX - bounds.minX;
-  const naturalHeight = bounds.maxY - bounds.minY;
-  const unit = displayUnitFor(naturalWidth);
-  const stagePaddingX = 10 / unit;
-  const stagePaddingY = 10 / unit;
   const normalizedKeys = keys.map((key) => ({
     ...key,
     x: key.x - bounds.minX,
@@ -151,13 +158,36 @@ export function buildKeyboardModelFromKle(raw: unknown, options: {
     name,
     author,
     source: options.source || "Keyboard Layout Editor JSON",
-    width: naturalWidth + stagePaddingX * 2,
-    height: naturalHeight + stagePaddingY * 2,
-    unit,
-    padding: stagePaddingX,
-    paddingX: stagePaddingX,
-    paddingY: stagePaddingY,
     kle: cloneKleDocument(raw),
     keys: normalizedKeys
+  };
+}
+
+export function keyboardGeometryForModel(model: KeyboardModel): KeyboardGeometry {
+  const bounds = keyboardBounds(model.keys);
+  const naturalWidth = bounds.maxX - bounds.minX;
+  const naturalHeight = bounds.maxY - bounds.minY;
+  const unit = displayUnitFor(naturalWidth);
+  const paddingX = 10 / unit;
+  const paddingY = 10 / unit;
+
+  return {
+    naturalWidth,
+    naturalHeight,
+    width: naturalWidth + paddingX * 2,
+    height: naturalHeight + paddingY * 2,
+    unit,
+    paddingX,
+    paddingY
+  };
+}
+
+export function keyboardModelToSpec(model: KeyboardModel): KeyboardModelSpec {
+  return {
+    id: model.id,
+    name: model.name,
+    author: model.author,
+    source: model.source,
+    kle: cloneKleDocument(model.kle)
   };
 }

@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { KeyboardModelPreview } from "../components/KeyboardModelPreview";
 import { useAppWorkspace } from "../hooks/useAppWorkspace";
+import { keyboardGeometryForModel } from "../lib/keyboardModel";
 
 export function ProjectPage() {
   const {
@@ -27,6 +29,7 @@ export function ProjectPage() {
   const hasActiveProject = Boolean(activeKeyboardProject);
   const projectName = keyboardProjectNameDraft;
   const userProjectCount = keyboardProjects.length;
+  const modelGeometry = useMemo(() => model ? keyboardGeometryForModel(model) : null, [model]);
 
   return (
     <section className="page-panel project-page">
@@ -123,7 +126,7 @@ export function ProjectPage() {
             </div>
             <div>
               <dt>Canvas</dt>
-              <dd>{model ? `${model.width.toFixed(1)}u × ${model.height.toFixed(1)}u` : "Not configured"}</dd>
+              <dd>{modelGeometry ? `${modelGeometry.naturalWidth.toFixed(1)}u × ${modelGeometry.naturalHeight.toFixed(1)}u` : "Not configured"}</dd>
             </div>
             <div>
               <dt>Author</dt>

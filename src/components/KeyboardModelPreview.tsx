@@ -1,20 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardModel } from "../lib/keyboardModel";
+import { keyboardGeometryForModel, type KeyboardModel } from "../lib/keyboardModel";
+import { keyboardScaleForViewport, keyboardStageSizeForGeometry, type KeyboardStageViewport } from "../lib/keyboardStage";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "../lib/textFit";
 
 export function KeyboardModelPreview({ model }: { model: KeyboardModel }) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const [viewportWidth, setViewportWidth] = useState(0);
-  const stageSize = useMemo(() => ({
-    width: model.width * model.unit,
-    height: model.height * model.unit
-  }), [model.height, model.unit, model.width]);
-  const scale = useMemo(() => {
-    if (!stageSize.width) return 1;
-    const availableWidth = Math.max(160, viewportWidth - 20);
-    const fitScale = availableWidth / stageSize.width;
-    return Math.min(1.2, Math.max(0.18, Number.isFinite(fitScale) ? fitScale : 1));
-  }, [stageSize.width, viewportWidth]);
+  const [viewportSize, setViewportSize] = useState<KeyboardStageViewport>({
+    width: 0,
+    screenHeight: typeof window === "undefined" ? 900 : window.innerHeight
+  });
+  const geometry = useMemo(() => keyboardGeometryForModel(model), [model]);
+  const stageSize = useMemo(() => keyboardStageSizeForGeometry(geometry), [geometry]);
+  const scale = useMemo(() => keyboardScaleForViewport(stageSize, viewportSize), [stageSize, viewportSize]);
   const visualSize = useMemo(() => ({
     width: stageSize.width * scale,
     height: stageSize.height * scale
@@ -24,24 +21,31 @@ export function KeyboardModelPreview({ model }: { model: KeyboardModel }) {
     const node = viewportRef.current;
     if (!node) return undefined;
 
-    const updateViewportWidth = () => {
-      const nextWidth = node.clientWidth;
-      setViewportWidth((current) => (Math.abs(current - nextWidth) < 0.5 ? current : nextWidth));
+    const updateViewportSize = () => {
+      const styles = window.getComputedStyle(node);
+      const horizontalPadding = Number.parseFloat(styles.paddingLeft) + Number.parseFloat(styles.paddingRight);
+      const nextWidth = Math.max(0, node.clientWidth - horizontalPadding);
+      const nextScreenHeight = window.innerHeight;
+      setViewportSize((current) => (
+        Math.abs(current.width - nextWidth) < 0.5 && current.screenHeight === nextScreenHeight
+          ? current
+          : { width: nextWidth, screenHeight: nextScreenHeight }
+      ));
     };
 
-    updateViewportWidth();
-    window.addEventListener("resize", updateViewportWidth);
+    updateViewportSize();
+    window.addEventListener("resize", updateViewportSize);
 
     if (typeof ResizeObserver === "undefined") {
-      return () => window.removeEventListener("resize", updateViewportWidth);
+      return () => window.removeEventListener("resize", updateViewportSize);
     }
 
-    const observer = new ResizeObserver(updateViewportWidth);
+    const observer = new ResizeObserver(updateViewportSize);
     observer.observe(node);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", updateViewportWidth);
+      window.removeEventListener("resize", updateViewportSize);
     };
   }, []);
 
@@ -60,7 +64,7 @@ export function KeyboardModelPreview({ model }: { model: KeyboardModel }) {
           }}
         >
           {model.keys.map((key) => {
-            const keyWidth = key.width * model.unit;
+            const keyWidth = key.width * geometry.unit;
             const primaryFit = fitPrimaryKeyLabel(key.slot, keyWidth);
             const secondaryFit = fitSecondaryKeyLabel("marker", keyWidth);
 
@@ -69,12 +73,12 @@ export function KeyboardModelPreview({ model }: { model: KeyboardModel }) {
                 className="keycap read-only model-marker-key"
                 key={key.slot}
                 style={{
-                  left: (key.x + model.paddingX) * model.unit,
-                  top: (key.y + model.paddingY) * model.unit,
-                  width: key.width * model.unit,
-                  height: key.height * model.unit,
+                  left: (key.x + geometry.paddingX) * geometry.unit,
+                  top: (key.y + geometry.paddingY) * geometry.unit,
+                  width: key.width * geometry.unit,
+                  height: key.height * geometry.unit,
                   transform: `rotate(${key.rotation}deg)`,
-                  transformOrigin: `${(key.rotationX - key.x) * model.unit}px ${(key.rotationY - key.y) * model.unit}px`
+                  transformOrigin: `${(key.rotationX - key.x) * geometry.unit}px ${(key.rotationY - key.y) * geometry.unit}px`
                 }}
                 title={`${key.slot}${key.legend ? ` from ${key.legend}` : ""}`}
               >
