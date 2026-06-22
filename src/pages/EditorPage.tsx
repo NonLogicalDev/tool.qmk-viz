@@ -1,4 +1,6 @@
-import { describeAction } from "../lib/actions";
+import { useEffect, useMemo, useState } from "react";
+
+import { describeAction, isRecognizedKeycode } from "../lib/actions";
 import { selectedKeycode, TRANSPARENT } from "../lib/keymap";
 import { type SimpleComposerKind } from "../lib/qmkActions";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "../lib/textFit";
@@ -9,6 +11,7 @@ import { danceBehaviorFields, layerPalette, simpleKeycodeMods, toggleSimpleKeyco
 import { useAppWorkspace } from "../hooks/useAppWorkspace";
 
 export function EditorPage() {
+  const [isEditingSelectedKey, setIsEditingSelectedKey] = useState(false);
   const {
     keyboardViewportRef,
     activeKeyboardProject,
@@ -65,11 +68,9 @@ export function EditorPage() {
     extKeyDraft,
     versionNameDraft,
     selectedVersionNameDraft,
-    layoutPickerOptions,
     renderContextPicker,
     renderActionMenu,
     runMenuAction,
-    loadLayout,
     openCreateLayoutDialog,
     duplicateLayout,
     uploadLayout,
@@ -141,74 +142,88 @@ export function EditorPage() {
   const keyboardUnit = keyboardGeometry?.unit ?? 60;
   const keyboardPaddingX = keyboardGeometry?.paddingX ?? 0;
   const keyboardPaddingY = keyboardGeometry?.paddingY ?? 0;
+  const supportIdentifierNames = useMemo(() => {
+    return new Set([
+      ...aliasRows.map((key) => key.name),
+      ...customKeycodeRows.map((key) => key.name),
+      ...macroRows.map((key) => key.name),
+      ...danceRows.map(([name]) => name)
+    ].map((name) => name.trim()).filter(Boolean));
+  }, [aliasRows, customKeycodeRows, danceRows, macroRows]);
+  const selectedExpressionValue = isEditingSelectedKey ? draftAction : currentAction;
+  const selectedExpressionDetails = describeAction(selectedExpressionValue);
+  const selectedExpressionValidationLevel = selectedExpressionDetails.validation?.level ??
+    (supportIdentifierNames.has(selectedExpressionValue.trim()) || isRecognizedKeycode(selectedExpressionValue) ? "ok" : "warning");
+
+  useEffect(() => {
+    setIsEditingSelectedKey(false);
+  }, [activeLayer.name, selectedSlot]);
+
+  const startEditingSelectedKey = () => {
+    setDraftAction(currentAction);
+    setIsEditingSelectedKey(true);
+  };
+
+  const cancelEditingSelectedKey = () => {
+    setDraftAction(currentAction);
+    setIsEditingSelectedKey(false);
+  };
+
+  const saveEditingSelectedKey = () => {
+    if (!selectedKey) {
+      return;
+    }
+    writeAction(draftAction);
+    setIsEditingSelectedKey(false);
+    setStatusMessage(`Updated ${selectedKey.slot} on ${activeLayer.name}.`);
+  };
 
   return (
     <>
 <section className="workspace editor-workspace">
-          <div className="editor-card active-layout-card editor-layout-card">
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">Active layout</p>
-                <h2>{layoutNameDraft || activeSavedLayout?.name || "No layout selected"}</h2>
-              </div>
-              <span className="metric-pill">{availableLayouts.length} layouts / {activeSavedLayout?.versions.length ?? 0} versions</span>
+          <div className="page-heading active-layout-card editor-layout-card">
+            <div>
+              <p className="eyebrow">Layout</p>
+              <h1>{layoutNameDraft || activeSavedLayout?.name || "No layout selected"}</h1>
+              <p>{availableLayouts.length} layouts / {activeSavedLayout?.versions.length ?? 0} versions. Use the top bar to switch layouts.</p>
             </div>
-            <div className="editor-layout-controls">
-              {renderContextPicker({
-                id: "editor-layout",
-                label: "Layout",
-                value: activeLayoutId,
-                emptyLabel: "No layouts",
-                choices: layoutPickerOptions,
-                disabled: !activeSavedLayout,
-                onSelect: (value) => {
-                  if (value !== activeLayoutId) {
-                    loadLayout(value);
-                  }
-                },
-                className: "field-picker editor-layout-picker",
-                triggerTestId: "layout-select",
-                searchTestId: "layout-select-search",
-                optionTestId: "layout-select-option"
-              })}
-              <div className="button-row editor-layout-actions">
-                <button className="action-create" data-icon="+" data-testid="new-layout" disabled={!model} onClick={openCreateLayoutDialog} type="button">Create Layout</button>
-                {renderActionMenu("layout-actions", "Layout actions", (
-                  <>
-                    <button className="action-copy" data-icon="⧉" data-testid="duplicate-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(duplicateLayout)} role="menuitem" type="button">Duplicate Layout</button>
-                    <label
-                      aria-disabled={!model}
-                      className={`file-import action-import ${!model ? "disabled" : ""}`}
-                      data-icon="⇣"
-                      role="menuitem"
-                      title={model ? "Import a layout JSON file" : "Add a KLE model before importing layouts"}
-                    >
-                      Import Layout
-                      <input
-                        data-testid="layout-upload"
-                        accept="application/json,.json"
-                        disabled={!model}
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (file) {
-                            void uploadLayout(file).catch((error: unknown) => {
-                              setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
-                            });
-                          }
-                          closeActionMenus();
-                          event.target.value = "";
-                        }}
-                        type="file"
-                      />
-                    </label>
-                    <button className="action-rename" data-icon="{}" data-testid="edit-layout-json" disabled={!activeSavedLayout} onClick={() => runMenuAction(() => openJsonEditDialog("layout"))} role="menuitem" type="button">Edit Layout JSON</button>
-                    <button className="action-export" data-icon="⇡" data-testid="download-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(downloadJson)} role="menuitem" type="button">Download Layout</button>
-                    <button className="action-rename" data-icon="✎" data-testid="rename-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(openLayoutRenameDialog)} role="menuitem" type="button">Rename Layout</button>
-                    <button className="action-default" data-icon="★" data-testid="save-default-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(saveCurrentLayoutAsDefault)} role="menuitem" type="button">Save as Default</button>
-                    <button className="danger-button action-danger" data-icon="!" data-testid="delete-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(deleteLayout)} role="menuitem" type="button">Delete Layout</button>
-                  </>
-                ), { disabled: !model && !activeSavedLayout })}
-              </div>
+            <div className="page-actions editor-layout-actions">
+              <button className="action-create" data-icon="+" data-testid="new-layout" disabled={!model} onClick={openCreateLayoutDialog} type="button">Create Layout</button>
+              {renderActionMenu("layout-actions", "Layout actions", (
+                <>
+                  <button className="action-copy" data-icon="⧉" data-testid="duplicate-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(duplicateLayout)} role="menuitem" type="button">Duplicate Layout</button>
+                  <label
+                    aria-disabled={!model}
+                    className={`file-import action-import ${!model ? "disabled" : ""}`}
+                    data-icon="⇣"
+                    role="menuitem"
+                    title={model ? "Import a layout JSON file" : "Add a KLE model before importing layouts"}
+                  >
+                    Import Layout
+                    <input
+                      data-testid="layout-upload"
+                      accept="application/json,.json"
+                      disabled={!model}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          void uploadLayout(file).catch((error: unknown) => {
+                            setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
+                          });
+                        }
+                        closeActionMenus();
+                        event.target.value = "";
+                      }}
+                      type="file"
+                    />
+                  </label>
+                  <button className="action-rename" data-icon="{}" data-testid="edit-layout-json" disabled={!activeSavedLayout} onClick={() => runMenuAction(() => openJsonEditDialog("layout"))} role="menuitem" type="button">Edit Layout JSON</button>
+                  <button className="action-export" data-icon="⇡" data-testid="download-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(downloadJson)} role="menuitem" type="button">Download Layout</button>
+                  <button className="action-rename" data-icon="✎" data-testid="rename-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(openLayoutRenameDialog)} role="menuitem" type="button">Rename Layout</button>
+                  <button className="action-default" data-icon="★" data-testid="save-default-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(saveCurrentLayoutAsDefault)} role="menuitem" type="button">Save as Default</button>
+                  <button className="danger-button action-danger" data-icon="!" data-testid="delete-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(deleteLayout)} role="menuitem" type="button">Delete Layout</button>
+                </>
+              ), { disabled: !model && !activeSavedLayout })}
             </div>
           </div>
           {!activeKeyboardProject ? (
@@ -455,48 +470,64 @@ export function EditorPage() {
 
           <aside className="editor-panel">
             <div className="editor-card key-editor-card">
-            <div className="selected-key-row">
-              <div className="selected-key-id" title="Selected key id">
-                <span>Key</span>
-                <strong>{selectedKey.slot}</strong>
+              <div className="selected-key-header">
+                <span>Selected Key:</span>
+                <strong>Key {selectedKey.slot} / {activeLayer.name}</strong>
               </div>
-              <div className="selected-key-current">
-                <span>{activeLayer.name}</span>
-                <code className="current-action">{currentAction}</code>
-              </div>
-              <label className="selected-key-raw">
-                <span>Raw</span>
+              <div className="selected-key-expression-row">
                 <input
+                  aria-label={`Expression for ${selectedKey.slot} on ${activeLayer.name}`}
+                  className={`validation-${selectedExpressionValidationLevel}`}
                   data-testid="action-input"
-                  value={draftAction}
+                  readOnly={!isEditingSelectedKey}
+                  value={selectedExpressionValue}
                   onChange={(event) => setDraftAction(event.target.value)}
                   onKeyDown={(event) => {
+                    if (!isEditingSelectedKey) {
+                      return;
+                    }
                     if (event.key === "Enter") {
-                      writeAction(draftAction);
-                      setStatusMessage(`Updated ${selectedKey.slot} on ${activeLayer.name}.`);
+                      saveEditingSelectedKey();
+                    }
+                    if (event.key === "Escape") {
+                      cancelEditingSelectedKey();
                     }
                   }}
                   spellCheck={false}
                 />
-              </label>
-              <button
-                className="action-save"
-                data-icon="✓"
-                data-testid="apply-action"
-                onClick={() => {
-                  writeAction(draftAction);
-                  setStatusMessage(`Updated ${selectedKey.slot} on ${activeLayer.name}.`);
-                }}
-                type="button"
-              >
-                Apply raw
-              </button>
-            </div>
-            {draftDetails.validation && (
-              <p className={`action-validation ${draftDetails.validation.level}`} data-testid="action-validation">
-                {draftDetails.validation.message}
-              </p>
-            )}
+                {isEditingSelectedKey ? (
+                  <div className="selected-key-edit-actions">
+                    <button
+                      className="action-default"
+                      data-icon="×"
+                      data-testid="cancel-action-edit"
+                      onClick={cancelEditingSelectedKey}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="action-save"
+                      data-icon="✓"
+                      data-testid="apply-action"
+                      onClick={saveEditingSelectedKey}
+                      type="button"
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="action-save"
+                    data-icon="✎"
+                    data-testid="edit-action"
+                    onClick={startEditingSelectedKey}
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="editor-card composer-card">

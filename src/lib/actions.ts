@@ -307,6 +307,20 @@ function displayActionPrimary(identifier: string): string {
   return displayModifierChord(identifier) ?? displayKeycode(identifier);
 }
 
+export function isRecognizedKeycode(identifier: string): boolean {
+  const value = stripRedundantParens(identifier);
+  return Boolean(
+    keyLabels[value] ||
+    /^KC_[A-Z]$/.test(value) ||
+    /^KC_\d$/.test(value) ||
+    /^KC_F\d+$/.test(value) ||
+    /^KC_P\d$/.test(value) ||
+    value === "KC_PDOT" ||
+    value.startsWith("QK_") ||
+    value.startsWith("MS_")
+  );
+}
+
 function actionDownStatement(value: string, fallback: string): string {
   const clean = cleanSlot(value) || fallback;
   const layer = layerNameFromHold(clean);
@@ -440,7 +454,12 @@ export function describeAction(identifier: string): ActionDetails {
   }
 
   if (/^DANCE_\d+$/.test(value)) {
-    return { primary: value, secondary: "tap dance", tone: "special" };
+    return {
+      primary: value,
+      secondary: "tap dance",
+      tone: "special",
+      validation: { level: "ok", message: `${value} is a recognized tap dance identifier.` }
+    };
   }
 
   if (functionCall?.name === "LT") {
@@ -505,8 +524,12 @@ export function describeAction(identifier: string): ActionDetails {
     };
   }
 
-  if (value.startsWith("QK_") || value.startsWith("MS_")) {
-    return { primary: displayKeycode(value), tone: "special" };
+  if (isRecognizedKeycode(value)) {
+    return {
+      primary: displayKeycode(value),
+      tone: value.startsWith("QK_") || value.startsWith("MS_") ? "special" : "plain",
+      validation: { level: "ok", message: `${value} is a recognized QMK keycode.` }
+    };
   }
 
   return { primary: displayKeycode(value), tone: "plain" };

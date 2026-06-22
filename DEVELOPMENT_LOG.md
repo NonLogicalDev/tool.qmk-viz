@@ -1725,3 +1725,37 @@ Validation:
 - In-app browser validation: the Keycode MODS row rendered `ShiftCtrlAltGui|Meh|Hyper` and did not contain the literal text `Regular Mods`.
 - In-app browser validation: Selected Key measured as a 55px row instead of the previous 200px stretched row.
 - In-app browser validation: wheel scrolling over the keyboard moved page scroll from `168` to `588` while the keyboard viewport stayed at `scrollTop: 0`.
+
+## 2026-06-22: qmk-viz Selected Key edit mode and Layout page cleanup
+
+Goal: make Selected Key a compact expression editor, remove duplicate layout selection, and keep validation/status cues dense.
+
+What did not work:
+
+- The Selected Key block still duplicated key/layer/current-action cells instead of reading as one compact selected-expression editor.
+- `Edit` originally wrote immediately; it needed to switch the expression into an editable mode with `Cancel` and `Save`.
+- Inline validation text such as `MO(...) is a recognized qmk-viz composition.` consumed a row in the compact card.
+- Plain recognized QMK keycodes did not get a green validation state because only parsed function expressions had validation metadata.
+- The Active Layout card still had a duplicate layout picker even though the top bar already owns layout switching.
+- I initially misread "model after project page" as adding a separate Model page; the correct fix was to model the Layout page after the Project page.
+- Remaining sticky controls conflicted with the requested non-sticky UI behavior.
+
+Changes made:
+
+- Reshaped Selected Key into a two-row card: `Selected Key:` / `Key <slot> / <layer>`, then expression input plus action buttons.
+- Made the expression read-only until `Edit`; edit mode shows `Cancel` and `Save`, with Escape cancel and Enter save.
+- Moved Selected Key validation from inline text to green/red expression input outlines.
+- Added recognized-keycode validation for stock-looking QMK keycodes, `QK_*`, `MS_*`, tap dances, and layout-local support identifiers.
+- Removed the duplicate editor-local layout picker and kept layout switching in the top bar.
+- Reworked the Layout page top section into the same page-heading/action pattern used by Project.
+- Kept the Action Composer helper sentence on its own row and right-aligned with the action buttons.
+- Removed sticky positioning from layer tabs and the export action bar.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation: Selected Key spans the full editor row, renders read-only by default, and shows a green outline for `MO(NAVI)`.
+- In-app browser validation: the Selected Key card has no inline validation paragraph.
+- In-app browser validation: the Layout page has no duplicate `layout-select` picker; the top layout picker remains.
+- In-app browser validation: Project still renders the model readout, KLE model actions, and marker preview.
+- In-app browser validation: the composer helper sentence stays on its own row and shares the same right edge as the button group.

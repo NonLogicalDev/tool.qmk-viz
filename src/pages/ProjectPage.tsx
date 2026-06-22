@@ -126,7 +126,7 @@ export function ProjectPage() {
             </div>
             <div>
               <dt>Canvas</dt>
-              <dd>{modelGeometry ? `${modelGeometry.naturalWidth.toFixed(1)}u × ${modelGeometry.naturalHeight.toFixed(1)}u` : "Not configured"}</dd>
+              <dd>{modelGeometry ? `${modelGeometry.naturalWidth.toFixed(1)}u x ${modelGeometry.naturalHeight.toFixed(1)}u` : "Not configured"}</dd>
             </div>
             <div>
               <dt>Author</dt>
