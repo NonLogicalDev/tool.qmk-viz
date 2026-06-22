@@ -1865,3 +1865,27 @@ Validation:
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
 - In-app browser validation: Project page shows `KLE means Keyboard Layout Editor` in the Keyboard Model card and the external link reads `Open Keyboard Layout Editor`.
+
+## 2026-06-22: qmk-viz mobile keyboard overflow fix
+
+Goal: prevent the Layout page keyboard editor from overflowing horizontally on mobile widths.
+
+What did not work:
+
+- `.keyboard-stage-viewport` had `overflow: auto`, but as a CSS grid item it still used min-content sizing around the scaled keyboard.
+- At a 390px viewport, `documentElement.scrollWidth` measured 577px before the fix.
+- After containing the keyboard stage, the page still overflowed because the layer toolbar color swatches and React Flow version tree also widened the document.
+
+Changes made:
+
+- Added shrink containment (`min-width: 0`) to editor/page child containers and editor cards.
+- Made `.keyboard-stage-viewport` stretch to its card, cap itself at `max-width: 100%`, and own touch-friendly overflow.
+- Allowed the layer toolbar to wrap and made the color picker collapse onto its own row on small screens.
+- Added layout/paint containment around the version tree and clipped React Flow internals so transformed graph content cannot widen the page.
+
+Validation:
+
+- In-app browser validation at `390x844`: document/body scroll width equals 390px; keyboard viewport is contained at 352px.
+- In-app browser validation at `320x720`: document/body scroll width equals 320px; keyboard viewport, layer toolbar, and version tree remain contained.
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.

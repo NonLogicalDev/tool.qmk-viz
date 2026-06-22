@@ -559,6 +559,12 @@ textarea {
   width: 100%;
 }
 
+.keyboard-panel > *,
+.editor-panel > *,
+.page-panel > * {
+  min-width: 0;
+}
+
 .layer-tabs {
   align-items: end;
   border-bottom: 1px solid var(--line);
@@ -622,6 +628,7 @@ textarea {
   border: 1px solid rgb(217 210 196 / 82%);
   border-radius: 10px;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-start;
   margin: 0 0 1px;
@@ -633,12 +640,14 @@ textarea {
   display: flex;
   flex: 0 1 460px;
   gap: 6px;
+  min-width: 0;
 }
 
 .layer-edit-controls {
   align-items: center;
   display: flex;
   gap: 6px;
+  min-width: 0;
 }
 
 .layer-edit-controls .button-row {
@@ -657,7 +666,7 @@ textarea {
   flex: 1 1 280px;
   gap: 7px;
   justify-content: flex-end;
-  min-width: 220px;
+  min-width: 0;
 }
 
 .layer-color-picker > span {
@@ -853,14 +862,19 @@ textarea {
 }
 
 .keyboard-stage-viewport {
+  justify-self: stretch;
+  max-width: 100%;
+  min-width: 0;
   overflow: auto;
   overscroll-behavior: auto;
   padding: 0;
+  touch-action: pan-x pan-y;
   width: 100%;
 }
 
 .keyboard-stage-scaler {
   margin: 0 auto;
+  max-width: none;
   position: relative;
 }
 
@@ -1863,8 +1877,16 @@ button.action-import:not(:disabled),
     #fbfaf6;
   border: 1px solid rgb(217 210 196 / 80%);
   border-radius: 13px;
+  contain: layout paint;
   height: 330px;
   min-width: 0;
+  overflow: hidden;
+}
+
+.version-tree .react-flow,
+.version-tree .react-flow__renderer,
+.version-tree .react-flow__pane {
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -2074,6 +2096,7 @@ button.action-import:not(:disabled),
   box-shadow: 0 8px 24px rgb(54 47 35 / 8%);
   display: grid;
   gap: 8px;
+  min-width: 0;
   padding: 10px;
 }
 
@@ -3006,6 +3029,24 @@ button.action-import:not(:disabled),
 
   .model-facts {
     grid-template-columns: 1fr;
+  }
+
+  .layer-toolbar {
+    align-items: stretch;
+  }
+
+  .layer-edit-group,
+  .layer-edit-controls,
+  .layer-color-picker {
+    flex: 1 1 100%;
+  }
+
+  .layer-edit-controls input {
+    min-width: 0;
+  }
+
+  .layer-color-picker {
+    justify-content: flex-start;
   }
 
   .composer-output-preview {
