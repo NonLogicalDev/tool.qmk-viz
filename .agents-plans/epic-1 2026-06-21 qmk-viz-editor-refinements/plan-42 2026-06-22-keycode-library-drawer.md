@@ -29,6 +29,9 @@ The editor already has capture for the Simple composer, but users still need a d
 - Keep the category browser visually distinct from the app's custom dropdown/picker pattern.
 - Provide Copy per result and keep insertion into composer/key fields for a later pass if the pattern proves useful.
 - Keep the drawer compact and fixed at bottom-right so it behaves like contextual help without stealing editor layout space.
+- Scope the drawer to the editor page only; Project and Export should not show keycode reference UI.
+- Use explicit category toggle buttons instead of native `details` so the full group header row is the hit target and expansion is reliable without a search query.
+- Keep group headers visually distinct from result rows, and make the category list the only scroll surface inside the drawer.
 
 # Implementation Steps
 
@@ -39,6 +42,11 @@ The editor already has capture for the Simple composer, but users still need a d
 5. [x] Update `DEVELOPMENT_LOG.md`.
 6. [x] Validate build and browser behavior.
 7. [x] Create a local checkpoint.
+8. [x] Move the keycode drawer mount from the app shell into the editor page.
+9. [x] Replace native category `details` with explicit full-row toggle buttons.
+10. [x] Restyle category groups so headers and member rows are visually distinct.
+11. [x] Fix drawer overflow so expanded group contents scroll inside the card.
+12. [x] Revalidate editor-only availability, no-search expansion, mobile containment, and build.
 
 # Learning Log
 
@@ -46,6 +54,8 @@ The editor already has capture for the Simple composer, but users still need a d
 - The first prototype catalog has 92 entries. It is intentionally curated and can later be generated from QMK docs or expanded without changing the drawer UI.
 - Search is token-based across code, label, description, category, and aliases; this makes `key a` find `KC_A` and `volume` find `KC_VOLU`, `KC_VOLD`, and `KC_MUTE`.
 - The drawer should remain read-only/reference oriented for this pass. Applying keycodes directly into focused editor fields is a separate interaction model to design later.
+- The native `details` version was too brittle here because expansion state was partly implied by search state. Explicit category buttons make the full header row clickable and keep behavior obvious.
+- The category list should be a flex column, not a grid, because expanded result lists need to contribute to scroll height instead of being compressed inside the drawer.
 
 # Work Log
 
@@ -54,6 +64,10 @@ The editor already has capture for the Simple composer, but users still need a d
 - [x] 2026-06-22 09:27 - Added the keycode catalog, drawer component, app mount, and compact responsive styles.
 - [x] 2026-06-22 09:27 - Browser-validated open state, category accordions, `key a` search, `volume` search, copy-to-clipboard, and mobile containment.
 - [x] 2026-06-22 09:27 - Verified `git diff --check` and `npm run build`.
+- [x] 2026-06-22 09:40 - Captured follow-up requirements: editor-only drawer, visually distinct group headers, full-row group toggles, no-search expansion, and contained drawer overflow.
+- [x] 2026-06-22 09:49 - Moved the drawer to `EditorPage`, replaced native `details` with explicit category toggle buttons, and made the category list an internal scroll surface.
+- [x] 2026-06-22 09:50 - Browser-validated Project has no keycode trigger, Layout has one trigger, no-search groups expand from the header row, search expands matching categories, and forced mobile overflow scrolls internally.
+- [x] 2026-06-22 09:50 - Verified `git diff --check` and `npm run build`; captured desktop and mobile screenshots.
 
 # Unfinished Work
 

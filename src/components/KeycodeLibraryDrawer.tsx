@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   filterKeycodeLibraryEntries,
@@ -30,6 +30,7 @@ async function writeClipboard(value: string) {
 
 export function KeycodeLibraryDrawer() {
   const [copiedCode, setCopiedCode] = useState("");
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<Set<string>>(() => new Set(["letters"]));
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -43,6 +44,10 @@ export function KeycodeLibraryDrawer() {
   const resultCount = categoryGroups.reduce((total, group) => total + group.entries.length, 0);
   const hasQuery = query.trim().length > 0;
 
+  useEffect(() => {
+    setExpandedCategoryIds(new Set(hasQuery ? categoryGroups.map((group) => group.category.id) : ["letters"]));
+  }, [categoryGroups, hasQuery]);
+
   async function copyKeycode(code: string) {
     try {
       await writeClipboard(code);
@@ -54,6 +59,22 @@ export function KeycodeLibraryDrawer() {
     } catch {
       toast.error(`Could not copy ${code}.`);
     }
+  }
+
+  function clearSearch() {
+    setQuery("");
+  }
+
+  function toggleCategory(categoryId: string) {
+    setExpandedCategoryIds((current) => {
+      const next = new Set(current);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
   }
 
   return (
@@ -103,7 +124,7 @@ export function KeycodeLibraryDrawer() {
           <div className="keycode-library-meta">
             <span>{resultCount} matches</span>
             {hasQuery && (
-              <button className="text-action" onClick={() => setQuery("")} type="button">
+              <button className="text-action" onClick={clearSearch} type="button">
                 Clear
               </button>
             )}
@@ -111,36 +132,51 @@ export function KeycodeLibraryDrawer() {
 
           <div className="keycode-category-list">
             {categoryGroups.length > 0 ? (
-              categoryGroups.map(({ category, entries }) => (
-                <details className="keycode-category" key={category.id} open={hasQuery || category.id === "letters"}>
-                  <summary>
-                    <span>
-                      <strong>{category.label}</strong>
-                      <small>{category.description}</small>
-                    </span>
-                    <b>{entries.length}</b>
-                  </summary>
-                  <div className="keycode-result-list">
-                    {entries.map((entry) => (
-                      <article className="keycode-result" key={entry.code}>
-                        <div>
-                          <code>{entry.code}</code>
-                          <strong>{entry.label}</strong>
-                          <span>{entry.description}</span>
-                        </div>
-                        <button
-                          className={copiedCode === entry.code ? "action-save" : "action-copy"}
-                          data-testid={`copy-keycode-${entry.code}`}
-                          onClick={() => void copyKeycode(entry.code)}
-                          type="button"
-                        >
-                          {copiedCode === entry.code ? "Copied" : "Copy"}
-                        </button>
-                      </article>
-                    ))}
-                  </div>
-                </details>
-              ))
+              categoryGroups.map(({ category, entries }) => {
+                const isExpanded = expandedCategoryIds.has(category.id);
+                const resultListId = `keycode-category-${category.id}`;
+
+                return (
+                  <section className={`keycode-category ${isExpanded ? "open" : ""}`} key={category.id}>
+                    <button
+                      aria-controls={resultListId}
+                      aria-expanded={isExpanded}
+                      className="keycode-category-summary"
+                      data-testid={`keycode-category-${category.id}-toggle`}
+                      onClick={() => toggleCategory(category.id)}
+                      type="button"
+                    >
+                      <span>
+                        <strong>{category.label}</strong>
+                        <small>{category.description}</small>
+                      </span>
+                      <b>{entries.length}</b>
+                      <i aria-hidden="true">{isExpanded ? "−" : "+"}</i>
+                    </button>
+                    {isExpanded && (
+                      <div className="keycode-result-list" id={resultListId}>
+                        {entries.map((entry) => (
+                          <article className="keycode-result" key={entry.code}>
+                            <div>
+                              <code>{entry.code}</code>
+                              <strong>{entry.label}</strong>
+                              <span>{entry.description}</span>
+                            </div>
+                            <button
+                              className={copiedCode === entry.code ? "action-save" : "action-copy"}
+                              data-testid={`copy-keycode-${entry.code}`}
+                              onClick={() => void copyKeycode(entry.code)}
+                              type="button"
+                            >
+                              {copiedCode === entry.code ? "Copied" : "Copy"}
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                );
+              })
             ) : (
               <p className="keycode-library-empty">No keycodes match that search.</p>
             )}

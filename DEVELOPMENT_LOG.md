@@ -1991,3 +1991,31 @@ Validation:
 - In-app browser validation at `390x844`: drawer and trigger fit inside the viewport at 366px wide, and document scroll width stays 390px.
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
+
+## 2026-06-22: qmk-viz keycode library drawer follow-up polish
+
+Goal: keep the keycode library editor-only, make category groups visually distinct from their member rows, and fix no-search expansion plus drawer overflow.
+
+What did not work:
+
+- Mounting the drawer in `App.tsx` made Keycodes show up on Project and Export even though it only belongs to the editor workflow.
+- Native `details`/`summary` mixed with search-driven `open` state made group expansion unreliable without search terms.
+- The category list used grid layout; forced open groups could compress visually instead of contributing to the drawer's scroll height.
+
+Changes made:
+
+- Moved `KeycodeLibraryDrawer` from the app shell into `EditorPage`.
+- Replaced native `details` with explicit full-width category buttons using `aria-expanded`.
+- Restyled group headers with a stronger card/header treatment and kept result rows as lighter child rows.
+- Made the drawer a fixed-height grid with the category list as the internal scroll surface.
+- Switched the category list from grid to flex column so expanded result lists produce real scroll height.
+
+Validation:
+
+- In-app browser validation: Project route has zero keycode triggers; Layout route has one keycode trigger.
+- In-app browser validation: clicking the Numbers group header without a search query changes `aria-expanded` from `false` to `true`.
+- In-app browser validation: `volume` search expands the Media group and still returns `KC_VOLU`, `KC_VOLD`, and `KC_MUTE`.
+- In-app browser validation at `390x640`: forced all 10 categories open; drawer stayed within viewport, page width stayed 390px, and category list scrolled internally with `scrollHeight` greater than `clientHeight`.
+- Captured desktop and mobile screenshots of the polished drawer.
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.

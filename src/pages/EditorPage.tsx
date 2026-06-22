@@ -4,6 +4,7 @@ import { describeAction, isRecognizedKeycode } from "../lib/actions";
 import { selectedKeycode, TRANSPARENT } from "../lib/keymap";
 import { type SimpleComposerKind } from "../lib/qmkActions";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "../lib/textFit";
+import { KeycodeLibraryDrawer } from "../components/KeycodeLibraryDrawer";
 import { LayoutVersionTree } from "../components/LayoutVersionTree";
 import { PreviewKeycap, actionTypeLabel } from "../components/PreviewKeycap";
 import { SaveKeyAliasModal } from "../components/AppModals";
@@ -1109,6 +1110,7 @@ export function EditorPage() {
             onSubmit={submitSaveAliasDialog}
           />
         )}
+        <KeycodeLibraryDrawer />
       </>
   );
 }
