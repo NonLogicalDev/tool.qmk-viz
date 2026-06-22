@@ -19,6 +19,8 @@ The previous README was accurate but mostly operational. Now that the repo is pu
 - Explain that KLE is the source of truth and qmk-viz reconciles layouts by stable key IDs.
 - Highlight both generation paths: built-in template rendering and external generation from exported layout JSON.
 - Highlight the full-interface Action Composer as a core product feature, not just an implementation detail.
+- Explicitly state that qmk-viz accepts raw Keyboard Layout Editor JSON output files as project keyboard models.
+- Add interface copy explaining that KLE stands for Keyboard Layout Editor where users upload/edit models.
 - Do not push unless explicitly requested after this checkpoint.
 
 # Implementation Steps
@@ -38,7 +40,10 @@ The previous README was accurate but mostly operational. Now that the repo is pu
 - [x] 2026-06-22 03:18 - Copied interface screenshot into `docs/qmk-viz-interface.png`.
 - [x] 2026-06-22 03:18 - Replaced README with public-facing product documentation.
 - [x] 2026-06-22 03:18 - Added Action Composer and custom-template examples to README.
+- [x] 2026-06-22 03:18 - Clarified that Keyboard Layout Editor JSON output files are the model input.
+- [x] 2026-06-22 03:18 - Added Project page and help modal hints spelling out Keyboard Layout Editor.
 - [x] 2026-06-22 03:18 - Verified screenshot path, diff whitespace, and production build.
+- [x] 2026-06-22 03:18 - Browser-verified Project page KLE expansion copy.
 
 # Unfinished Work
 

@@ -2,7 +2,7 @@
 
 Visual JSON keymap editor for QMK keyboards.
 
-qmk-viz is a local-first web app for designing keyboard layouts from a Keyboard Layout Editor model, editing key actions visually, and exporting structured JSON or rendered `keymap.c` templates. It is built for people who want Oryx-style layout editing without being tied to a specific keyboard vendor or firmware service.
+qmk-viz is a local-first web app for designing keyboard layouts from Keyboard Layout Editor output files, editing key actions visually, and exporting structured JSON or rendered `keymap.c` templates. It is built for people who want Oryx-style layout editing without being tied to a specific keyboard vendor or firmware service.
 
 [Open qmk-viz](https://nonlogicaldev.github.io/tool.qmk-viz/)
 
@@ -10,7 +10,7 @@ qmk-viz is a local-first web app for designing keyboard layouts from a Keyboard 
 
 ## Why Use It
 
-- **Bring your own keyboard model.** Upload Keyboard Layout Editor JSON and qmk-viz derives the key positions and stable key IDs from it.
+- **Bring your own keyboard model.** Upload or paste raw JSON exported from [Keyboard Layout Editor](https://www.keyboard-layout-editor.com/#/), and qmk-viz derives the key positions and stable key IDs from it.
 - **Edit visually.** Click keys, swap mappings, copy/paste keys, mark transparent/no-op actions, and compose common QMK expressions without hand-editing every slot.
 - **Compose actions without memorizing QMK.** Build plain keycodes, modifier stacks, mod-taps, layer-taps, layer switches, dances, aliases, macros, and raw expressions from the interface.
 - **Keep layout history.** Save named immutable layout versions, fork from older versions, and see the version tree.
@@ -20,7 +20,7 @@ qmk-viz is a local-first web app for designing keyboard layouts from a Keyboard 
 
 ## How The Model Works
 
-qmk-viz treats the KLE file as the source of truth for physical key placement. Each editable key needs one stable identifier in the center legend entry, such as `K00`, `LT03`, `RT21`, `LC12`, or `RC22`.
+qmk-viz treats the KLE JSON file from Keyboard Layout Editor as the source of truth for physical key placement. Each editable key needs one stable identifier in the center legend entry, such as `K00`, `LT03`, `RT21`, `LC12`, or `RC22`.
 
 When the KLE model changes later, qmk-viz reconciles layouts by identifier:
 
@@ -48,7 +48,7 @@ The selected key preview updates with the generated expression before you apply 
 ## Project Flow
 
 1. Create a project.
-2. Upload or paste a KLE JSON keyboard model.
+2. Upload or paste the raw JSON output from Keyboard Layout Editor as the keyboard model.
 3. Create a layout or import a layout JSON file.
 4. Edit keys visually in the Layout page.
 5. Save layout versions as checkpoints.

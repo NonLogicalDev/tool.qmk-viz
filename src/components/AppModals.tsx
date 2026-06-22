@@ -26,7 +26,7 @@ const jsonEditLabels: Record<JsonEditKind, { eyebrow: string; title: string; hel
     help: "Save replaces the active layout document with the edited layout JSON and preserves its version tree."
   },
   kle: {
-    eyebrow: "KLE JSON",
+    eyebrow: "Keyboard Layout Editor JSON",
     title: "Edit current KLE JSON",
     help: "Save replaces the active keyboard model, reconciles matching key IDs, and keeps the project name unchanged."
   }
@@ -238,12 +238,12 @@ export function KleHelpModal({ onClose }: KleHelpModalProps) {
         <div className="section-header">
           <div>
             <p className="eyebrow">KLE mapping help</p>
-            <h2 id="kle-help-title">How qmk-viz reads Keyboard Layout Editor JSON</h2>
+            <h2 id="kle-help-title">KLE means Keyboard Layout Editor</h2>
           </div>
         </div>
         <div className="help-content">
           <p>
-            qmk-viz uses Keyboard Layout Editor geometry as the source of truth for key placement.
+            qmk-viz uses Keyboard Layout Editor JSON geometry as the source of truth for key placement.
             Each physical key must expose one stable mapping identifier.
           </p>
           <ol>
@@ -255,7 +255,7 @@ export function KleHelpModal({ onClose }: KleHelpModalProps) {
           </ol>
         </div>
         <div className="button-row rename-modal-actions">
-          <a className="action-link action-import" data-icon="↗" href="https://www.keyboard-layout-editor.com/#/" rel="noreferrer" target="_blank">Open KLE Website</a>
+          <a className="action-link action-import" data-icon="↗" href="https://www.keyboard-layout-editor.com/#/" rel="noreferrer" target="_blank">Open Keyboard Layout Editor</a>
           <button className="action-disable" data-icon="×" onClick={onClose} type="button">Close</button>
         </div>
       </section>

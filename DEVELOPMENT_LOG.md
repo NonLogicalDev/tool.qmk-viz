@@ -1856,9 +1856,11 @@ Changes made:
 - Added a custom `keymap.c` template section showing the built-in Nunjucks renderer, external generation from layout JSON, layer iteration, slot lookup helpers, support aliases, custom keycodes, and macros.
 - Clarified that users can either generate `keymap.c` inside qmk-viz or use the exported layout JSON with their own generator.
 - Kept KLE as the stated source of truth and avoided board-specific one-off language.
+- Updated Project page and KLE help modal copy so the interface spells out that KLE means Keyboard Layout Editor.
 
 Validation:
 
 - `test -f docs/qmk-viz-interface.png` passed.
 - `git diff --check` passed.
 - `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation: Project page shows `KLE means Keyboard Layout Editor` in the Keyboard Model card and the external link reads `Open Keyboard Layout Editor`.

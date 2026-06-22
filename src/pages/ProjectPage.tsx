@@ -137,8 +137,8 @@ export function ProjectPage() {
             {!hasActiveProject
               ? "Create or import a project before adding a keyboard model."
               : model
-              ? "Updating the KLE model is undoable. Existing layout keys survive when their slot IDs still exist in the new KLE file."
-              : "This project has no keyboard model yet. Upload a KLE file or edit KLE JSON to define the key IDs."}
+              ? "KLE means Keyboard Layout Editor. Updating the KLE model is undoable, and existing layout keys survive when their slot IDs still exist in the new Keyboard Layout Editor JSON file."
+              : "KLE means Keyboard Layout Editor. This project has no keyboard model yet. Upload a Keyboard Layout Editor JSON file or edit KLE JSON to define the key IDs."}
           </p>
           <div className="button-row">
             {renderActionMenu("model-actions", "KLE model", (
@@ -172,7 +172,7 @@ export function ProjectPage() {
                 <button className="action-export" data-icon="⇡" data-testid="download-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Download KLE</button>
               </>
             ), { disabled: !activeKeyboardProject && !model, testId: "model-actions-menu" })}
-            <a className="action-link action-import" data-icon="↗" href="https://www.keyboard-layout-editor.com/#/" rel="noreferrer" target="_blank">Open KLE</a>
+            <a className="action-link action-import" data-icon="↗" href="https://www.keyboard-layout-editor.com/#/" rel="noreferrer" target="_blank">Open Keyboard Layout Editor</a>
             <button className="action-default" data-icon="?" data-testid="kle-help" onClick={() => setShowKleHelp(true)} type="button">Mapping Help</button>
           </div>
         </div>
