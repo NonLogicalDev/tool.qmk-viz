@@ -10,7 +10,11 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.8",
+    "@monaco-editor/react": "^4.7.0",
+    "@types/nunjucks": "^3.2.6",
     "@xyflow/react": "^12.11.0",
+    "monaco-editor": "^0.55.1",
+    "nunjucks": "^3.2.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "sonner": "^2.0.7"

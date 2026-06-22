@@ -1267,3 +1267,34 @@ Validation:
 - In-app browser validation: `layout-select`, `simple-composer-kind`, and `simple-layer` are rendered as `button` controls.
 - In-app browser validation: filtering Action type to `Momentary` selects `Momentary layer (MO)` and reveals the custom Simple layer picker.
 - In-app browser validation at `700x760`: keyboard scaler width is `654px` inside a `662px` viewport, `fitsViewport` is `true`, and horizontal overflow is `hidden`.
+
+## 2026-06-21: qmk-viz Export template workspace
+
+Goal: turn Export from a passive JSON textarea into a project-level `keymap.c` templating workspace.
+
+What did not work:
+
+- The first implementation started adding the new Export UI inline in `App.tsx`, which made an already oversized file worse and left broken JSX residue during editing.
+- Monaco's editor surface is not a normal textarea for Playwright `fill()`, so browser validation cannot treat it like a plain input.
+- Installing Monaco/Nunjucks added 2 npm audit findings (1 low, 1 moderate) and increased the existing Vite large-chunk warning.
+
+Changes made:
+
+- Added project-persistent `keymapTemplate` data with default/backward-compatible normalization for imported and saved projects.
+- Added a Nunjucks/Jinja-style render path in `src/lib/keymapTemplate.ts` with a default QMK `keymap.c` template.
+- Split Export UI into `src/pages/ExportPage.tsx` with template editor, preview panel, and sticky action bar components.
+- Added Monaco-derived template editing via `@monaco-editor/react` / `monaco-editor`.
+- Added preview tabs for rendered `keymap.c` and Full Layout JSON.
+- Added sticky Export actions: `Copy Layout JSON`, `Copy Keymap`, and one Downloads menu containing Keymap C plus existing JSON/KLE downloads.
+- Corrected the template input contract to `{ ctx: Full Layout JSON }`; the JSON preview/download remains the raw Full Layout JSON so users can run the same template outside the app by wrapping that JSON as `ctx`.
+
+Validation:
+
+- `npm run build` passed. Vite still reports a large chunk warning, larger now due to Monaco.
+- In-app browser validation on `http://127.0.0.1:5182/`: Export page renders `Keymap template`, Monaco is present, rendered preview contains `keymaps[][MATRIX_ROWS][MATRIX_COLS]` and `LAYOUT(`.
+- In-app browser validation: Full Layout JSON tab shows `keyboard`, `kle`, and `layout` data.
+- In-app browser validation: template editor/help use `ctx.*`, contain no `qmk.*`, and rendered keymap still includes `[NAVI] = LAYOUT(` plus `MO(NAVI), // K00`.
+- In-app browser validation: Full Layout JSON preview does not contain a `ctx` wrapper.
+- In-app browser validation: sticky action bar is present and uses `position: sticky`.
+- In-app browser validation: Downloads menu contains Keymap C, Layout JSON, Layer KLE, and Project KLE.
+- Architecture caveat: `App.tsx` still needs broader decomposition. This pass only prevents the new Export feature from further growing the inline page markup.

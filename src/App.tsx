@@ -5,9 +5,9 @@ import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type
 import { buildKeyboardModelFromKle, type KeyboardModel, type KeySlot } from "./lib/keyboardModel";
 import {
   cloneKeymapDocument,
+  createKeymapExportDocument,
   createEmptyKeymapDocument,
   selectedKeycode,
-  serializeKeymapExport,
   transparentLayerFrom,
   updateKeycode,
   TRANSPARENT,
@@ -20,6 +20,7 @@ import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "./lib/textFit";
 import { LayoutVersionTree } from "./components/LayoutVersionTree";
 import { KeyboardModelPreview } from "./components/KeyboardModelPreview";
 import { PreviewKeycap, actionTypeLabel } from "./components/PreviewKeycap";
+import { ExportPage, type ExportPreviewTab } from "./pages/ExportPage";
 import {
   KEYBOARD_PROJECTS_STORAGE_KEY,
   activeLayoutFor,
@@ -43,6 +44,12 @@ import {
   type SavedKeyboardProject,
   type SavedLayout
 } from "./lib/appModel";
+import {
+  DEFAULT_KEYMAP_TEMPLATE,
+  normalizeKeymapTemplate,
+  renderKeymapTemplate,
+  type KeymapTemplateContext
+} from "./lib/keymapTemplate";
 import {
   composeModTapAction,
   composeSimpleAction,
@@ -268,6 +275,7 @@ export function App() {
   const [activeLayoutId, setActiveLayoutId] = useState(initialLayout?.id ?? "");
   const initialVersion = initialLayout?.versions.find((version) => version.id === initialLayout.activeVersionId) ?? initialLayout?.versions[0];
   const [keyboardProjectNameDraft, setKeyboardProjectNameDraft] = useState(initialKeyboardProject?.name ?? "");
+  const [keymapTemplateDraft, setKeymapTemplateDraft] = useState(normalizeKeymapTemplate(initialKeyboardProject?.keymapTemplate));
   const [layoutNameDraft, setLayoutNameDraft] = useState(initialLayout?.name ?? "");
   const [versionNameDraft, setVersionNameDraft] = useState("");
   const [selectedVersionNameDraft, setSelectedVersionNameDraft] = useState(initialVersion?.name ?? "");
@@ -308,6 +316,7 @@ export function App() {
   const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const [projectBrowserTab, setProjectBrowserTab] = useState<ProjectBrowserTab>("projects");
   const [projectBrowserPage, setProjectBrowserPage] = useState(0);
+  const [exportPreviewTab, setExportPreviewTab] = useState<ExportPreviewTab>("keymap");
   const [showKleHelp, setShowKleHelp] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
   const [openContextPicker, setOpenContextPicker] = useState<ContextPickerId | null>(null);
@@ -418,8 +427,19 @@ export function App() {
     extKeys,
     layerColors
   }), [dances, extKeys, layerColors, layers]);
+  const exportOptions = useMemo(() => ({
+    keyboardProjectId: activeKeyboardProjectId,
+    keyboardProjectName: keyboardProjectNameDraft.trim() || activeKeyboardProject?.name || "Keyboard Project",
+    layoutId: activeLayoutId,
+    layoutName: layoutNameDraft.trim() || activeSavedLayout?.name || "Layout"
+  }), [activeKeyboardProject?.name, activeKeyboardProjectId, activeLayoutId, activeSavedLayout?.name, keyboardProjectNameDraft, layoutNameDraft]);
+  const keymapExportDocument = useMemo(() => (
+    activeKeyboardProject && model && activeSavedLayout
+      ? createKeymapExportDocument(model, keymapDocument, exportOptions)
+      : null
+  ), [activeKeyboardProject, activeSavedLayout, exportOptions, keymapDocument, model]);
   const jsonOutput = useMemo(() => {
-    if (!activeKeyboardProject || !model || !activeSavedLayout) {
+    if (!keymapExportDocument) {
       return JSON.stringify({
         version: 1,
         keyboardProject: {
@@ -431,22 +451,29 @@ export function App() {
       }, null, 2);
     }
 
-    return serializeKeymapExport(model, keymapDocument, {
-      keyboardProjectId: activeKeyboardProjectId,
-      keyboardProjectName: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
-      layoutId: activeLayoutId,
-      layoutName: layoutNameDraft.trim() || activeSavedLayout.name
-    });
+    return JSON.stringify(keymapExportDocument, null, 2);
   }, [
     activeKeyboardProject,
     activeKeyboardProjectId,
-    activeSavedLayout,
-    activeLayoutId,
+    keymapExportDocument,
     keyboardProjectNameDraft,
-    keymapDocument,
-    layoutNameDraft,
-    model
   ]);
+  const keymapTemplateContext = useMemo<KeymapTemplateContext | null>(() => (
+    keymapExportDocument ? { ctx: keymapExportDocument } : null
+  ), [keymapExportDocument]);
+  const renderedKeymap = useMemo(() => {
+    if (!keymapTemplateContext) {
+      return "/* Create or select a project, KLE model, and layout to render keymap.c. */";
+    }
+
+    try {
+      return renderKeymapTemplate(keymapTemplateDraft || DEFAULT_KEYMAP_TEMPLATE, keymapTemplateContext);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown template error.";
+      return `/* Template render error:\n${message}\n*/`;
+    }
+  }, [keymapTemplateContext, keymapTemplateDraft]);
+  const renderedKeymapHasError = renderedKeymap.startsWith("/* Template render error:");
   const jsonEditValidation = useMemo<JsonValidation>(() => {
     if (!jsonEditDialog) return { ok: true, message: "" };
 
@@ -521,6 +548,7 @@ export function App() {
       ...activeKeyboardProject,
       name: keyboardProjectNameDraft.trim() || activeKeyboardProject.name,
       model: model ? sanitizeKeyboardModel(model) : null,
+      keymapTemplate: normalizeKeymapTemplate(keymapTemplateDraft),
       layouts: nextLayouts,
       activeLayoutId: activeSavedLayout ? activeLayoutId : "",
       updatedAt: now
@@ -541,6 +569,7 @@ export function App() {
     setActiveKeyboardProjectId("");
     setActiveLayoutId("");
     setKeyboardProjectNameDraft("");
+    setKeymapTemplateDraft(DEFAULT_KEYMAP_TEMPLATE);
     setLayoutNameDraft("");
     setVersionNameDraft("");
     setSelectedVersionNameDraft("");
@@ -576,6 +605,7 @@ export function App() {
     setActiveKeyboardProjectId(project.id);
     setActiveLayoutId(layout?.id ?? "");
     setKeyboardProjectNameDraft(project.name);
+    setKeymapTemplateDraft(normalizeKeymapTemplate(project.keymapTemplate));
     setLayoutNameDraft(layout?.name ?? "");
     setVersionNameDraft("");
     setSelectedVersionNameDraft((layout?.versions.find((version) => version.id === layout.activeVersionId) ?? layout?.versions[0])?.name ?? "");
@@ -628,6 +658,7 @@ export function App() {
     setActiveKeyboardProjectId(savedProject.id);
     setActiveLayoutId(layout?.id ?? "");
     setKeyboardProjectNameDraft(savedProject.name);
+    setKeymapTemplateDraft(normalizeKeymapTemplate(savedProject.keymapTemplate));
     setLayoutNameDraft(layout?.name ?? "");
     setModel(savedProject.model);
     setLayers(document.layers);
@@ -1742,8 +1773,17 @@ export function App() {
     }
   }
 
-  function downloadText(content: string, filename: string) {
-    const blob = new Blob([content + "\n"], { type: "application/json" });
+  async function copyKeymap() {
+    try {
+      await navigator.clipboard.writeText(renderedKeymap);
+      setStatusMessage(renderedKeymapHasError ? "Copied keymap render error to clipboard." : "Copied rendered keymap.c to clipboard.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Could not copy keymap.c to clipboard.");
+    }
+  }
+
+  function downloadText(content: string, filename: string, type = "application/json") {
+    const blob = new Blob([content + "\n"], { type });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -1759,6 +1799,16 @@ export function App() {
     }
     const filename = `${safeFileSlug(layoutNameDraft, "qmk-layout")}.json`;
     downloadText(jsonOutput, filename);
+    setStatusMessage(`Downloaded ${filename}.`);
+  }
+
+  function downloadKeymap() {
+    if (!model || !activeSavedLayout) {
+      setStatusMessage("Create or import a layout before downloading keymap.c.");
+      return;
+    }
+    const filename = `${safeFileSlug(layoutNameDraft, "keymap")}.keymap.c`;
+    downloadText(renderedKeymap, filename, "text/x-csrc");
     setStatusMessage(`Downloaded ${filename}.`);
   }
 
@@ -2071,7 +2121,13 @@ export function App() {
 
   useEffect(() => {
     persistActiveKeyboardProject();
-  }, [activeKeyboardProjectId, activeLayoutId, keyboardProjectNameDraft, keymapDocument, layoutNameDraft, model]);
+  }, [activeKeyboardProjectId, activeLayoutId, keyboardProjectNameDraft, keymapDocument, keymapTemplateDraft, layoutNameDraft, model]);
+
+  useEffect(() => {
+    if (/\bqmk\./.test(keymapTemplateDraft) || (/\b(keyboardProject|keyboard|layout)\./.test(keymapTemplateDraft) && !/\bctx\./.test(keymapTemplateDraft))) {
+      setKeymapTemplateDraft(DEFAULT_KEYMAP_TEMPLATE);
+    }
+  }, [keymapTemplateDraft]);
 
   useEffect(() => {
     if (!simpleAction.fields.includes("layer") || composerLayerOptions.length === 0) return;
@@ -3274,43 +3330,29 @@ export function App() {
       )}
 
       {activePage === "export" && (
-        <section className="page-panel export-page">
-          <div className="page-heading">
-            <div>
-              <p className="eyebrow">Export</p>
-              <h1>Structured output</h1>
-              <p>Use Layout JSON for templating. Use KLE exports for visual previews or model portability.</p>
-            </div>
-            <div className="page-actions">
-              <button className="action-copy" data-icon="⧉" data-testid="copy-json" onClick={copyJson} type="button">Copy JSON</button>
-              {renderActionMenu("export-downloads", "Downloads", (
-                <>
-                  <button className="action-export" data-icon="⇡" data-testid="download-layout-json" disabled={!model || !activeSavedLayout} onClick={() => runMenuAction(downloadJson)} role="menuitem" type="button">Layout JSON</button>
-                  <button className="action-export" data-icon="⇡" data-testid="download-layer-kle" disabled={!model || !activeSavedLayout} onClick={() => runMenuAction(downloadActiveLayerKle)} role="menuitem" type="button">Layer KLE</button>
-                  <button className="action-export" data-icon="⇡" data-testid="download-project-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Project KLE</button>
-                </>
-              ), { className: "action-export", icon: "⇡" })}
-            </div>
-          </div>
-          <div className="editor-card export-card">
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">Current layout JSON</p>
-                <h2>{keyboardProjectNameDraft} / {layoutNameDraft || "No layout"}</h2>
-              </div>
-            </div>
-            <textarea
-              aria-label="Current layout JSON export"
-              readOnly
-              value={jsonOutput}
-              spellCheck={false}
-            />
-            <p>
-              Layout JSON is the `keymap.c` template input and includes the KLE model used for the keyboard.
-              Project KLE preserves the uploaded keyboard geometry and slot IDs; Layer KLE adds the active layer labels.
-            </p>
-          </div>
-        </section>
+        <ExportPage
+          activeTab={exportPreviewTab}
+          canCopyKeymap={Boolean(model && activeSavedLayout && !renderedKeymapHasError)}
+          canExport={Boolean(model && activeSavedLayout)}
+          downloadsMenu={renderActionMenu("export-downloads", "Downloads", (
+            <>
+              <button className="action-export" data-icon="⇡" data-testid="download-keymap" disabled={!model || !activeSavedLayout || renderedKeymapHasError} onClick={() => runMenuAction(downloadKeymap)} role="menuitem" type="button">Keymap C</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-layout-json" disabled={!model || !activeSavedLayout} onClick={() => runMenuAction(downloadJson)} role="menuitem" type="button">Layout JSON</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-layer-kle" disabled={!model || !activeSavedLayout} onClick={() => runMenuAction(downloadActiveLayerKle)} role="menuitem" type="button">Layer KLE</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-project-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Project KLE</button>
+            </>
+          ), { className: "action-export", icon: "⇡" })}
+          jsonOutput={jsonOutput}
+          layoutName={layoutNameDraft}
+          onCopyJson={copyJson}
+          onCopyKeymap={copyKeymap}
+          onPreviewTabChange={setExportPreviewTab}
+          onTemplateChange={setKeymapTemplateDraft}
+          projectName={keyboardProjectNameDraft}
+          renderedKeymap={renderedKeymap}
+          renderedKeymapHasError={renderedKeymapHasError}
+          template={keymapTemplateDraft}
+        />
       )}
 
       {showProjectBrowser && (

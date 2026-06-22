@@ -1,5 +1,6 @@
 import type { BehaviorSlots } from "./actions";
 import { buildKeyboardModelFromKle, type KeyboardModel } from "./keyboardModel";
+import { DEFAULT_KEYMAP_TEMPLATE, normalizeKeymapTemplate } from "./keymapTemplate";
 import {
   cloneKeymapDocument,
   createEmptyKeymapDocument,
@@ -52,6 +53,7 @@ export type SavedKeyboardProject = {
   id: string;
   name: string;
   model: KeyboardModel | null;
+  keymapTemplate: string;
   defaultLayout: SavedDefaultLayout;
   layouts: SavedLayout[];
   activeLayoutId: string;
@@ -201,6 +203,7 @@ export function cloneKeyboardProjectForLibrary(project: SavedKeyboardProject, na
     id: newEntityId("keyboard-project"),
     name,
     model,
+    keymapTemplate: normalizeKeymapTemplate(project.keymapTemplate),
     defaultLayout: cloneDefaultLayout(project.defaultLayout),
     layouts,
     activeLayoutId: project.activeLayoutId ? layoutIdMap.get(project.activeLayoutId) ?? layouts[0]?.id ?? "" : layouts[0]?.id ?? "",
@@ -275,6 +278,7 @@ export function createKeyboardProject(
     id: newEntityId("keyboard-project"),
     name,
     model: model ? sanitizeKeyboardModel(model) : null,
+    keymapTemplate: DEFAULT_KEYMAP_TEMPLATE,
     defaultLayout: createSavedDefaultLayout(defaultDocument, defaultLayoutUpdatedAt),
     layouts: model ? safeLayouts.map((layout) => cloneSavedLayout(layout, model)) : [],
     activeLayoutId: safeLayouts[0]?.id ?? "",
@@ -370,6 +374,7 @@ export function normalizeLoadedProject(raw: Partial<SavedKeyboardProject>, index
     id: typeof raw.id === "string" ? raw.id : newEntityId("keyboard-project"),
     name: typeof raw.name === "string" && raw.name.trim() ? raw.name : `Keyboard Project ${index + 1}`,
     model: model ? sanitizeKeyboardModel(model) : null,
+    keymapTemplate: normalizeKeymapTemplate(raw.keymapTemplate),
     defaultLayout: normalizeLoadedDefaultLayout(raw.defaultLayout, model, defaultDocument, updatedAt),
     layouts,
     activeLayoutId,
@@ -497,6 +502,7 @@ export function parseProjectFile(raw: unknown, fallbackSource: string): SavedKey
     id: typeof typedProject.id === "string" ? typedProject.id : newEntityId("keyboard-project"),
     name,
     model: model ? sanitizeKeyboardModel(model) : null,
+    keymapTemplate: normalizeKeymapTemplate(typedProject.keymapTemplate),
     defaultLayout: normalizeLoadedDefaultLayout(
       typedProject.defaultLayout,
       model,

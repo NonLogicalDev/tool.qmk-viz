@@ -131,7 +131,7 @@ export function transparentLayerFrom(layer: KeymapLayer, name: string): KeymapLa
   };
 }
 
-export function serializeKeymapExport(
+export function createKeymapExportDocument(
   model: KeyboardModel,
   document: KeymapDocument,
   options: {
@@ -140,8 +140,8 @@ export function serializeKeymapExport(
     layoutId: string;
     layoutName: string;
   }
-): string {
-  const exportDocument: KeymapExport = {
+): KeymapExport {
+  return {
     version: 1,
     keyboardProject: {
       id: options.keyboardProjectId,
@@ -167,6 +167,17 @@ export function serializeKeymapExport(
       extKeys: document.extKeys
     }
   };
+}
 
-  return JSON.stringify(exportDocument, null, 2);
+export function serializeKeymapExport(
+  model: KeyboardModel,
+  document: KeymapDocument,
+  options: {
+    keyboardProjectId: string;
+    keyboardProjectName: string;
+    layoutId: string;
+    layoutName: string;
+  }
+): string {
+  return JSON.stringify(createKeymapExportDocument(model, document, options), null, 2);
 }
