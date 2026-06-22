@@ -432,7 +432,8 @@ code {
   padding: 3px;
 }
 
-.history-controls button {
+.history-controls > button,
+.history-controls > .action-menu > .action-menu-trigger {
   align-items: center;
   background: transparent;
   border: 0;
@@ -446,12 +447,20 @@ code {
   width: 32px;
 }
 
-.history-controls button:hover:not(:disabled) {
+.history-controls > .action-menu > .action-menu-trigger {
+  gap: 4px;
+  padding: 0 8px;
+  width: auto;
+}
+
+.history-controls > button:hover:not(:disabled),
+.history-controls > .action-menu > .action-menu-trigger:hover:not(:disabled) {
   background: var(--paper);
   box-shadow: 0 1px 6px rgb(54 47 35 / 10%);
 }
 
-.history-controls button:disabled {
+.history-controls > button:disabled,
+.history-controls > .action-menu > .action-menu-trigger:disabled {
   color: #b8afa2;
   cursor: not-allowed;
 }

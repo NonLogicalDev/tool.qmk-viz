@@ -1195,3 +1195,25 @@ Validation:
 - `npm run build` passed. The existing Vite large-chunk warning remains.
 - In-app browser validation on `http://127.0.0.1:5182/`: Project page shows `Backup Workspace`, `Restore Workspace`, and `Project file` as separate actions.
 - In-app browser validation: Restore Workspace is a JSON file input with `accept="application/json,.json"`.
+
+## 2026-06-21: qmk-viz header Workspace menu
+
+Goal: move workspace-level actions out of the Project page and into a global header action menu next to Undo/Redo.
+
+What did not work:
+
+- Backup Workspace and Restore Workspace were global local-state actions, but they were rendered as always-visible Project page actions.
+- Keeping them beside project-level controls made the Project page feel like an everything drawer.
+
+Changes made:
+
+- Added a header Workspace action menu beside Undo/Redo.
+- Moved Backup Workspace and Restore Workspace into that menu.
+- Removed Backup Workspace and Restore Workspace from the Project page action row.
+- Narrowed header history button CSS so Workspace menu items keep normal action-menu sizing.
+
+Validation:
+
+- `npm run build` passed. The existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: header Workspace menu opens and contains Backup Workspace and Restore Workspace.
+- In-app browser validation: Project page actions now show only `Create Project` and `Project file`; Backup/Restore are no longer directly visible there.

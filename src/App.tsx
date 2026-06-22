@@ -2143,6 +2143,29 @@ export function App() {
               <path d="M19 11c-2.2-3.4-5.6-5-9.4-4.2-3.1.6-5.4 3.2-5.6 6.4-.2 3.8 2.7 7 6.5 7 2.2 0 4.1-1 5.3-2.6" />
             </svg>
           </button>
+          {renderActionMenu("workspace-actions", "Workspace", (
+            <>
+              <button className="action-export" data-icon="⇡" data-testid="backup-workspace" onClick={() => runMenuAction(downloadWorkspaceBackup)} role="menuitem" type="button">Backup Workspace</button>
+              <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Restore a full qmk-viz workspace backup">
+                Restore Workspace
+                <input
+                  data-testid="workspace-restore-upload"
+                  accept="application/json,.json"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void restoreWorkspace(file).catch((error: unknown) => {
+                        setStatusMessage(error instanceof Error ? error.message : "Failed to restore workspace backup.");
+                      });
+                    }
+                    closeActionMenus();
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+            </>
+          ), { icon: "▦" })}
         </div>
       </header>
 
@@ -2993,24 +3016,6 @@ export function App() {
             </div>
             <div className="page-actions">
               <button className="action-create" data-icon="+" data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
-              <button className="action-export" data-icon="⇡" data-testid="backup-workspace" onClick={downloadWorkspaceBackup} type="button">Backup Workspace</button>
-              <label className="file-import action-import" data-icon="⇣" title="Restore a full qmk-viz workspace backup">
-                Restore Workspace
-                <input
-                  data-testid="workspace-restore-upload"
-                  accept="application/json,.json"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                      void restoreWorkspace(file).catch((error: unknown) => {
-                        setStatusMessage(error instanceof Error ? error.message : "Failed to restore workspace backup.");
-                      });
-                    }
-                    event.target.value = "";
-                  }}
-                  type="file"
-                />
-              </label>
               {renderActionMenu("project-file-actions", "Project file", (
                 <>
                   <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Import a full qmk-viz project JSON backup">
