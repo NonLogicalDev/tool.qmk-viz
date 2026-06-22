@@ -1139,7 +1139,7 @@ textarea {
 .editor-panel {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(320px, 0.78fr) minmax(520px, 1.22fr);
+  grid-template-columns: minmax(620px, 1.45fr) minmax(260px, 0.55fr);
   align-self: start;
   width: 100%;
 }
@@ -2384,6 +2384,105 @@ button.action-import:not(:disabled),
   grid-template-columns: 1fr;
   justify-content: stretch;
   justify-items: end;
+}
+
+.composer-companion-card {
+  align-content: stretch;
+  background:
+    radial-gradient(circle at 74% 20%, rgb(231 93 63 / 18%), transparent 24%),
+    radial-gradient(circle at 20% 76%, rgb(0 120 168 / 14%), transparent 30%),
+    linear-gradient(135deg, #f8f1e4 0%, #eee7d9 100%);
+  min-height: 100%;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+}
+
+.composer-companion-card::before {
+  background-image:
+    linear-gradient(90deg, rgb(34 36 51 / 8%) 1px, transparent 1px),
+    linear-gradient(rgb(34 36 51 / 8%) 1px, transparent 1px);
+  background-size: 18px 18px;
+  content: "";
+  inset: 0;
+  mask-image: linear-gradient(135deg, transparent 0%, #000 42%, #000 100%);
+  opacity: 0.36;
+  position: absolute;
+}
+
+.composer-companion-orbit {
+  aspect-ratio: 1;
+  border: 1px solid rgb(34 36 51 / 12%);
+  border-radius: 999px;
+  inset: 22px 22px auto auto;
+  position: absolute;
+  width: min(52%, 190px);
+}
+
+.composer-companion-orbit span {
+  border: 1px solid rgb(0 120 168 / 22%);
+  border-radius: 999px;
+  inset: calc(var(--ring) * 1%);
+  position: absolute;
+  transform: rotate(calc(var(--ring) * 2deg));
+}
+
+.composer-companion-orbit span:nth-child(1) {
+  --ring: 10;
+}
+
+.composer-companion-orbit span:nth-child(2) {
+  --ring: 24;
+}
+
+.composer-companion-orbit span:nth-child(3) {
+  --ring: 38;
+}
+
+.composer-companion-copy {
+  bottom: 48px;
+  display: grid;
+  gap: 3px;
+  left: 18px;
+  position: absolute;
+  z-index: 1;
+}
+
+.composer-companion-copy p,
+.composer-companion-copy span {
+  color: rgb(34 36 51 / 55%);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.composer-companion-copy strong {
+  color: var(--ink);
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: clamp(1.8rem, 4vw, 3.6rem);
+  letter-spacing: -0.08em;
+  line-height: 0.85;
+}
+
+.composer-companion-card code {
+  background: rgb(255 255 255 / 52%);
+  border: 1px solid rgb(217 210 196 / 68%);
+  border-radius: 999px;
+  bottom: 14px;
+  color: rgb(34 36 51 / 72%);
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.62rem;
+  font-weight: 760;
+  left: 14px;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  padding: 5px 8px;
+  position: absolute;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  z-index: 1;
 }
 
 .composer-action-buttons {

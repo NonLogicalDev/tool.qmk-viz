@@ -1759,3 +1759,26 @@ Validation:
 - In-app browser validation: the Layout page has no duplicate `layout-select` picker; the top layout picker remains.
 - In-app browser validation: Project still renders the model readout, KLE model actions, and marker preview.
 - In-app browser validation: the composer helper sentence stays on its own row and shares the same right edge as the button group.
+
+## 2026-06-22: qmk-viz Action Composer row balance
+
+Goal: give Action Composer more room on large screens and fill the remaining row space with visual texture instead of leaving a blank column.
+
+What did not work:
+
+- The editor grid gave Action Composer the smaller column while the larger neighboring column was often empty.
+- Making Composer full-width would remove useful row rhythm and push support data farther down without adding much value.
+- Leaving the second column empty made the interface feel unfinished on wide screens.
+
+Changes made:
+
+- Changed the editor grid to give Action Composer the dominant column on wide screens.
+- Added a non-interactive decorative companion card in the remaining column with the selected key, layer, and generated expression as visual texture.
+- Kept support data and version history full-width below the composer row.
+- Preserved the existing single-column responsive behavior under the current breakpoint.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: Composer measured about `857px` wide and the companion card about `325px` wide at the current viewport.
+- In-app browser validation: Composer and companion card share the same row, and support data starts below them full-width.

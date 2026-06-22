@@ -774,6 +774,20 @@ export function EditorPage() {
             </div>
             </div>
 
+            <div className="editor-card composer-companion-card" aria-hidden="true">
+              <div className="composer-companion-orbit">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="composer-companion-copy">
+                <p>Composing</p>
+                <strong>{selectedKey.slot}</strong>
+                <span>{activeLayer.name}</span>
+              </div>
+              <code>{generatedAction}</code>
+            </div>
+
             <div className="editor-card support-data-card">
               <div className="section-header">
                 <div>
