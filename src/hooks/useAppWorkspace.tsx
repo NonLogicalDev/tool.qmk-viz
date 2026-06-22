@@ -51,6 +51,13 @@ import {
   type KeymapTemplateContext
 } from "../lib/keymapTemplate";
 import {
+  decodeShareProjectFile,
+  encodeShareProjectFile,
+  hashWithoutShareToken,
+  shareTokenFromHash,
+  shareUrlForToken
+} from "../lib/shareUrl";
+import {
   composeModTapAction,
   composeSimpleAction,
   modTapActions,
@@ -173,6 +180,7 @@ function rewriteLayerReference(action: string, fromLayer: string, toLayer: strin
 export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   const { enableGlobalEffects = false, enableEditorEffects = false } = options;
   const keyboardViewportRef = useRef<HTMLDivElement | null>(null);
+  const importedShareTokenRef = useRef<string | null>(null);
   const {
     activeKeyboardProjectId,
     activeLayerName,
@@ -1847,6 +1855,18 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Loaded example project ${importedProject.name}.`);
   }
 
+  function uniqueKeyboardProjectName(base: string): string {
+    const cleanBase = base.trim() || "Shared Keyboard Project";
+    const taken = new Set(keyboardProjects.map((project) => project.name));
+    if (!taken.has(cleanBase)) return cleanBase;
+
+    let suffix = 1;
+    while (taken.has(`${cleanBase} ${suffix}`)) {
+      suffix += 1;
+    }
+    return `${cleanBase} ${suffix}`;
+  }
+
   function currentProjectFileJson() {
     const project = projectWithEditorState();
     if (!project) return "";
@@ -1857,6 +1877,60 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
       project: serializeKeyboardProject(project)
     };
     return JSON.stringify(projectFile, null, 2);
+  }
+
+  function currentShareProjectFile(): ProjectFile | null {
+    if (!activeKeyboardProject || !model || !activeSavedLayout) return null;
+
+    const baseProject = projectWithEditorState();
+    if (!baseProject) return null;
+
+    const now = new Date().toISOString();
+    const sourceLayout = baseProject.layouts.find((layout) => layout.id === activeLayoutId) ?? baseProject.layouts[0];
+    if (!sourceLayout) return null;
+
+    const version = createLayoutVersion(
+      keymapDocument,
+      null,
+      activeLayoutVersion?.name || "Shared version",
+      model,
+      now
+    );
+    const shareLayout = cloneSavedLayout({
+      ...sourceLayout,
+      document: cloneKeymapDocument(keymapDocument),
+      versions: [version],
+      activeVersionId: version.id,
+      updatedAt: now
+    }, model);
+    const shareProject: SavedKeyboardProject = {
+      ...baseProject,
+      defaultLayout: {
+        document: cloneKeymapDocument(keymapDocument),
+        updatedAt: now
+      },
+      layouts: [shareLayout],
+      activeLayoutId: shareLayout.id,
+      updatedAt: now
+    };
+
+    return {
+      version: 1,
+      kind: "qmk-viz-project",
+      project: serializeKeyboardProject(shareProject)
+    };
+  }
+
+  function importSharedProject(projectFile: ProjectFile) {
+    const parsedProject = parseProjectFile(projectFile, "share-url");
+    const importedProject = cloneKeyboardProjectForLibrary(
+      parsedProject,
+      uniqueKeyboardProjectName(`${parsedProject.name} shared`)
+    );
+    setKeyboardProjects((current) => [...current, importedProject]);
+    loadKeyboardProjectObject(importedProject, importedProject.activeLayoutId, { resetHistory: true });
+    setActivePage("editor");
+    setStatusMessage(`Imported shared layout ${activeLayoutFor(importedProject)?.name ?? importedProject.name}.`);
   }
 
   function openJsonEditDialog(kind: JsonEditKind) {
@@ -1964,6 +2038,22 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
       setStatusMessage(renderedKeymapHasError ? "Copied keymap render error to clipboard." : "Copied rendered keymap.c to clipboard.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "Could not copy keymap.c to clipboard.");
+    }
+  }
+
+  async function copyShareUrl() {
+    const projectFile = currentShareProjectFile();
+    if (!projectFile) {
+      setStatusMessage("Create or import a project with a KLE model and layout before sharing.");
+      return;
+    }
+
+    try {
+      const token = await encodeShareProjectFile(projectFile);
+      await navigator.clipboard.writeText(shareUrlForToken(token));
+      setStatusMessage("Copied share URL for the current layout.");
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Could not create share URL.");
     }
   }
 
@@ -2133,6 +2223,32 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   useEffect(() => {
     if (!enableGlobalEffects) return;
     localStorage.setItem(KEYBOARD_PROJECTS_STORAGE_KEY, JSON.stringify(keyboardProjects.map(serializeKeyboardProject)));
+  }, [enableGlobalEffects, keyboardProjects]);
+
+  useEffect(() => {
+    if (!enableGlobalEffects || typeof window === "undefined") return;
+
+    const token = shareTokenFromHash(window.location.hash);
+    if (!token || importedShareTokenRef.current === token) return;
+
+    importedShareTokenRef.current = token;
+    let canceled = false;
+
+    void decodeShareProjectFile(token)
+      .then((projectFile) => {
+        if (canceled) return;
+        importSharedProject(projectFile);
+        const nextHash = hashWithoutShareToken(window.location.hash);
+        window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${nextHash}`);
+      })
+      .catch((error: unknown) => {
+        if (canceled) return;
+        setStatusMessage(error instanceof Error ? error.message : "Could not import shared layout URL.");
+      });
+
+    return () => {
+      canceled = true;
+    };
   }, [enableGlobalEffects, keyboardProjects]);
 
   useEffect(() => {
@@ -2469,6 +2585,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     submitJsonEditDialog,
     copyJson,
     copyKeymap,
+    copyShareUrl,
     downloadText,
     downloadJson,
     downloadKeymap,

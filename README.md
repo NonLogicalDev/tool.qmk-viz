@@ -21,6 +21,7 @@ Use it when you want the convenience of a graphical layout tool and the flexibil
 - **Compose actions without memorizing QMK.** Build plain keycodes, modifier stacks, mod-taps, layer-taps, layer switches, dances, aliases, macros, and raw expressions from the interface.
 - **Keep layout history.** Save named immutable layout versions, fork from older versions, and see the version tree.
 - **Export real project data.** Download a full project backup with KLE plus layouts, or export a single layout JSON for templating.
+- **Share one layout by URL.** Copy a self-contained link for the active layout/version without including the rest of your workspace.
 - **Generate firmware source your way.** Use the built-in keymap template renderer, or bring your own generator and feed it the exported layout JSON.
 - **No account, no server.** The published app is static and stores user projects in `localStorage`.
 
@@ -69,6 +70,7 @@ Starter examples live in `default-projects/` as complete `qmk-viz-project` JSON 
 - **Full Project:** KLE model, all named layouts, version history, support tables, and template.
 - **Project KLE:** canonical KLE model with qmk-viz identifiers embedded.
 - **Layer KLE:** active-layer KLE preview with current QMK expressions written onto the keys.
+- **Share URL:** compressed URL payload containing the current keyboard model, template, and exactly one active layout/version snapshot.
 - **Workspace Backup:** all user projects stored in browser local storage.
 
 ## Custom `keymap.c` Templates

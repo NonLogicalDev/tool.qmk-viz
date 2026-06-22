@@ -21,10 +21,12 @@ type ExportPreviewPanelProps = {
 type ExportActionBarProps = {
   canExport: boolean;
   canCopyKeymap: boolean;
+  canShare: boolean;
   layoutName: string;
   downloadsMenu: ReactNode;
   onCopyJson: () => void;
   onCopyKeymap: () => void;
+  onCopyShareUrl: () => void;
 };
 
 function KeymapTemplateEditor({ projectName, template, onTemplateChange }: KeymapTemplateEditorProps) {
@@ -118,10 +120,12 @@ function ExportPreviewPanel({
 function ExportActionBar({
   canExport,
   canCopyKeymap,
+  canShare,
   layoutName,
   downloadsMenu,
   onCopyJson,
-  onCopyKeymap
+  onCopyKeymap,
+  onCopyShareUrl
 }: ExportActionBarProps) {
   return (
     <div className="export-action-bar" data-testid="export-action-bar">
@@ -132,6 +136,7 @@ function ExportActionBar({
       <div className="button-row">
         <button className="action-copy" data-icon="⧉" data-testid="copy-json" disabled={!canExport} onClick={onCopyJson} type="button">Copy Layout JSON</button>
         <button className="action-copy" data-icon="⧉" data-testid="copy-keymap" disabled={!canCopyKeymap} onClick={onCopyKeymap} type="button">Copy Keymap</button>
+        <button className="action-copy" data-icon="@" data-testid="copy-share-url" disabled={!canShare} onClick={onCopyShareUrl} type="button">Copy Share URL</button>
         {downloadsMenu}
       </div>
     </div>
@@ -143,6 +148,7 @@ export function ExportPage() {
     activeSavedLayout,
     copyJson,
     copyKeymap,
+    copyShareUrl,
     downloadActiveLayerKle,
     downloadJson,
     downloadKeymap,
@@ -188,6 +194,7 @@ export function ExportPage() {
       <ExportActionBar
         canCopyKeymap={canExport && !renderedKeymapHasError}
         canExport={canExport}
+        canShare={canExport}
         downloadsMenu={renderActionMenu("export-downloads", "Downloads", (
           <>
             <button className="action-export" data-icon="⇡" data-testid="download-keymap" disabled={!model || !activeSavedLayout || renderedKeymapHasError} onClick={() => runMenuAction(downloadKeymap)} role="menuitem" type="button">Keymap C</button>
@@ -199,6 +206,7 @@ export function ExportPage() {
         layoutName={layoutNameDraft}
         onCopyJson={copyJson}
         onCopyKeymap={copyKeymap}
+        onCopyShareUrl={() => { void copyShareUrl(); }}
       />
     </section>
   );

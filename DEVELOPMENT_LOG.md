@@ -2059,3 +2059,27 @@ Follow-up correction from ABG configurator screenshot:
 - Renamed imported ABG layers from placeholder names `SYM/FUN/NUM` to screenshot-aligned `LOWER/META/RAISE`.
 - Verified the base layer now maps `A18 = MO(LOWER)`, `A38 = MO(RAISE)`, `A39 = MO(META)`, with `A19/A17/A16/A15/A20` and `A36/A41/A37/A40` matching the photographed bottom keys.
 - `jq`, focused Keyboardio ABG invariant checks, `git diff --check`, and `npm run build` passed after the correction. Existing Vite large-chunk warning remains.
+
+## 2026-06-22: qmk-viz shareable layout URLs
+
+Goal: let users share the currently viewed layout/version by URL without including every project, layout, or workspace backup.
+
+What worked:
+
+- Added a `Copy Share URL` action to the Export page.
+- Share URLs encode a `qmk-viz-project` payload containing the active keyboard model, template, default layout, and exactly one active layout.
+- The shared layout keeps only one version snapshot and uses the current unsaved editor document, so the link represents what the user is seeing.
+- Opening a share URL imports a fresh local project copy, selects it, navigates to the Layout page, and removes the `share` token from the address bar.
+- The URL payload uses gzip through browser `CompressionStream` when available, with a raw JSON base64url fallback.
+
+What did not work:
+
+- Encoding only layout JSON was not enough because a recipient also needs the KLE model and template context to render and edit the layout.
+- A separate share-only schema would duplicate existing project import normalization, so the implementation reuses `qmk-viz-project`.
+- TypeScript rejected writing `Uint8Array<ArrayBufferLike>` directly into `CompressionStream`; copying into a concrete `ArrayBuffer` fixed the DOM typing issue.
+
+Validation:
+
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- `npm run build:pages` passed. Existing Vite large-chunk warning remains.
