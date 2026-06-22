@@ -99,6 +99,18 @@ type ContextPickerOption = {
   meta: string;
 };
 
+type ProjectBrowserTab = "projects" | "examples";
+
+type ProjectBrowserItem = {
+  id: string;
+  name: string;
+  layoutCount: number;
+  versionCount: number;
+  keyCount: number;
+  project: SavedKeyboardProject;
+  source: ProjectBrowserTab;
+};
+
 type AppSnapshot = {
   project: SavedKeyboardProject | null;
   activeLayoutId: string;
@@ -111,6 +123,8 @@ const appPages: AppPageDefinition[] = [
   { id: "editor", label: "Layout", description: "Layouts, keyboard, and key actions" },
   { id: "export", label: "Export", description: "JSON and KLE downloads" }
 ];
+
+const projectBrowserPageSize = 6;
 
 const behaviorFields: BehaviorField[] = [
   { id: "tap", label: "When tapped", placeholder: "KC_SPC", help: "Normal tap output." },
@@ -291,6 +305,9 @@ export function App() {
   const [createLayoutNameDraft, setCreateLayoutNameDraft] = useState<string | null>(null);
   const [jsonEditDialog, setJsonEditDialog] = useState<JsonEditDialog | null>(null);
   const [projectSearchDraft, setProjectSearchDraft] = useState("");
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
+  const [projectBrowserTab, setProjectBrowserTab] = useState<ProjectBrowserTab>("projects");
+  const [projectBrowserPage, setProjectBrowserPage] = useState(0);
   const [showKleHelp, setShowKleHelp] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
   const [openContextPicker, setOpenContextPicker] = useState<ContextPickerKind | null>(null);
@@ -314,11 +331,40 @@ export function App() {
     versionCount: project.layouts.reduce((total, layout) => total + layout.versions.length, 0),
     keyCount: project.model?.keys.length ?? 0
   })), [keyboardProjects]);
-  const filteredProjectStats = useMemo(() => {
+  const activeProjectStats = projectStats.find((project) => project.id === activeKeyboardProjectId) ?? null;
+  const projectBrowserUserItems = useMemo<ProjectBrowserItem[]>(() => keyboardProjects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    layoutCount: project.layouts.length,
+    versionCount: project.layouts.reduce((total, layout) => total + layout.versions.length, 0),
+    keyCount: project.model?.keys.length ?? 0,
+    project,
+    source: "projects"
+  })), [keyboardProjects]);
+  const projectBrowserExampleItems = useMemo<ProjectBrowserItem[]>(() => exampleProjects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    layoutCount: project.layouts.length,
+    versionCount: project.layouts.reduce((total, layout) => total + layout.versions.length, 0),
+    keyCount: project.model?.keys.length ?? 0,
+    project,
+    source: "examples"
+  })), [exampleProjects]);
+  const projectBrowserItems = useMemo(() => {
     const query = projectSearchDraft.trim().toLowerCase();
-    if (!query) return projectStats;
-    return projectStats.filter((project) => project.name.toLowerCase().includes(query));
-  }, [projectSearchDraft, projectStats]);
+    const sourceItems = projectBrowserTab === "projects" ? projectBrowserUserItems : projectBrowserExampleItems;
+    if (!query) return sourceItems;
+    return sourceItems.filter((project) => (
+      project.name.toLowerCase().includes(query) ||
+      `${project.layoutCount} layouts ${project.versionCount} versions ${project.keyCount} keys`.includes(query)
+    ));
+  }, [projectBrowserExampleItems, projectBrowserTab, projectBrowserUserItems, projectSearchDraft]);
+  const projectBrowserPageCount = Math.max(1, Math.ceil(projectBrowserItems.length / projectBrowserPageSize));
+  const safeProjectBrowserPage = Math.min(projectBrowserPage, projectBrowserPageCount - 1);
+  const visibleProjectBrowserItems = projectBrowserItems.slice(
+    safeProjectBrowserPage * projectBrowserPageSize,
+    safeProjectBrowserPage * projectBrowserPageSize + projectBrowserPageSize
+  );
   const projectPickerOptions = useMemo<ContextPickerOption[]>(() => keyboardProjects.map((project) => ({
     value: project.id,
     label: project.name,
@@ -1510,6 +1556,21 @@ export function App() {
     importFullProjectFromJson(JSON.parse(await file.text()) as unknown, file.name);
   }
 
+  function openProjectBrowser(tab: ProjectBrowserTab = "projects") {
+    closeActionMenus();
+    closeContextPicker();
+    setProjectBrowserTab(tab);
+    setProjectSearchDraft("");
+    setProjectBrowserPage(0);
+    setShowProjectBrowser(true);
+  }
+
+  function closeProjectBrowser() {
+    setShowProjectBrowser(false);
+    setProjectSearchDraft("");
+    setProjectBrowserPage(0);
+  }
+
   function restoreWorkspaceFromJson(raw: unknown, sourceName: string) {
     const workspace = parseWorkspaceFile(raw, sourceName);
     const projectCount = workspace.projects.length;
@@ -1556,6 +1617,7 @@ export function App() {
     setKeyboardProjects((current) => [...current, importedProject]);
     loadKeyboardProjectObject(importedProject);
     setActivePage("editor");
+    closeProjectBrowser();
     setStatusMessage(`Loaded example project ${importedProject.name}.`);
   }
 
@@ -1912,7 +1974,7 @@ export function App() {
     id: string,
     label: string,
     children: ReactNode,
-    options: { className?: string; disabled?: boolean; icon?: string } = {}
+    options: { className?: string; disabled?: boolean; icon?: string; testId?: string } = {}
   ) {
     const isOpen = openActionMenuId === id;
 
@@ -1923,6 +1985,7 @@ export function App() {
           aria-haspopup="menu"
           className={`action-menu-trigger ${options.className ?? ""}`.trim()}
           data-icon={options.icon ?? "☰"}
+          data-testid={options.testId}
           disabled={options.disabled}
           onClick={() => {
             closeContextPicker();
@@ -3007,17 +3070,25 @@ export function App() {
       )}
 
       {activePage === "projects" && (
-        <section className="page-panel">
+        <section className="page-panel project-page">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">Project library</p>
-              <h1>Keyboard projects</h1>
-              <p>Browser-local workspaces. Back up the whole project whenever the layout starts mattering.</p>
+              <p className="eyebrow">Project</p>
+              <h1>{keyboardProjectNameDraft || "No active project"}</h1>
+              <p>Configure the active keyboard project here. Use Project Browser when you need to switch projects or load examples.</p>
             </div>
             <div className="page-actions">
-              <button className="action-create" data-icon="+" data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
-              {renderActionMenu("project-file-actions", "Project file", (
+              <button className="action-import" data-icon="⌘" data-testid="open-project-browser" onClick={() => openProjectBrowser("projects")} type="button">Project Browser</button>
+              {renderActionMenu("create-project-actions", "Create Project", (
                 <>
+                  <button className="action-create" data-icon="+" data-testid="new-project" onClick={() => runMenuAction(createBlankKeyboardProject)} role="menuitem" type="button">Blank Project</button>
+                  <button className="action-default" data-icon="★" data-testid="new-project-from-example" onClick={() => runMenuAction(() => openProjectBrowser("examples"))} role="menuitem" type="button">From Example</button>
+                </>
+              ), { className: "action-create", icon: "+", testId: "create-project-menu" })}
+              {renderActionMenu("project-actions", "Project actions", (
+                <>
+                  <button className="action-rename" data-icon="✎" data-testid="rename-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(openProjectRenameDialog)} role="menuitem" type="button">Rename Project</button>
+                  <button className="action-copy" data-icon="⧉" data-testid="duplicate-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(duplicateKeyboardProject)} role="menuitem" type="button">Duplicate Project</button>
                   <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Import a full qmk-viz project JSON backup">
                     Import Project
                     <input
@@ -3038,60 +3109,45 @@ export function App() {
                   </label>
                   <button className="action-rename" data-icon="{}" data-testid="edit-project-json" disabled={!activeKeyboardProject} onClick={() => runMenuAction(() => openJsonEditDialog("project"))} role="menuitem" type="button">Edit Project JSON</button>
                   <button className="action-export" data-icon="⇡" data-testid="download-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(downloadFullProject)} role="menuitem" type="button">Download Project</button>
+                  <button className="danger-button action-danger" data-icon="!" data-testid="delete-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(deleteKeyboardProject)} role="menuitem" type="button">Delete Project</button>
                 </>
               ))}
             </div>
           </div>
-          <div className="admin-grid two-column">
-            <div className="editor-card admin-card">
+          <div className="admin-grid project-dashboard-grid">
+            <div className="editor-card admin-card active-project-overview-card">
               <div className="section-header">
                 <div>
                   <p className="eyebrow">Active project</p>
                   <h2>{keyboardProjectNameDraft || "No project selected"}</h2>
                 </div>
-                <span className="metric-pill">{keyboardProjects.length} projects</span>
+                <span className="metric-pill">{keyboardProjects.length} user projects</span>
               </div>
-              <label>
-                Search projects
-                <input
-                  data-testid="project-search"
-                  onChange={(event) => setProjectSearchDraft(event.target.value)}
-                  placeholder="Filter user projects by name"
-                  value={projectSearchDraft}
-                />
-              </label>
-              <div className="project-stat-list" data-testid="project-stats">
-                {filteredProjectStats.length > 0 ? filteredProjectStats.map((project) => (
-                  <button
-                    className={project.id === activeKeyboardProjectId ? "active" : ""}
-                    key={project.id}
-                    onClick={() => loadKeyboardProject(project.id)}
-                    type="button"
-                  >
-                    <strong className="project-stat-name">{project.name}</strong>
-                    <span className="project-stat-metrics">
-                      <span>{project.layoutCount} layouts</span>
-                      <span>{project.versionCount} versions</span>
-                      <span>{project.keyCount} keys</span>
-                    </span>
-                  </button>
-                )) : (
-                  <div className="empty-support-data" data-testid="project-stats-empty">
-                    {keyboardProjects.length === 0
-                      ? "No user projects yet. Create a project, import a project file, or load an example below."
-                      : "No projects match that search."}
-                  </div>
-                )}
-              </div>
-              <div className="button-row">
-                {renderActionMenu("project-actions", "Project actions", (
-                  <>
-                    <button className="action-rename" data-icon="✎" data-testid="rename-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(openProjectRenameDialog)} role="menuitem" type="button">Rename Project</button>
-                    <button className="action-copy" data-icon="⧉" data-testid="duplicate-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(duplicateKeyboardProject)} role="menuitem" type="button">Duplicate</button>
-                    <button className="danger-button action-danger" data-icon="!" data-testid="delete-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(deleteKeyboardProject)} role="menuitem" type="button">Delete</button>
-                  </>
-                ), { disabled: !activeKeyboardProject })}
-              </div>
+              {activeKeyboardProject ? (
+                <>
+                  <dl className="model-facts project-facts" data-testid="active-project-readout">
+                    <div>
+                      <dt>Layouts</dt>
+                      <dd>{activeProjectStats?.layoutCount ?? 0}</dd>
+                    </div>
+                    <div>
+                      <dt>Versions</dt>
+                      <dd>{activeProjectStats?.versionCount ?? 0}</dd>
+                    </div>
+                    <div>
+                      <dt>Keys</dt>
+                      <dd>{activeProjectStats?.keyCount ?? 0}</dd>
+                    </div>
+                  </dl>
+                  <p>
+                    Project navigation is intentionally tucked away now. Browse when switching context; stay here when editing the active project's model and metadata.
+                  </p>
+                </>
+              ) : (
+                <div className="setup-state-card inline" data-testid="project-page-empty-state">
+                  <p>No active project. Create a blank project, import a project file from Project Actions, or load an example from Project Browser.</p>
+                </div>
+              )}
             </div>
             <div className="editor-card admin-card">
               <div className="section-header">
@@ -3158,29 +3214,6 @@ export function App() {
                 <button className="action-default" data-icon="?" data-testid="kle-help" onClick={() => setShowKleHelp(true)} type="button">Mapping Help</button>
               </div>
             </div>
-            <div className="editor-card admin-card examples-card">
-              <div className="section-header">
-                <div>
-                  <p className="eyebrow">Examples</p>
-                  <h2>Starter projects</h2>
-                </div>
-                <span className="metric-pill">{exampleProjects.length} templates</span>
-              </div>
-              <p>Examples are bundled read-only templates. Loading one copies it into your user project library.</p>
-              <div className="example-project-list" data-testid="example-projects">
-                {exampleProjects.map((project) => (
-                  <button
-                    className="example-project"
-                    key={project.id}
-                    onClick={() => loadExampleProject(project)}
-                    type="button"
-                  >
-                    <strong>{project.name}</strong>
-                    <span>{project.layouts.length} layouts / {project.model?.keys.length ?? 0} keys</span>
-                  </button>
-                ))}
-              </div>
-            </div>
             <div className="editor-card admin-card project-model-preview-card">
               <div className="section-header">
                 <div>
@@ -3238,6 +3271,128 @@ export function App() {
             </p>
           </div>
         </section>
+      )}
+
+      {showProjectBrowser && (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="rename-modal project-browser-modal"
+            aria-labelledby="project-browser-title"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="section-header">
+              <div>
+                <p className="eyebrow">Project Browser</p>
+                <h2 id="project-browser-title">Switch projects or load examples</h2>
+              </div>
+              <button className="action-disable" data-icon="×" data-testid="close-project-browser" onClick={closeProjectBrowser} type="button">Close</button>
+            </div>
+            <div className="project-browser-tabs" role="tablist" aria-label="Project browser sections">
+              <button
+                className={projectBrowserTab === "projects" ? "active" : ""}
+                data-testid="project-browser-tab-projects"
+                onClick={() => {
+                  setProjectBrowserTab("projects");
+                  setProjectBrowserPage(0);
+                }}
+                role="tab"
+                aria-selected={projectBrowserTab === "projects"}
+                type="button"
+              >
+                My Projects <span>{keyboardProjects.length}</span>
+              </button>
+              <button
+                className={projectBrowserTab === "examples" ? "active" : ""}
+                data-testid="project-browser-tab-examples"
+                onClick={() => {
+                  setProjectBrowserTab("examples");
+                  setProjectBrowserPage(0);
+                }}
+                role="tab"
+                aria-selected={projectBrowserTab === "examples"}
+                type="button"
+              >
+                Examples <span>{exampleProjects.length}</span>
+              </button>
+            </div>
+            <label className="project-browser-search">
+              Search
+              <input
+                autoFocus
+                data-testid="project-browser-search"
+                onChange={(event) => {
+                  setProjectSearchDraft(event.target.value);
+                  setProjectBrowserPage(0);
+                }}
+                placeholder={projectBrowserTab === "projects" ? "Filter user projects" : "Filter starter templates"}
+                value={projectSearchDraft}
+              />
+            </label>
+            <div className="project-browser-list" data-testid="project-browser-list">
+              {visibleProjectBrowserItems.length > 0 ? visibleProjectBrowserItems.map((item) => {
+                const isActiveProject = item.source === "projects" && item.id === activeKeyboardProjectId;
+                return (
+                  <button
+                    className={`project-browser-row ${isActiveProject ? "active" : ""}`.trim()}
+                    data-testid={item.source === "projects" ? "project-browser-project" : "project-browser-example"}
+                    key={`${item.source}-${item.id}`}
+                    onClick={() => {
+                      if (item.source === "projects") {
+                        loadKeyboardProject(item.id);
+                        closeProjectBrowser();
+                      } else {
+                        loadExampleProject(item.project);
+                      }
+                    }}
+                    type="button"
+                  >
+                    <span className="project-browser-row-main">
+                      <strong>{item.name}</strong>
+                      <em>{isActiveProject ? "active" : item.source === "examples" ? "example" : "project"}</em>
+                    </span>
+                    <span className="project-browser-row-metrics">
+                      <span>{item.layoutCount} layouts</span>
+                      <span>{item.versionCount} versions</span>
+                      <span>{item.keyCount} keys</span>
+                    </span>
+                  </button>
+                );
+              }) : (
+                <div className="empty-support-data" data-testid="project-browser-empty">
+                  {projectBrowserTab === "projects"
+                    ? "No user projects match. Create a project or import one from Project Actions."
+                    : "No examples match that search."}
+                </div>
+              )}
+            </div>
+            <div className="project-browser-footer">
+              <span>{projectBrowserItems.length} results / page {safeProjectBrowserPage + 1} of {projectBrowserPageCount}</span>
+              <div className="button-row">
+                <button
+                  className="action-move"
+                  data-icon="←"
+                  data-testid="project-browser-prev"
+                  disabled={safeProjectBrowserPage <= 0}
+                  onClick={() => setProjectBrowserPage((page) => Math.max(0, page - 1))}
+                  type="button"
+                >
+                  Previous
+                </button>
+                <button
+                  className="action-move"
+                  data-icon="→"
+                  data-testid="project-browser-next"
+                  disabled={safeProjectBrowserPage >= projectBrowserPageCount - 1}
+                  onClick={() => setProjectBrowserPage((page) => Math.min(projectBrowserPageCount - 1, page + 1))}
+                  type="button"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
       )}
 
       {jsonEditDialog && (

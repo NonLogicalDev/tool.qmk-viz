@@ -1217,3 +1217,28 @@ Validation:
 - `npm run build` passed. The existing Vite large-chunk warning remains.
 - In-app browser validation on `http://127.0.0.1:5182/`: header Workspace menu opens and contains Backup Workspace and Restore Workspace.
 - In-app browser validation: Project page actions now show only `Create Project` and `Project file`; Backup/Restore are no longer directly visible there.
+
+## 2026-06-21: qmk-viz Project Browser modal
+
+Goal: keep the Project page focused on the active project, while moving project/example browsing into a compact modal that appears only when needed.
+
+What did not work:
+
+- The Project page had become a mixed dashboard, browser, example gallery, and file-action surface.
+- Showing all examples inline made rare setup actions compete with active-project work.
+- The first compact pass still duplicated actions by adding `Browse Projects` and `Examples` shortcut buttons inside the active-project card while the page action bar already had `Project Browser` and `Create Project -> From Example`.
+
+Changes made:
+
+- Added a Project Browser modal with `My Projects` and `Examples` tabs, search, paging, and compact single-line result rows.
+- Replaced the embedded Project page project list and examples card with a compact active-project readout and model preview.
+- Merged project mutation/file actions into one `Project actions` menu.
+- Changed `Create Project` into a menu with `Blank Project` and `From Example`; `From Example` opens Project Browser on the Examples tab.
+- Removed duplicate active-project-card project/example shortcut buttons so the page has one browser entry, one create menu, and one project actions menu.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: Project page actions render as `Project Browser`, `Create Project`, and `Project actions`.
+- In-app browser validation: no `browse-projects`, `browse-examples`, embedded `project-stats`, or embedded `example-projects` controls remain on the Project page.
+- In-app browser validation: `Create Project -> From Example` opens Project Browser with `Examples` selected and three example rows visible.
