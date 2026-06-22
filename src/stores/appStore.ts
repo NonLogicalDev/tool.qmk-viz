@@ -79,6 +79,7 @@ type AppStoreValues = {
   selectedVersionNameDraft: string;
   showKleHelp: boolean;
   showProjectBrowser: boolean;
+  showSaveAliasDialog: boolean;
   simpleKeycode: string;
   simpleKeycodeModifiers: string[];
   simpleKind: SimpleComposerKind;
@@ -160,6 +161,7 @@ function createInitialValues(): AppStoreValues {
     selectedVersionNameDraft: initialVersion?.name ?? "",
     showKleHelp: false,
     showProjectBrowser: false,
+    showSaveAliasDialog: false,
     simpleKeycode: "KC_SPC",
     simpleKeycodeModifiers: [],
     simpleKind: "plain",
@@ -232,6 +234,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setSelectedVersionNameDraft: createSetter(set, "selectedVersionNameDraft"),
   setShowKleHelp: createSetter(set, "showKleHelp"),
   setShowProjectBrowser: createSetter(set, "showProjectBrowser"),
+  setShowSaveAliasDialog: createSetter(set, "showSaveAliasDialog"),
   setSimpleKeycode: createSetter(set, "simpleKeycode"),
   setSimpleKeycodeModifiers: createSetter(set, "simpleKeycodeModifiers"),
   setSimpleKind: createSetter(set, "simpleKind"),
@@ -243,4 +246,3 @@ export const useAppStore = create<AppStore>((set) => ({
   setUndoStack: createSetter(set, "undoStack"),
   setVersionNameDraft: createSetter(set, "versionNameDraft")
 }));
-

@@ -65,10 +65,6 @@ const keyLabels: Record<string, string> = {
   MS_LEFT: "Ms←",
   MS_RGHT: "Ms→",
   MS_UP: "Ms↑",
-  NL_MS_D5: "Ms↓5",
-  NL_MS_L5: "Ms←5",
-  NL_MS_R5: "Ms→5",
-  NL_MS_U5: "Ms↑5",
   QK_BOOT: "Flash"
 };
 
@@ -499,7 +495,7 @@ export function describeAction(identifier: string): ActionDetails {
     };
   }
 
-  if (value.startsWith("QK_") || value.startsWith("NL_") || value.startsWith("MS_")) {
+  if (value.startsWith("QK_") || value.startsWith("MS_")) {
     return { primary: displayKeycode(value), tone: "special" };
   }
 

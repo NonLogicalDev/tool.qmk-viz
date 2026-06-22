@@ -125,6 +125,55 @@ export function CreateLayoutModal({ value, onChange, onClose, onSubmit }: Create
   );
 }
 
+type SaveKeyAliasModalProps = {
+  expression: string;
+  value: string;
+  onChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+export function SaveKeyAliasModal({ expression, value, onChange, onClose, onSubmit }: SaveKeyAliasModalProps) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <form
+        className="rename-modal save-alias-modal"
+        aria-labelledby="save-key-alias-modal-title"
+        onSubmit={onSubmit}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">Save key alias</p>
+            <h2 id="save-key-alias-modal-title">Name this QMK expression</h2>
+          </div>
+        </div>
+        <label>
+          Alias name
+          <input
+            autoFocus
+            data-testid="save-key-alias-name"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="KK_CUSTOM"
+            spellCheck={false}
+          />
+        </label>
+        <div className="modal-expression-preview">
+          <span>Expression</span>
+          <code data-testid="save-key-alias-expression">{expression}</code>
+        </div>
+        <p className="modal-help">Aliases are saved with the active layout and exported for keymap templates.</p>
+        <div className="button-row rename-modal-actions">
+          <button className="action-save" data-icon="✓" data-testid="confirm-save-key-alias" type="submit">Save Key Alias</button>
+          <button className="action-disable" data-icon="×" data-testid="cancel-save-key-alias" onClick={onClose} type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 type KleHelpModalProps = {
   onClose: () => void;
 };

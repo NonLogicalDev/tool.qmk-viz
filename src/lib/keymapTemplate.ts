@@ -11,6 +11,7 @@ export const DEFAULT_KEYMAP_TEMPLATE = `#include QMK_KEYBOARD_H
  *
  * Edit this template to match your keyboard's QMK layout macro.
  * This template receives { ctx: <exported Full Layout JSON object> }.
+ * Support tables: ctx.layout.macros, ctx.layout.customKeyAliases, ctx.layout.customKeycodes.
  */
 
 enum layer_names {

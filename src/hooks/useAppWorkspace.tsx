@@ -74,7 +74,7 @@ type JsonValidation = {
   message: string;
 };
 
-type ExtKeyTableKind = "macro" | "alias";
+type ExtKeyTableKind = "macro" | "alias" | "keycode";
 
 type AppSnapshot = {
   project: SavedKeyboardProject | null;
@@ -102,8 +102,27 @@ function uniqueLayerName(base: string, layers: KeymapLayer[], ignoreIndex = -1):
   return `${base}_${suffix}`;
 }
 
+function normalizeSupportIdentifier(value: string): string {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
 function isMacroExtKey(key: ExtKey): boolean {
   return `${key.kind} ${key.name}`.toLowerCase().includes("macro");
+}
+
+function isCustomKeycodeExtKey(key: ExtKey): boolean {
+  return key.kind === "keycode";
+}
+
+function supportEntryLabel(kind: string): string {
+  switch (kind) {
+    case "macro":
+      return "macro";
+    case "keycode":
+      return "custom keycode";
+    default:
+      return "custom key alias";
+  }
 }
 
 function simpleModifiersFromEvent(event: KeyboardEvent): string[] {
@@ -195,6 +214,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     selectedVersionNameDraft,
     showKleHelp,
     showProjectBrowser,
+    showSaveAliasDialog,
     simpleKeycode,
     simpleKeycodeModifiers,
     simpleKind,
@@ -248,6 +268,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setSelectedVersionNameDraft,
     setShowKleHelp,
     setShowProjectBrowser,
+    setShowSaveAliasDialog,
     setSimpleKeycode,
     setSimpleKeycodeModifiers,
     setSimpleKind,
@@ -701,7 +722,6 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     }
 
     selectKey(key);
-    setStatusMessage(`Selected ${key.slot} on ${activeLayer.name}.`);
   }
 
   function writeAction(value: string) {
@@ -747,10 +767,15 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setStatusMessage(`Applied ${generatedAction} to ${selectedKey.slot}.`);
   }
 
+  function openSaveAliasDialog() {
+    setExtraKeyNameDraft(extraKeyNameDraft.trim() || "KK_CUSTOM");
+    setShowSaveAliasDialog(true);
+  }
+
   function saveGeneratedActionAsExtraKey() {
-    const name = extraKeyNameDraft.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+    const name = normalizeSupportIdentifier(extraKeyNameDraft);
     if (!name) {
-      setStatusMessage("Enter an extra key name before saving the generated action.");
+      setStatusMessage("Enter a custom key alias name before saving the generated action.");
       return;
     }
 
@@ -769,7 +794,22 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
         : [...current, nextKey];
     });
     setExtraKeyNameDraft(name);
-    setStatusMessage(`Saved ${name} as an extra key alias for ${generatedAction}.`);
+    setShowSaveAliasDialog(false);
+    setStatusMessage(`Saved ${name} as a custom key alias for ${generatedAction}.`);
+  }
+
+  function submitSaveAliasDialog(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    saveGeneratedActionAsExtraKey();
+  }
+
+  async function copyGeneratedAction() {
+    try {
+      await navigator.clipboard.writeText(generatedAction);
+      setStatusMessage(`Copied ${generatedAction} to clipboard.`);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Could not copy generated QMK expression to clipboard.");
+    }
   }
 
   function startNewDance() {
@@ -822,9 +862,9 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   function startNewExtKey(kind: ExtKeyTableKind) {
     setEditingExtKeyName("");
     setExtKeyDraft({
-      name: kind === "macro" ? "MACRO_CUSTOM" : "KK_CUSTOM",
+      name: kind === "macro" ? "MACRO_CUSTOM" : kind === "keycode" ? "NL_CUSTOM" : "KK_CUSTOM",
       kind,
-      value: kind === "macro" ? "SEND_STRING(\"\")" : "KC_NO",
+      value: kind === "macro" ? "SEND_STRING(\"\")" : kind === "keycode" ? "SAFE_RANGE" : "KC_NO",
       notes: ""
     });
   }
@@ -835,9 +875,9 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   }
 
   function saveExtKeyDraft() {
-    const name = extKeyDraft.name.trim().toUpperCase().replace(/[^A-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+    const name = normalizeSupportIdentifier(extKeyDraft.name);
     if (!name) {
-      setStatusMessage("Enter an extra key name before saving.");
+      setStatusMessage(`Enter a ${supportEntryLabel(extKeyDraft.kind)} name before saving.`);
       return;
     }
 
@@ -856,17 +896,18 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     });
     setEditingExtKeyName(null);
     setExtKeyDraft(nextKey);
-    setStatusMessage(`Saved extra key ${name}.`);
+    setStatusMessage(`Saved ${supportEntryLabel(nextKey.kind)} ${name}.`);
   }
 
   function deleteExtKey(name: string) {
-    if (!window.confirm(`Delete extra key "${name}"?`)) return;
+    const entry = extKeys.find((key) => key.name === name);
+    if (!window.confirm(`Delete ${supportEntryLabel(entry?.kind ?? "alias")} "${name}"?`)) return;
     recordHistory();
     setExtKeys((current) => current.filter((key) => key.name !== name));
     if (editingExtKeyName === name) {
       setEditingExtKeyName(null);
     }
-    setStatusMessage(`Deleted extra key ${name}.`);
+    setStatusMessage(`Deleted ${supportEntryLabel(entry?.kind ?? "alias")} ${name}.`);
   }
 
   function updateBehaviorSlot(id: keyof BehaviorSlots, value: string) {
@@ -1843,7 +1884,8 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
   const danceRows = Object.entries(dances).sort(([leftName], [rightName]) => leftName.localeCompare(rightName));
   const extKeyRows = [...extKeys].sort((left, right) => left.name.localeCompare(right.name));
   const macroRows = extKeyRows.filter(isMacroExtKey);
-  const aliasRows = extKeyRows.filter((key) => !isMacroExtKey(key));
+  const customKeycodeRows = extKeyRows.filter(isCustomKeycodeExtKey);
+  const aliasRows = extKeyRows.filter((key) => !isMacroExtKey(key) && !isCustomKeycodeExtKey(key));
   const canUndo = undoStack.length > 0;
   const canRedo = redoStack.length > 0;
 
@@ -2014,6 +2056,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     selectedVersionNameDraft,
     showKleHelp,
     showProjectBrowser,
+    showSaveAliasDialog,
     simpleKeycode,
     simpleKeycodeModifiers,
     simpleKind,
@@ -2067,6 +2110,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     setSelectedVersionNameDraft,
     setShowKleHelp,
     setShowProjectBrowser,
+    setShowSaveAliasDialog,
     setSimpleKeycode,
     setSimpleKeycodeModifiers,
     setSimpleKind,
@@ -2126,6 +2170,7 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     danceRows,
     extKeyRows,
     macroRows,
+    customKeycodeRows,
     aliasRows,
     canUndo,
     canRedo,
@@ -2151,7 +2196,10 @@ export function useAppWorkspace(options: UseAppWorkspaceOptions = {}) {
     handleKeyClick,
     writeAction,
     applyGeneratedAction,
+    openSaveAliasDialog,
     saveGeneratedActionAsExtraKey,
+    submitSaveAliasDialog,
+    copyGeneratedAction,
     startNewDance,
     startEditDance,
     saveDanceDraft,

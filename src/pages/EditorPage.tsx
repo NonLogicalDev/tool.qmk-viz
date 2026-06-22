@@ -4,6 +4,7 @@ import { type SimpleComposerKind } from "../lib/qmkActions";
 import { fitPrimaryKeyLabel, fitSecondaryKeyLabel } from "../lib/textFit";
 import { LayoutVersionTree } from "../components/LayoutVersionTree";
 import { PreviewKeycap, actionTypeLabel } from "../components/PreviewKeycap";
+import { SaveKeyAliasModal } from "../components/AppModals";
 import { danceBehaviorFields, layerPalette, simpleKeycodeMods } from "../lib/editorConfig";
 import { useAppWorkspace } from "../hooks/useAppWorkspace";
 
@@ -37,6 +38,7 @@ export function EditorPage() {
     captureTarget,
     composerMode,
     syncComposerWithSelection,
+    showSaveAliasDialog,
     generatedAction,
     composerNote,
     simpleKind,
@@ -55,6 +57,7 @@ export function EditorPage() {
     extraKeyNameDraft,
     danceRows,
     macroRows,
+    customKeycodeRows,
     aliasRows,
     editingDanceName,
     danceDraftName,
@@ -100,6 +103,7 @@ export function EditorPage() {
     startKeySwap,
     setSyncComposerWithSelection,
     setComposerMode,
+    setShowSaveAliasDialog,
     setSimpleKind,
     setSimpleRawAction,
     setSimpleKeycodeModifiers,
@@ -109,7 +113,9 @@ export function EditorPage() {
     updateBehaviorSlot,
     setDanceName,
     setExtraKeyNameDraft,
-    saveGeneratedActionAsExtraKey,
+    openSaveAliasDialog,
+    submitSaveAliasDialog,
+    copyGeneratedAction,
     applyGeneratedAction,
     startNewDance,
     setDanceDraftName,
@@ -136,6 +142,7 @@ export function EditorPage() {
   const keyboardPaddingY = keyboardGeometry?.paddingY ?? 0;
 
   return (
+    <>
 <section className="workspace editor-workspace">
           <div className="editor-card active-layout-card editor-layout-card">
             <div className="section-header">
@@ -249,7 +256,6 @@ export function EditorPage() {
                 onClick={() => {
                   setActiveLayerName(layer.name);
                   setSwapSourceSlot(null);
-                  setStatusMessage(`Editing ${layer.name}.`);
                 }}
                 role="tab"
                 aria-controls="keyboard-stage"
@@ -682,24 +688,24 @@ export function EditorPage() {
                   ? `Apply TD(${danceName || "DANCE_0"}) and add or update its dances JSON entry.`
                   : `Apply this generated raw identifier to ${selectedKey.slot} on ${activeLayer.name}.`}
               </span>
-              <div className="extra-key-save-row">
-                <input
-                  data-testid="extra-key-name"
-                  value={extraKeyNameDraft}
-                  onChange={(event) => setExtraKeyNameDraft(event.target.value)}
-                  placeholder="KK_CUSTOM"
-                  spellCheck={false}
-                />
-                <button
-                  className="action-default"
-                  data-icon="+"
-                  data-testid="save-generated-extra-key"
-                  onClick={saveGeneratedActionAsExtraKey}
-                  type="button"
-                >
-                  Extra key
-                </button>
-              </div>
+              <button
+                className="action-copy"
+                data-icon="⧉"
+                data-testid="copy-generated-action"
+                onClick={copyGeneratedAction}
+                type="button"
+              >
+                Copy expression
+              </button>
+              <button
+                className="action-default"
+                data-icon="+"
+                data-testid="open-save-key-alias"
+                onClick={openSaveAliasDialog}
+                type="button"
+              >
+                Save Key Alias
+              </button>
               <button
                 className="action-save"
                 data-icon="✓"
@@ -722,9 +728,9 @@ export function EditorPage() {
               <div className="section-header">
                 <div>
                   <p className="eyebrow">Layout support data</p>
-                  <h2>Dances, macros, aliases</h2>
+                  <h2>Dances, macros, custom key aliases, keycodes</h2>
                 </div>
-                <span className="metric-pill">{danceRows.length} dances / {macroRows.length} macros / {aliasRows.length} aliases</span>
+                <span className="metric-pill">{danceRows.length} dances / {macroRows.length} macros / {aliasRows.length} aliases / {customKeycodeRows.length} keycodes</span>
               </div>
               <div className="support-table-group">
                 <section>
@@ -854,10 +860,10 @@ export function EditorPage() {
                 </section>
                 <section>
                   <div className="mini-section-header">
-                    <h3>Extra key aliases</h3>
+                    <h3>Custom key aliases</h3>
                     <button className="action-create mini-action" data-icon="+" data-testid="add-alias" onClick={() => startNewExtKey("alias")} type="button">Add</button>
                   </div>
-                  {aliasRows.length > 0 || (editingExtKeyName !== null && extKeyDraft.kind !== "macro") ? (
+                  {aliasRows.length > 0 || (editingExtKeyName !== null && extKeyDraft.kind !== "macro" && extKeyDraft.kind !== "keycode") ? (
                     <div className="support-table-scroll">
                       <table className="support-table" data-testid="extkeys-table">
                         <thead>
@@ -870,7 +876,7 @@ export function EditorPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {editingExtKeyName !== null && extKeyDraft.kind !== "macro" && (
+                          {editingExtKeyName !== null && extKeyDraft.kind !== "macro" && extKeyDraft.kind !== "keycode" && (
                             <tr className="editing-row">
                               <th scope="row"><input data-testid="alias-edit-name" value={extKeyDraft.name} onChange={(event) => setExtKeyDraft((current) => ({ ...current, name: event.target.value }))} spellCheck={false} /></th>
                               <td><code>{extKeyDraft.kind || "alias"}</code></td>
@@ -906,7 +912,64 @@ export function EditorPage() {
                       </table>
                     </div>
                   ) : (
-                    <p className="empty-support-data" data-testid="extkeys-table-empty">No extra key aliases in this layout.</p>
+                    <p className="empty-support-data" data-testid="extkeys-table-empty">No custom key aliases in this layout.</p>
+                  )}
+                </section>
+                <section>
+                  <div className="mini-section-header">
+                    <h3>Custom keycodes</h3>
+                    <button className="action-create mini-action" data-icon="+" data-testid="add-keycode" onClick={() => startNewExtKey("keycode")} type="button">Add</button>
+                  </div>
+                  {customKeycodeRows.length > 0 || (editingExtKeyName !== null && extKeyDraft.kind === "keycode") ? (
+                    <div className="support-table-scroll">
+                      <table className="support-table" data-testid="custom-keycode-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Kind</th>
+                            <th>Value</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {editingExtKeyName !== null && extKeyDraft.kind === "keycode" && (
+                            <tr className="editing-row">
+                              <th scope="row"><input data-testid="keycode-edit-name" value={extKeyDraft.name} onChange={(event) => setExtKeyDraft((current) => ({ ...current, name: event.target.value }))} spellCheck={false} /></th>
+                              <td><code>{extKeyDraft.kind}</code></td>
+                              <td><input data-testid="keycode-edit-value" value={extKeyDraft.value} onChange={(event) => setExtKeyDraft((current) => ({ ...current, value: event.target.value }))} spellCheck={false} /></td>
+                              <td><input data-testid="keycode-edit-notes" value={extKeyDraft.notes} onChange={(event) => setExtKeyDraft((current) => ({ ...current, notes: event.target.value }))} spellCheck={false} /></td>
+                              <td>
+                                <div className="support-row-actions">
+                                  <button className="action-save" data-icon="✓" data-testid="save-extkey" onClick={saveExtKeyDraft} type="button">Save</button>
+                                  <button className="action-disable" data-icon="×" data-testid="cancel-extkey-edit" onClick={() => setEditingExtKeyName(null)} type="button">Cancel</button>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          {customKeycodeRows.map((key) => (
+                            <tr key={`${key.name}-${key.kind}-${key.value}`}>
+                              <th scope="row"><code>{key.name}</code></th>
+                              <td>{key.kind || "-"}</td>
+                              <td><code>{key.value || "-"}</code></td>
+                              <td>{key.notes || "-"}</td>
+                              <td>
+                                <div className="support-row-actions">
+                                  {renderActionMenu(`keycode-actions-${key.name}`, "Actions", (
+                                    <>
+                                      <button className="action-rename" data-icon="✎" data-testid={`edit-extkey-${key.name}`} onClick={() => runMenuAction(() => startEditExtKey(key))} role="menuitem" type="button">Edit</button>
+                                      <button className="action-danger" data-icon="!" data-testid={`delete-extkey-${key.name}`} onClick={() => runMenuAction(() => deleteExtKey(key.name))} role="menuitem" type="button">Delete</button>
+                                    </>
+                                  ), { icon: "⋯" })}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="empty-support-data" data-testid="custom-keycode-table-empty">No custom keycodes in this layout.</p>
                   )}
                 </section>
               </div>
@@ -975,5 +1038,15 @@ export function EditorPage() {
             </div>
           )}
         </section>
+        {showSaveAliasDialog && (
+          <SaveKeyAliasModal
+            expression={generatedAction}
+            value={extraKeyNameDraft}
+            onChange={setExtraKeyNameDraft}
+            onClose={() => setShowSaveAliasDialog(false)}
+            onSubmit={submitSaveAliasDialog}
+          />
+        )}
+      </>
   );
 }

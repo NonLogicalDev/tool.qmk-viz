@@ -1553,3 +1553,38 @@ Validation:
 - In-app browser validation: Layout page renders 61 keycaps using `data-testid="key-<slot>"`; selecting `key-K01` updates the selected keycap.
 - In-app browser validation: clean reload after the store/component extraction produced no current console errors.
 - Architecture caveat: `App.tsx` is down to 3,106 lines, but it still owns mutation handlers and the main Editor markup.
+
+## 2026-06-22: qmk-viz composer aliases, custom keycodes, and quieter selection
+
+Goal: make the action composer more useful for reusable QMK identifiers, add custom keycode support for templates, fix the Workspace action trigger visual mismatch, keep `NL_*` identifiers custom, and remove low-signal key/layer selection toasts.
+
+What did not work:
+
+- The Workspace action menu trigger inherited the generic `data-icon` pseudo-element but the topbar-specific control rule laid it out differently, causing the icon to stack above the text.
+- The composer had an inline `[+ Extra Key]` save row, which made the generated-expression area cramped and used old terminology.
+- Support data treated every non-macro `extKeys` row as an alias, leaving no clear place for custom QMK keycodes that templates need for enums/ranges.
+- `NL_MS_L5` and related `NL_*` identifiers were hardcoded in the stock label map, incorrectly implying they are QMK built-ins.
+- Clicking keys and switching layers produced toast notifications even though the keyboard and selected-key panel already show the state change.
+
+Changes made:
+
+- Added a compact `Save Key Alias` modal that names the current generated QMK expression and stores it as an `extKeys` row with `kind: "alias"`.
+- Added `Copy expression` to the simple/dance composer action row.
+- Renamed visible "Extra key aliases" wording to "Custom key aliases".
+- Added a separate "Custom keycodes" support table that stores rows with `kind: "keycode"`.
+- Added grouped export fields alongside the raw support list: `ctx.layout.macros`, `ctx.layout.customKeyAliases`, and `ctx.layout.customKeycodes`.
+- Updated the default keymap template comment to document those support tables.
+- Removed `NL_MS_D5`, `NL_MS_L5`, `NL_MS_R5`, and `NL_MS_U5` from the stock key label map and stopped treating `NL_*` as a stock/special QMK family.
+- Made key clicks and layer-tab changes silent state updates; save/copy/delete/import outcomes still toast.
+- Fixed the Workspace action trigger to lay out icon and text inline like the rest of the UI.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: Workspace trigger renders inline-flex with the icon pseudo-element inline.
+- In-app browser validation: clicking a keyboard key produced zero `[data-sonner-toast]` elements.
+- In-app browser validation: `Copy expression` produced the app toast `Copied KC_SPC to clipboard.`
+- In-app browser validation: `Save Key Alias` modal opened, saved `KK_BROWSER_TEST_ALIAS`, and the alias appeared in the Custom Key Aliases table.
+- In-app browser validation: Custom Keycodes table saved `NL_BROWSER_TEST` with `SAFE_RANGE`.
+- In-app browser validation: temporarily applying `NL_BROWSER_TEST` to a key rendered `NL_BROWSER_TEST` literally in the selected key and keycap display, not as stock QMK shorthand.
+- Browser validation cleanup: app-wide Undo removed the test alias, test keycode, and temporary raw key mapping, returning the selected key to `KC_1`.

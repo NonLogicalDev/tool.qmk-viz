@@ -481,7 +481,9 @@ code {
 }
 
 .history-controls > .action-menu > .action-menu-trigger {
+  display: inline-flex;
   gap: 4px;
+  min-width: 32px;
   padding: 0 8px;
   width: auto;
 }
@@ -741,6 +743,24 @@ textarea {
   background: var(--ink);
   border-color: var(--ink);
   color: #fff;
+}
+
+.generated button.action-copy:not(:disabled) {
+  background: #f2f0ff;
+  border-color: rgb(95 83 184 / 30%);
+  color: #4b4590;
+}
+
+.generated button.action-default:not(:disabled) {
+  background: #fff3cf;
+  border-color: rgb(197 129 22 / 36%);
+  color: #7b4c09;
+}
+
+.generated button.action-save:not(:disabled) {
+  background: #edf8ea;
+  border-color: rgb(68 145 81 / 34%);
+  color: #265f33;
 }
 
 .button-row button.danger-button,
@@ -2316,6 +2336,31 @@ button.action-import:not(:disabled),
   font-size: 0.72rem;
   min-height: 260px;
   resize: vertical;
+}
+
+.modal-expression-preview {
+  background: #fffdf7;
+  border: 1px solid rgb(217 210 196 / 72%);
+  border-radius: 9px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.modal-expression-preview span {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.modal-expression-preview code {
+  color: var(--ink);
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
 }
 
 .kle-help-modal {

@@ -64,6 +64,9 @@ export type KeymapExport = {
     }>;
     dances: Record<string, BehaviorSlots>;
     extKeys: ExtKey[];
+    macros: ExtKey[];
+    customKeyAliases: ExtKey[];
+    customKeycodes: ExtKey[];
   };
 };
 
@@ -87,6 +90,14 @@ function cloneExtKeys(extKeys: ExtKey[]): ExtKey[] {
     ...key,
     value: normalizeActionIdentifier(key.value)
   }));
+}
+
+function isMacroExtKey(key: ExtKey): boolean {
+  return `${key.kind} ${key.name}`.toLowerCase().includes("macro");
+}
+
+function isCustomKeycodeExtKey(key: ExtKey): boolean {
+  return key.kind === "keycode";
 }
 
 export function selectedKeycode(layer: KeymapLayer, slot: string): string {
@@ -183,6 +194,8 @@ export function createKeymapExportDocument(
     layoutName: string;
   }
 ): KeymapExport {
+  const extKeys = cloneExtKeys(document.extKeys);
+
   return {
     version: 1,
     keyboardProject: {
@@ -206,7 +219,10 @@ export function createKeymapExportDocument(
         )
       })),
       dances: cloneDances(document.dances),
-      extKeys: cloneExtKeys(document.extKeys)
+      extKeys,
+      macros: extKeys.filter(isMacroExtKey),
+      customKeyAliases: extKeys.filter((key) => !isMacroExtKey(key) && !isCustomKeycodeExtKey(key)),
+      customKeycodes: extKeys.filter(isCustomKeycodeExtKey)
     }
   };
 }
