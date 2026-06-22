@@ -1146,3 +1146,28 @@ Validation:
 - In-app browser validation: applying `MO(BASE)` then renaming `BASE` to `NAVI` rewrites the selected key action to `MO(NAVI)`.
 - In-app browser validation: adding `LAYER_1` and attempting to rename it to existing `NAVI` is rejected and restores the input to `LAYER_1`.
 - In-app browser validation: Project search filters the user project list and KLE help opens with the expected instructions and KLE link.
+
+## 2026-06-21: qmk-viz top-nav combobox pickers
+
+Goal: replace native top-nav Project/Layout selects with compact searchable pickers that support keyboard navigation.
+
+What did not work:
+
+- Native selects could switch Project/Layout, but they could not filter and did not match the requested result-list interaction model.
+- Reusing the existing action menu directly would have mixed command menus with state-selection controls, so the picker uses a dedicated listbox/search presentation while keeping similar outside-click and Escape behavior.
+
+Changes made:
+
+- Replaced the top Project/Layout `<select>` controls with custom searchable picker popovers.
+- Added one shared picker path for Project and Layout with search text, highlighted result index, selected-result badge, outside-click close, and Escape close.
+- Added keyboard behavior: the search field receives focus when opened, Arrow Up/Down moves the highlighted result, and Enter selects the highlighted result.
+- Kept the existing `loadKeyboardProject()` and `loadLayout()` data flow so selection still resets editor state the same way.
+
+Validation:
+
+- `npm run build` passed. The existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: top context strip has zero native selects.
+- In-app browser validation: Project picker search focused automatically, filtering `ansi` showed one active result, and Enter selected `ANSI 60%`.
+- In-app browser validation: reopening Project picker, pressing ArrowDown, then Enter selected `Corne 42-key Split`.
+- In-app browser validation: Escape closed the Project picker.
+- In-app browser validation: Layout picker opened with the same search/listbox UI and showed the active selected layout.

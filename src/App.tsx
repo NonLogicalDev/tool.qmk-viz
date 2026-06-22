@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { Toaster, toast } from "sonner";
 import "sonner/dist/styles.css";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "./lib/actions";
@@ -88,6 +88,14 @@ type AppPageDefinition = {
   id: AppPage;
   label: string;
   description: string;
+};
+
+type ContextPickerKind = "project" | "layout";
+
+type ContextPickerOption = {
+  value: string;
+  label: string;
+  meta: string;
 };
 
 type AppSnapshot = {
@@ -234,6 +242,7 @@ function rewriteLayerReference(action: string, fromLayer: string, toLayer: strin
 
 export function App() {
   const keyboardViewportRef = useRef<HTMLDivElement | null>(null);
+  const contextPickerSearchRef = useRef<HTMLInputElement | null>(null);
   const [keyboardProjects, setKeyboardProjects] = useState<SavedKeyboardProject[]>(loadKeyboardProjects);
   const [exampleProjects] = useState<SavedKeyboardProject[]>(loadExampleProjects);
   const initialKeyboardProject = keyboardProjects[0] ?? null;
@@ -283,6 +292,9 @@ export function App() {
   const [projectSearchDraft, setProjectSearchDraft] = useState("");
   const [showKleHelp, setShowKleHelp] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [openContextPicker, setOpenContextPicker] = useState<ContextPickerKind | null>(null);
+  const [contextPickerSearch, setContextPickerSearch] = useState("");
+  const [contextPickerActiveIndex, setContextPickerActiveIndex] = useState(0);
   const [keyboardViewportSize, setKeyboardViewportSize] = useState(() => ({
     width: 0,
     screenHeight: typeof window === "undefined" ? 900 : window.innerHeight
@@ -306,6 +318,16 @@ export function App() {
     if (!query) return projectStats;
     return projectStats.filter((project) => project.name.toLowerCase().includes(query));
   }, [projectSearchDraft, projectStats]);
+  const projectPickerOptions = useMemo<ContextPickerOption[]>(() => keyboardProjects.map((project) => ({
+    value: project.id,
+    label: project.name,
+    meta: `${project.layouts.length} layouts / ${project.model?.keys.length ?? 0} keys`
+  })), [keyboardProjects]);
+  const layoutPickerOptions = useMemo<ContextPickerOption[]>(() => availableLayouts.map((layout) => ({
+    value: layout.id,
+    label: layout.name,
+    meta: `${layout.versions.length} versions`
+  })), [availableLayouts]);
   const foundLayerIndex = layers.findIndex((layer) => layer.name === activeLayerName);
   const activeLayerIndex = foundLayerIndex >= 0 ? foundLayerIndex : 0;
   const activeLayer = layers[activeLayerIndex] ?? layers[0] ?? { name: "BASE", keys: {} };
@@ -1679,6 +1701,169 @@ export function App() {
     setOpenActionMenuId(null);
   }
 
+  function closeContextPicker() {
+    setOpenContextPicker(null);
+    setContextPickerSearch("");
+    setContextPickerActiveIndex(0);
+  }
+
+  function openContextPickerMenu(kind: ContextPickerKind) {
+    setOpenActionMenuId(null);
+    setOpenContextPicker((current) => current === kind ? null : kind);
+    setContextPickerSearch("");
+    setContextPickerActiveIndex(0);
+  }
+
+  function selectContextPickerOption(kind: ContextPickerKind, value: string) {
+    if (kind === "project" && value !== activeKeyboardProjectId) {
+      loadKeyboardProject(value);
+    } else if (kind === "layout" && value !== activeLayoutId) {
+      loadLayout(value);
+    }
+    closeContextPicker();
+  }
+
+  function filteredContextPickerOptions(options: ContextPickerOption[]) {
+    const query = contextPickerSearch.trim().toLowerCase();
+    if (!query) return options;
+    return options.filter((option) => (
+      option.label.toLowerCase().includes(query) ||
+      option.meta.toLowerCase().includes(query)
+    ));
+  }
+
+  function handleContextPickerKeyDown(
+    event: ReactKeyboardEvent,
+    kind: ContextPickerKind,
+    filteredOptions: ContextPickerOption[]
+  ) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeContextPicker();
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setContextPickerActiveIndex((current) => (
+        filteredOptions.length === 0 ? 0 : (current + 1) % filteredOptions.length
+      ));
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setContextPickerActiveIndex((current) => (
+        filteredOptions.length === 0 ? 0 : (current - 1 + filteredOptions.length) % filteredOptions.length
+      ));
+      return;
+    }
+
+    if (event.key === "Enter") {
+      const safeActiveIndex = filteredOptions.length > 0
+        ? Math.min(contextPickerActiveIndex, filteredOptions.length - 1)
+        : 0;
+      const option = filteredOptions[safeActiveIndex];
+      if (option) {
+        event.preventDefault();
+        selectContextPickerOption(kind, option.value);
+      }
+    }
+  }
+
+  function renderContextPicker(options: {
+    kind: ContextPickerKind;
+    label: string;
+    value: string;
+    emptyLabel: string;
+    choices: ContextPickerOption[];
+    disabled: boolean;
+  }) {
+    const { kind, label, value, emptyLabel, choices, disabled } = options;
+    const isOpen = openContextPicker === kind;
+    const filteredOptions = filteredContextPickerOptions(choices);
+    const selectedOption = choices.find((option) => option.value === value);
+    const safeActiveIndex = filteredOptions.length > 0
+      ? Math.min(contextPickerActiveIndex, filteredOptions.length - 1)
+      : 0;
+    const activeOptionId = `${kind}-context-option-${safeActiveIndex}`;
+    const triggerLabel = selectedOption?.label ?? emptyLabel;
+    const triggerMeta = selectedOption?.meta ?? (disabled ? "Unavailable" : "Choose one");
+
+    return (
+      <div className="context-picker" data-context-picker-root>
+        <span className="context-picker-label">{label}</span>
+        <button
+          aria-controls={`${kind}-context-listbox`}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          className="context-picker-trigger"
+          data-testid={`top-${kind}-picker-trigger`}
+          disabled={disabled}
+          onClick={() => openContextPickerMenu(kind)}
+          onKeyDown={(event) => {
+            if (disabled) return;
+            if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openContextPickerMenu(kind);
+            }
+          }}
+          type="button"
+        >
+          <strong>{triggerLabel}</strong>
+          <small>{triggerMeta}</small>
+        </button>
+        {isOpen && (
+          <div className="context-picker-popover" onKeyDown={(event) => handleContextPickerKeyDown(event, kind, filteredOptions)}>
+            <input
+              aria-activedescendant={filteredOptions.length > 0 ? activeOptionId : undefined}
+              aria-controls={`${kind}-context-listbox`}
+              aria-label={`Filter ${label.toLowerCase()} list`}
+              className="context-picker-search"
+              data-testid={`top-${kind}-picker-search`}
+              onChange={(event) => {
+                setContextPickerSearch(event.target.value);
+                setContextPickerActiveIndex(0);
+              }}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              ref={contextPickerSearchRef}
+              role="combobox"
+              value={contextPickerSearch}
+            />
+            <div className="context-picker-options" id={`${kind}-context-listbox`} role="listbox">
+              {filteredOptions.length > 0 ? filteredOptions.map((option, index) => {
+                const isActive = index === safeActiveIndex;
+                const isSelected = option.value === value;
+                return (
+                  <button
+                    aria-selected={isSelected}
+                    className={`context-picker-option ${isActive ? "active" : ""} ${isSelected ? "selected" : ""}`.trim()}
+                    data-context-picker-active={isActive ? "true" : undefined}
+                    data-testid={`top-${kind}-picker-option`}
+                    id={`${kind}-context-option-${index}`}
+                    key={option.value}
+                    onClick={() => selectContextPickerOption(kind, option.value)}
+                    onMouseEnter={() => setContextPickerActiveIndex(index)}
+                    role="option"
+                    type="button"
+                  >
+                    <span className="context-picker-option-main">
+                      <strong>{option.label}</strong>
+                      {isSelected && <em>selected</em>}
+                    </span>
+                    <small>{option.meta}</small>
+                  </button>
+                );
+              }) : (
+                <div className="context-picker-empty">No matches</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function runMenuAction(action: () => void) {
     closeActionMenus();
     action();
@@ -1700,7 +1885,10 @@ export function App() {
           className={`action-menu-trigger ${options.className ?? ""}`.trim()}
           data-icon={options.icon ?? "☰"}
           disabled={options.disabled}
-          onClick={() => setOpenActionMenuId((current) => current === id ? null : id)}
+          onClick={() => {
+            closeContextPicker();
+            setOpenActionMenuId((current) => current === id ? null : id);
+          }}
           type="button"
         >
           {label}
@@ -1772,17 +1960,25 @@ export function App() {
   }, [composerLayerOptions, simpleAction.fields, simpleLayer]);
 
   useEffect(() => {
-    if (!openActionMenuId) return;
+    if (!openContextPicker) return;
+    const focusFrame = window.requestAnimationFrame(() => contextPickerSearchRef.current?.focus());
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, [openContextPicker]);
+
+  useEffect(() => {
+    if (!openActionMenuId && !openContextPicker) return;
 
     function closeOnOutsidePointer(event: PointerEvent) {
       const target = event.target;
-      if (target instanceof Element && target.closest("[data-action-menu-root]")) return;
+      if (target instanceof Element && target.closest("[data-action-menu-root], [data-context-picker-root]")) return;
       closeActionMenus();
+      closeContextPicker();
     }
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         closeActionMenus();
+        closeContextPicker();
       }
     }
 
@@ -1792,7 +1988,7 @@ export function App() {
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [openActionMenuId]);
+  }, [openActionMenuId, openContextPicker]);
 
   useEffect(() => {
     setSelectedVersionNameDraft(activeLayoutVersion?.name ?? "");
@@ -1864,38 +2060,22 @@ export function App() {
           ))}
         </nav>
         <div className="context-strip" aria-label="Current context">
-          <label className="context-picker">
-            <span>Project</span>
-            <select
-              aria-label="Active project"
-              data-testid="top-project-select"
-              disabled={keyboardProjects.length === 0}
-              value={activeKeyboardProjectId}
-              onChange={(event) => loadKeyboardProject(event.target.value)}
-            >
-              {keyboardProjects.length > 0 ? keyboardProjects.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              )) : (
-                <option value="">No user projects</option>
-              )}
-            </select>
-          </label>
-          <label className="context-picker">
-            <span>Layout</span>
-            <select
-              aria-label="Active layout"
-              data-testid="top-layout-select"
-              disabled={!activeKeyboardProject || availableLayouts.length === 0}
-              value={activeLayoutId}
-              onChange={(event) => loadLayout(event.target.value)}
-            >
-              {availableLayouts.length > 0 ? availableLayouts.map((layout) => (
-                <option key={layout.id} value={layout.id}>{layout.name}</option>
-              )) : (
-                <option value="">No layouts</option>
-              )}
-            </select>
-          </label>
+          {renderContextPicker({
+            kind: "project",
+            label: "Project",
+            value: activeKeyboardProjectId,
+            emptyLabel: "No user projects",
+            choices: projectPickerOptions,
+            disabled: keyboardProjects.length === 0
+          })}
+          {renderContextPicker({
+            kind: "layout",
+            label: "Layout",
+            value: activeLayoutId,
+            emptyLabel: "No layouts",
+            choices: layoutPickerOptions,
+            disabled: !activeKeyboardProject || availableLayouts.length === 0
+          })}
         </div>
         <div className="history-controls" aria-label="History">
           <button
