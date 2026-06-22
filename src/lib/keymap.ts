@@ -1,7 +1,26 @@
 import type { BehaviorSlots } from "./actions";
 import type { KeyboardModel } from "./keyboardModel";
 
-export const TRANSPARENT = "~";
+export const TRANSPARENT = "KC_TRNS";
+
+const legacyTransparentValues = new Set(["~", "KC_TRANSPARENT"]);
+
+export function isTransparentKeycode(value: string | null | undefined): boolean {
+  const clean = (value ?? "").trim();
+  return clean === TRANSPARENT || legacyTransparentValues.has(clean);
+}
+
+export function normalizeKeycode(value: string | null | undefined): string {
+  const clean = (value ?? "").trim();
+  if (!clean || isTransparentKeycode(clean)) return TRANSPARENT;
+  return clean;
+}
+
+export function normalizeActionIdentifier(value: string | null | undefined): string {
+  const clean = (value ?? "").trim();
+  if (isTransparentKeycode(clean)) return TRANSPARENT;
+  return clean;
+}
 
 export type KeymapLayer = {
   name: string;
@@ -48,8 +67,30 @@ export type KeymapExport = {
   };
 };
 
+function cloneBehaviorSlots(slots: BehaviorSlots): BehaviorSlots {
+  return {
+    tap: normalizeActionIdentifier(slots.tap),
+    hold: normalizeActionIdentifier(slots.hold),
+    doubleTap: normalizeActionIdentifier(slots.doubleTap),
+    tapHold: normalizeActionIdentifier(slots.tapHold)
+  };
+}
+
+function cloneDances(dances: Record<string, BehaviorSlots>): Record<string, BehaviorSlots> {
+  return Object.fromEntries(
+    Object.entries(dances).map(([name, slots]) => [name, cloneBehaviorSlots(slots)])
+  );
+}
+
+function cloneExtKeys(extKeys: ExtKey[]): ExtKey[] {
+  return extKeys.map((key) => ({
+    ...key,
+    value: normalizeActionIdentifier(key.value)
+  }));
+}
+
 export function selectedKeycode(layer: KeymapLayer, slot: string): string {
-  return layer.keys[slot] ?? TRANSPARENT;
+  return normalizeKeycode(layer.keys[slot]);
 }
 
 export function createEmptyKeymapDocument(layerName = "BASE"): KeymapDocument {
@@ -86,13 +127,11 @@ export function reconcileKeymapDocumentToModel(document: KeymapDocument, model: 
     layers: document.layers.map((layer) => ({
       name: layer.name,
       keys: Object.fromEntries(
-        model.keys.map((key) => [key.slot, layer.keys[key.slot] ?? TRANSPARENT])
+        model.keys.map((key) => [key.slot, normalizeKeycode(layer.keys[key.slot])])
       )
     })),
-    dances: Object.fromEntries(
-      Object.entries(document.dances).map(([name, slots]) => [name, { ...slots }])
-    ),
-    extKeys: document.extKeys.map((key) => ({ ...key })),
+    dances: cloneDances(document.dances),
+    extKeys: cloneExtKeys(document.extKeys),
     layerColors: Object.fromEntries(
       Object.entries(document.layerColors ?? {}).filter(([layerName]) => layerNames.has(layerName))
     )
@@ -102,11 +141,14 @@ export function reconcileKeymapDocumentToModel(document: KeymapDocument, model: 
 export function cloneKeymapDocument(document: KeymapDocument): KeymapDocument {
   return {
     version: 1,
-    layers: document.layers.map((layer) => ({ name: layer.name, keys: { ...layer.keys } })),
-    dances: Object.fromEntries(
-      Object.entries(document.dances).map(([name, slots]) => [name, { ...slots }])
-    ),
-    extKeys: document.extKeys.map((key) => ({ ...key })),
+    layers: document.layers.map((layer) => ({
+      name: layer.name,
+      keys: Object.fromEntries(
+        Object.entries(layer.keys).map(([slot, value]) => [slot, normalizeKeycode(value)])
+      )
+    })),
+    dances: cloneDances(document.dances),
+    extKeys: cloneExtKeys(document.extKeys),
     layerColors: { ...(document.layerColors ?? {}) }
   };
 }
@@ -118,7 +160,7 @@ export function updateKeycode(layers: KeymapLayer[], layerName: string, slot: st
       ...layer,
       keys: {
         ...layer.keys,
-        [slot]: value.trim() || TRANSPARENT
+        [slot]: normalizeKeycode(value)
       }
     };
   });
@@ -163,8 +205,8 @@ export function createKeymapExportDocument(
           model.keys.map((key) => [key.slot, selectedKeycode(layer, key.slot)])
         )
       })),
-      dances: document.dances,
-      extKeys: document.extKeys
+      dances: cloneDances(document.dances),
+      extKeys: cloneExtKeys(document.extKeys)
     }
   };
 }

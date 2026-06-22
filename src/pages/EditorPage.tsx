@@ -454,7 +454,7 @@ export function EditorPage() {
                 <>
                   <button
                     className="action-transparent"
-                    data-icon="~"
+                    data-icon="↓"
                     data-testid="transparent-action"
                     onClick={() => runMenuAction(() => {
                       writeAction(TRANSPARENT);

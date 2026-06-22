@@ -1,3 +1,5 @@
+import { isTransparentKeycode, TRANSPARENT } from "./keymap";
+
 const keyLabels: Record<string, string> = {
   EE_CLR: "EeClr",
   KK_BSPC: "Bksp",
@@ -403,7 +405,7 @@ tap_dance_action_t tap_dance_actions[] = {
 export function displayKeycode(identifier: string): string {
   const value = stripRedundantParens(identifier);
   if (!value) return "";
-  if (value === "~" || value === "KC_TRNS") return "~";
+  if (isTransparentKeycode(value)) return "TRNS";
   if (keyLabels[value]) return keyLabels[value];
   if (/^KC_[A-Z]$/.test(value)) return value.slice(3);
   if (/^KC_\d$/.test(value)) return value.slice(3);
@@ -416,8 +418,8 @@ export function displayKeycode(identifier: string): string {
 export function describeAction(identifier: string): ActionDetails {
   const value = identifier.trim();
 
-  if (value === "~" || value === "KC_TRNS") {
-    return { primary: "~", tone: "transparent" };
+  if (isTransparentKeycode(value)) {
+    return { primary: "TRNS", tone: "transparent" };
   }
 
   const functionCall = parseFunctionCall(value);
@@ -510,7 +512,7 @@ export function composeAction(kind: string, tap: string, hold: string): string {
 
   switch (kind) {
     case "transparent":
-      return "~";
+      return TRANSPARENT;
     case "plain":
       return cleanTap || "KC_NO";
     case "mo":

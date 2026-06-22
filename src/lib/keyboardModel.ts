@@ -136,7 +136,7 @@ export function buildKeyboardModelFromKle(raw: unknown, options: {
   const naturalWidth = bounds.maxX - bounds.minX;
   const naturalHeight = bounds.maxY - bounds.minY;
   const unit = displayUnitFor(naturalWidth);
-  const stagePaddingX = 100 / unit;
+  const stagePaddingX = 10 / unit;
   const stagePaddingY = 10 / unit;
   const normalizedKeys = keys.map((key) => ({
     ...key,

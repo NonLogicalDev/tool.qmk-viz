@@ -1,3 +1,5 @@
+import { isTransparentKeycode, TRANSPARENT } from "./keymap";
+
 export type SimpleComposerKind =
   | "raw"
   | "plain"
@@ -20,7 +22,7 @@ export type SimpleComposerAction = {
 export const simpleComposerActions: SimpleComposerAction[] = [
   { kind: "raw", label: "Raw QMK", fields: [], help: "Use exactly the raw expression entered below." },
   { kind: "plain", label: "Plain keycode", fields: ["keycode"], keycodeLabel: "Keycode", help: "Emits the keycode as-is." },
-  { kind: "transparent", label: "Transparent", fields: [], help: "Emits ~ and lets lower layers pass through." },
+  { kind: "transparent", label: "Transparent", fields: [], help: "Emits KC_TRNS and lets lower layers pass through." },
   { kind: "mo", label: "Momentary layer (MO)", fields: ["layer"], layerLabel: "Layer", help: "MO(layer) while held." },
   { kind: "lt", label: "Tap key, hold layer (LT)", fields: ["keycode", "layer"], keycodeLabel: "Tap keycode", layerLabel: "Hold layer", help: "LT(layer,key): tap for key, hold for layer." },
   { kind: "tg", label: "Toggle layer (TG)", fields: ["layer"], layerLabel: "Layer", help: "TG(layer) toggles a layer on or off." },
@@ -225,7 +227,7 @@ export function composeSimpleAction(kind: SimpleComposerKind, keycode: string, l
     case "raw":
       return cleanKeycode || "KC_NO";
     case "transparent":
-      return "~";
+      return TRANSPARENT;
     case "plain":
       return cleanKeycode || "KC_NO";
     case "mo":
@@ -256,8 +258,8 @@ export function parseSimpleComposerAction(action: string): ParsedSimpleComposerA
     modTapModifier: "CTL_T"
   };
 
-  if (clean === "~" || clean === "KC_TRNS") {
-    return { ...base, kind: "transparent", rawAction: "~" };
+  if (isTransparentKeycode(clean)) {
+    return { ...base, kind: "transparent", rawAction: TRANSPARENT };
   }
 
   const call = parseFunctionCall(clean);

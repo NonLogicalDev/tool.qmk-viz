@@ -1,5 +1,37 @@
 # Development Log
 
+## 2026-06-21: qmk-viz transparent JSON and keyboard sizing cleanup
+
+Goal: remove TSV-era transparent markers from current JSON/UI output and make keyboard previews spend more width on keys.
+
+What worked:
+
+- Changed the canonical transparent key value from the old TSV marker to QMK-native `KC_TRNS`.
+- Added normalization for stale/imported `~` and `KC_TRANSPARENT` values so they are read as `KC_TRNS` instead of re-exported.
+- Updated simple composer generation, parser sync, action display, dances, extra-key aliases, and the transparent key action to stop generating/displaying `~`.
+- Made the Project page KLE marker preview measure its card and scale with browser width.
+- Reduced shared KLE stage padding from 100px horizontal / 10px vertical to 10px on all sides, so both the editor and marker preview can render large keyboards larger.
+- Removed sticky positioning from the app top bar so it scrolls away instead of occupying persistent vertical space.
+
+What did not work:
+
+- The active browser project during validation was `ANSI 60%`, not Ergodox. The resize behavior was validated mechanically at multiple widths, and the padding change is shared by all KLE-built models, but an Ergodox-specific browser screenshot was not validated because no Ergodox starter project currently exists in `default-projects`.
+- Historical development-log and old plan entries still mention TSV/`~` as past implementation history. Current code, current plans, and new logs treat `KC_TRNS` as the contract.
+- Vite still warns that the built JS chunk is larger than 500 kB after minification; this is pre-existing bundle-size debt.
+
+Validation:
+
+- `git diff --check` passed.
+- `npm run build` passed.
+- Source search confirmed no active generated/display value uses `"~"`; the only remaining `~` is the legacy transparent normalization set.
+- In-app browser validation at `http://127.0.0.1:5182/` confirmed:
+  - Project KLE marker preview renders 61 marker keycaps and scales inside its card at 760px and 1440px widths
+  - editor keyboard renders 61 keycaps and scales inside its viewport at 760px and 1440px widths
+  - no horizontal page overflow at those checked widths
+  - app top bar computes as `position: static`
+  - Export JSON preview is parseable, contains `KC_TRNS`, and contains no `~`
+  - browser console has no current errors
+
 ## 2026-06-21: qmk-viz Project and Export page ownership
 
 Goal: give Project and Export the same treatment as Editor so pages own their own state/actions instead of receiving prop bags from `App.tsx`.

@@ -63,8 +63,6 @@ code {
   margin: 0 auto 8px;
   max-width: 1680px;
   padding: 8px 10px;
-  position: sticky;
-  top: 8px;
   width: 100%;
   z-index: 10;
 }
@@ -1395,7 +1393,7 @@ button.action-import:not(:disabled),
 
 .project-dashboard-grid {
   gap: 8px;
-  grid-template-columns: minmax(300px, 0.72fr) minmax(420px, 1fr);
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
 }
 
 .admin-card {
@@ -1587,8 +1585,14 @@ button.action-import:not(:disabled),
     #fbfaf6;
   border: 1px solid rgb(217 210 196 / 80%);
   border-radius: 13px;
-  overflow: auto;
-  padding: 12px;
+  overflow: hidden;
+  padding: 6px;
+  width: 100%;
+}
+
+.model-preview-scaler {
+  margin: 0 auto;
+  position: relative;
 }
 
 .model-marker-stage {
@@ -2574,6 +2578,10 @@ button.action-import:not(:disabled),
   }
 
   .admin-grid.two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .project-dashboard-grid {
     grid-template-columns: 1fr;
   }
 
