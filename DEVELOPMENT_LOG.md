@@ -1242,3 +1242,28 @@ Validation:
 - In-app browser validation on `http://127.0.0.1:5182/`: Project page actions render as `Project Browser`, `Create Project`, and `Project actions`.
 - In-app browser validation: no `browse-projects`, `browse-examples`, embedded `project-stats`, or embedded `example-projects` controls remain on the Project page.
 - In-app browser validation: `Create Project -> From Example` opens Project Browser with `Examples` selected and three example rows visible.
+
+## 2026-06-21: qmk-viz app-wide dropdown archetype and responsive keyboard fit
+
+Goal: use the custom searchable dropdown archetype everywhere the app needs bounded choices, and make the keyboard viewer scale down on smaller widths instead of requiring horizontal scrolling.
+
+What did not work:
+
+- Top Project/Layout used the custom picker, but editor Layout and Action Composer still used native `<select>` controls.
+- The keyboard stage already computed a scale, but the minimum scale was too high for narrow screens, so the viewer could still become a sideways-scroll surface.
+
+Changes made:
+
+- Generalized the existing context picker so it can serve top-bar selectors, editor Layout selection, Action type, Mod-tap modifier, and Simple composer layer selection.
+- Replaced all remaining native selects in `App.tsx` with compact custom button/listbox pickers while preserving keyboard navigation and search.
+- Added field-level picker styling so form pickers stay dense and do not inherit oversized top-bar proportions.
+- Lowered the keyboard scale floor and changed the keyboard viewport to hide horizontal overflow, making the model fit its measured container width.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- Source check: `rg '<select|</select>' src` returns no matches.
+- In-app browser validation: `document.querySelectorAll('select').length` is `0`.
+- In-app browser validation: `layout-select`, `simple-composer-kind`, and `simple-layer` are rendered as `button` controls.
+- In-app browser validation: filtering Action type to `Momentary` selects `Momentary layer (MO)` and reveals the custom Simple layer picker.
+- In-app browser validation at `700x760`: keyboard scaler width is `654px` inside a `662px` viewport, `fitsViewport` is `true`, and horizontal overflow is `hidden`.

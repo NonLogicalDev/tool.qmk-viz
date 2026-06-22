@@ -91,7 +91,7 @@ type AppPageDefinition = {
   description: string;
 };
 
-type ContextPickerKind = "project" | "layout";
+type ContextPickerId = "top-project" | "top-layout" | "editor-layout" | "simple-kind" | "mod-tap-modifier" | "simple-layer";
 
 type ContextPickerOption = {
   value: string;
@@ -310,7 +310,7 @@ export function App() {
   const [projectBrowserPage, setProjectBrowserPage] = useState(0);
   const [showKleHelp, setShowKleHelp] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
-  const [openContextPicker, setOpenContextPicker] = useState<ContextPickerKind | null>(null);
+  const [openContextPicker, setOpenContextPicker] = useState<ContextPickerId | null>(null);
   const [contextPickerSearch, setContextPickerSearch] = useState("");
   const [contextPickerActiveIndex, setContextPickerActiveIndex] = useState(0);
   const [keyboardViewportSize, setKeyboardViewportSize] = useState(() => ({
@@ -375,6 +375,16 @@ export function App() {
     label: layout.name,
     meta: `${layout.versions.length} versions`
   })), [availableLayouts]);
+  const simpleComposerPickerOptions = useMemo<ContextPickerOption[]>(() => simpleComposerActions.map((action) => ({
+    value: action.kind,
+    label: action.label,
+    meta: action.help
+  })), []);
+  const modTapPickerOptions = useMemo<ContextPickerOption[]>(() => modTapActions.map((action) => ({
+    value: action.value,
+    label: action.label,
+    meta: action.value
+  })), []);
   const foundLayerIndex = layers.findIndex((layer) => layer.name === activeLayerName);
   const activeLayerIndex = foundLayerIndex >= 0 ? foundLayerIndex : 0;
   const activeLayer = layers[activeLayerIndex] ?? layers[0] ?? { name: "BASE", keys: {} };
@@ -390,12 +400,12 @@ export function App() {
   const keyboardScale = useMemo(() => {
     if (!keyboardStageSize.width || !keyboardStageSize.height) return 1;
     const measuredWidth = keyboardViewportSize.width || keyboardStageSize.width;
-    const widthScale = (measuredWidth - 4) / keyboardStageSize.width;
-    const maxVisualHeight = Math.max(560, keyboardViewportSize.screenHeight * 0.72);
+    const widthScale = Math.max(0.1, (measuredWidth - 8) / keyboardStageSize.width);
+    const maxVisualHeight = Math.max(360, keyboardViewportSize.screenHeight * 0.68);
     const heightScale = maxVisualHeight / keyboardStageSize.height;
     const fitScale = Math.min(widthScale, heightScale);
 
-    return clampNumber(Number.isFinite(fitScale) ? fitScale : 1, 0.68, 1.35);
+    return clampNumber(Number.isFinite(fitScale) ? fitScale : 1, 0.2, 1.35);
   }, [keyboardStageSize.height, keyboardStageSize.width, keyboardViewportSize.screenHeight, keyboardViewportSize.width]);
   const keyboardVisualSize = useMemo(() => ({
     width: keyboardStageSize.width * keyboardScale,
@@ -1808,19 +1818,15 @@ export function App() {
     setContextPickerActiveIndex(0);
   }
 
-  function openContextPickerMenu(kind: ContextPickerKind) {
+  function openContextPickerMenu(id: ContextPickerId) {
     setOpenActionMenuId(null);
-    setOpenContextPicker((current) => current === kind ? null : kind);
+    setOpenContextPicker((current) => current === id ? null : id);
     setContextPickerSearch("");
     setContextPickerActiveIndex(0);
   }
 
-  function selectContextPickerOption(kind: ContextPickerKind, value: string) {
-    if (kind === "project" && value !== activeKeyboardProjectId) {
-      loadKeyboardProject(value);
-    } else if (kind === "layout" && value !== activeLayoutId) {
-      loadLayout(value);
-    }
+  function selectContextPickerOption(value: string, onSelect: (value: string) => void) {
+    onSelect(value);
     closeContextPicker();
   }
 
@@ -1835,8 +1841,8 @@ export function App() {
 
   function handleContextPickerKeyDown(
     event: ReactKeyboardEvent,
-    kind: ContextPickerKind,
-    filteredOptions: ContextPickerOption[]
+    filteredOptions: ContextPickerOption[],
+    onSelect: (value: string) => void
   ) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -1867,46 +1873,54 @@ export function App() {
       const option = filteredOptions[safeActiveIndex];
       if (option) {
         event.preventDefault();
-        selectContextPickerOption(kind, option.value);
+        selectContextPickerOption(option.value, onSelect);
       }
     }
   }
 
   function renderContextPicker(options: {
-    kind: ContextPickerKind;
+    id: ContextPickerId;
     label: string;
     value: string;
     emptyLabel: string;
     choices: ContextPickerOption[];
     disabled: boolean;
+    onSelect: (value: string) => void;
+    className?: string;
+    triggerTestId?: string;
+    searchTestId?: string;
+    optionTestId?: string;
   }) {
-    const { kind, label, value, emptyLabel, choices, disabled } = options;
-    const isOpen = openContextPicker === kind;
+    const { id, label, value, emptyLabel, choices, disabled, onSelect, className = "", triggerTestId, searchTestId, optionTestId } = options;
+    const isOpen = openContextPicker === id;
     const filteredOptions = filteredContextPickerOptions(choices);
     const selectedOption = choices.find((option) => option.value === value);
     const safeActiveIndex = filteredOptions.length > 0
       ? Math.min(contextPickerActiveIndex, filteredOptions.length - 1)
       : 0;
-    const activeOptionId = `${kind}-context-option-${safeActiveIndex}`;
+    const activeOptionId = `${id}-context-option-${safeActiveIndex}`;
     const triggerLabel = selectedOption?.label ?? emptyLabel;
     const triggerMeta = selectedOption?.meta ?? (disabled ? "Unavailable" : "Choose one");
+    const triggerId = triggerTestId ?? `${id}-picker-trigger`;
+    const searchId = searchTestId ?? `${id}-picker-search`;
+    const optionId = optionTestId ?? `${id}-picker-option`;
 
     return (
-      <div className="context-picker" data-context-picker-root>
+      <div className={`context-picker ${className}`.trim()} data-context-picker-root>
         <span className="context-picker-label">{label}</span>
         <button
-          aria-controls={`${kind}-context-listbox`}
+          aria-controls={`${id}-context-listbox`}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           className="context-picker-trigger"
-          data-testid={`top-${kind}-picker-trigger`}
+          data-testid={triggerId}
           disabled={disabled}
-          onClick={() => openContextPickerMenu(kind)}
+          onClick={() => openContextPickerMenu(id)}
           onKeyDown={(event) => {
             if (disabled) return;
             if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              openContextPickerMenu(kind);
+              openContextPickerMenu(id);
             }
           }}
           type="button"
@@ -1915,13 +1929,13 @@ export function App() {
           <small>{triggerMeta}</small>
         </button>
         {isOpen && (
-          <div className="context-picker-popover" onKeyDown={(event) => handleContextPickerKeyDown(event, kind, filteredOptions)}>
+          <div className="context-picker-popover" onKeyDown={(event) => handleContextPickerKeyDown(event, filteredOptions, onSelect)}>
             <input
               aria-activedescendant={filteredOptions.length > 0 ? activeOptionId : undefined}
-              aria-controls={`${kind}-context-listbox`}
+              aria-controls={`${id}-context-listbox`}
               aria-label={`Filter ${label.toLowerCase()} list`}
               className="context-picker-search"
-              data-testid={`top-${kind}-picker-search`}
+              data-testid={searchId}
               onChange={(event) => {
                 setContextPickerSearch(event.target.value);
                 setContextPickerActiveIndex(0);
@@ -1931,7 +1945,7 @@ export function App() {
               role="combobox"
               value={contextPickerSearch}
             />
-            <div className="context-picker-options" id={`${kind}-context-listbox`} role="listbox">
+            <div className="context-picker-options" id={`${id}-context-listbox`} role="listbox">
               {filteredOptions.length > 0 ? filteredOptions.map((option, index) => {
                 const isActive = index === safeActiveIndex;
                 const isSelected = option.value === value;
@@ -1940,10 +1954,10 @@ export function App() {
                     aria-selected={isSelected}
                     className={`context-picker-option ${isActive ? "active" : ""} ${isSelected ? "selected" : ""}`.trim()}
                     data-context-picker-active={isActive ? "true" : undefined}
-                    data-testid={`top-${kind}-picker-option`}
-                    id={`${kind}-context-option-${index}`}
+                    data-testid={optionId}
+                    id={`${id}-context-option-${index}`}
                     key={option.value}
-                    onClick={() => selectContextPickerOption(kind, option.value)}
+                    onClick={() => selectContextPickerOption(option.value, onSelect)}
                     onMouseEnter={() => setContextPickerActiveIndex(index)}
                     role="option"
                     type="button"
@@ -2006,6 +2020,11 @@ export function App() {
 
   const simpleAction = simpleComposerActions.find((action) => action.kind === simpleKind) ?? simpleComposerActions[0];
   const composerLayerOptions = useMemo(() => layers.map((layer) => layer.name), [layers]);
+  const composerLayerPickerOptions = useMemo<ContextPickerOption[]>(() => layers.map((layer, index) => ({
+    value: layer.name,
+    label: layer.name,
+    meta: `Layer ${index}`
+  })), [layers]);
   const simpleDecoratedKeycode = applySimpleKeycodeModifiers(simpleKeycode, simpleKeycodeModifiers);
   const simpleGeneratedAction =
     simpleKind === "raw"
@@ -2163,20 +2182,36 @@ export function App() {
         </nav>
         <div className="context-strip" aria-label="Current context">
           {renderContextPicker({
-            kind: "project",
+            id: "top-project",
             label: "Project",
             value: activeKeyboardProjectId,
             emptyLabel: "No user projects",
             choices: projectPickerOptions,
-            disabled: keyboardProjects.length === 0
+            disabled: keyboardProjects.length === 0,
+            onSelect: (value) => {
+              if (value !== activeKeyboardProjectId) {
+                loadKeyboardProject(value);
+              }
+            },
+            triggerTestId: "top-project-picker-trigger",
+            searchTestId: "top-project-picker-search",
+            optionTestId: "top-project-picker-option"
           })}
           {renderContextPicker({
-            kind: "layout",
+            id: "top-layout",
             label: "Layout",
             value: activeLayoutId,
             emptyLabel: "No layouts",
             choices: layoutPickerOptions,
-            disabled: !activeKeyboardProject || availableLayouts.length === 0
+            disabled: !activeKeyboardProject || availableLayouts.length === 0,
+            onSelect: (value) => {
+              if (value !== activeLayoutId) {
+                loadLayout(value);
+              }
+            },
+            triggerTestId: "top-layout-picker-trigger",
+            searchTestId: "top-layout-picker-search",
+            optionTestId: "top-layout-picker-option"
           })}
         </div>
         <div className="history-controls" aria-label="History">
@@ -2243,21 +2278,23 @@ export function App() {
               <span className="metric-pill">{availableLayouts.length} layouts / {activeSavedLayout?.versions.length ?? 0} versions</span>
             </div>
             <div className="editor-layout-controls">
-              <label>
-                Layout
-                <select
-                  data-testid="layout-select"
-                  disabled={!activeSavedLayout}
-                  value={activeLayoutId}
-                  onChange={(event) => loadLayout(event.target.value)}
-                >
-                  {availableLayouts.length > 0 ? availableLayouts.map((layout) => (
-                    <option key={layout.id} value={layout.id}>{layout.name}</option>
-                  )) : (
-                    <option value="">No layouts</option>
-                  )}
-                </select>
-              </label>
+              {renderContextPicker({
+                id: "editor-layout",
+                label: "Layout",
+                value: activeLayoutId,
+                emptyLabel: "No layouts",
+                choices: layoutPickerOptions,
+                disabled: !activeSavedLayout,
+                onSelect: (value) => {
+                  if (value !== activeLayoutId) {
+                    loadLayout(value);
+                  }
+                },
+                className: "field-picker editor-layout-picker",
+                triggerTestId: "layout-select",
+                searchTestId: "layout-select-search",
+                optionTestId: "layout-select-option"
+              })}
               <div className="button-row editor-layout-actions">
                 <button className="action-create" data-icon="+" data-testid="new-layout" disabled={!model} onClick={openCreateLayoutDialog} type="button">Create Layout</button>
                 {renderActionMenu("layout-actions", "Layout actions", (
@@ -2640,18 +2677,19 @@ export function App() {
             </div>
             {composerMode === "simple" ? (
               <>
-                <label>
-                  Action type
-                  <select
-                    data-testid="simple-composer-kind"
-                    value={simpleKind}
-                    onChange={(event) => setSimpleKind(event.target.value as SimpleComposerKind)}
-                  >
-                    {simpleComposerActions.map((action) => (
-                      <option key={action.kind} value={action.kind}>{action.label}</option>
-                    ))}
-                  </select>
-                </label>
+                {renderContextPicker({
+                  id: "simple-kind",
+                  label: "Action type",
+                  value: simpleKind,
+                  emptyLabel: "Choose action",
+                  choices: simpleComposerPickerOptions,
+                  disabled: false,
+                  onSelect: (value) => setSimpleKind(value as SimpleComposerKind),
+                  className: "field-picker composer-picker",
+                  triggerTestId: "simple-composer-kind",
+                  searchTestId: "simple-composer-kind-search",
+                  optionTestId: "simple-composer-kind-option"
+                })}
                 <div className="behavior-grid">
                   {simpleKind === "raw" && (
                     <label>
@@ -2710,32 +2748,34 @@ export function App() {
                     </label>
                   )}
                   {simpleKind === "mod_tap" && (
-                    <label>
-                      Hold modifier
-                      <select
-                        data-testid="mod-tap-modifier"
-                        value={modTapModifier}
-                        onChange={(event) => setModTapModifier(event.target.value)}
-                      >
-                        {modTapActions.map((action) => (
-                          <option key={action.value} value={action.value}>{action.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                    renderContextPicker({
+                      id: "mod-tap-modifier",
+                      label: "Hold modifier",
+                      value: modTapModifier,
+                      emptyLabel: "Choose modifier",
+                      choices: modTapPickerOptions,
+                      disabled: false,
+                      onSelect: setModTapModifier,
+                      className: "field-picker composer-picker",
+                      triggerTestId: "mod-tap-modifier",
+                      searchTestId: "mod-tap-modifier-search",
+                      optionTestId: "mod-tap-modifier-option"
+                    })
                   )}
                   {simpleAction.fields.includes("layer") && (
-                    <label>
-                      {simpleAction.layerLabel ?? "Layer"}
-                      <select
-                        data-testid="simple-layer"
-                        value={simpleLayer}
-                        onChange={(event) => setSimpleLayer(event.target.value)}
-                      >
-                        {composerLayerOptions.map((layerName) => (
-                          <option key={layerName} value={layerName}>{layerName}</option>
-                        ))}
-                      </select>
-                    </label>
+                    renderContextPicker({
+                      id: "simple-layer",
+                      label: simpleAction.layerLabel ?? "Layer",
+                      value: simpleLayer,
+                      emptyLabel: "No layers",
+                      choices: composerLayerPickerOptions,
+                      disabled: composerLayerPickerOptions.length === 0,
+                      onSelect: setSimpleLayer,
+                      className: "field-picker composer-picker",
+                      triggerTestId: "simple-layer",
+                      searchTestId: "simple-layer-search",
+                      optionTestId: "simple-layer-option"
+                    })
                   )}
                 </div>
               </>

@@ -331,6 +331,41 @@ code {
   text-align: center;
 }
 
+.field-picker {
+  background: #fffdf7;
+  padding: 5px 7px 6px;
+  width: 100%;
+}
+
+.field-picker .context-picker-label {
+  font-size: 0.58rem;
+}
+
+.field-picker .context-picker-trigger {
+  min-height: 30px;
+  padding: 3px 18px 2px 0;
+}
+
+.field-picker .context-picker-trigger::after {
+  top: 12px;
+}
+
+.field-picker .context-picker-popover {
+  width: min(320px, calc(100vw - 28px));
+}
+
+.field-picker .context-picker-options {
+  max-height: 210px;
+}
+
+.field-picker .context-picker-option {
+  padding: 6px 7px;
+}
+
+.field-picker .context-picker-option small {
+  font-size: 0.58rem;
+}
+
 .eyebrow {
   color: var(--accent-2);
   font-size: 0.68rem;
@@ -795,9 +830,8 @@ textarea {
 }
 
 .keyboard-stage-viewport {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 1px 0 2px;
+  overflow: hidden;
+  padding: 0;
   width: 100%;
 }
 
