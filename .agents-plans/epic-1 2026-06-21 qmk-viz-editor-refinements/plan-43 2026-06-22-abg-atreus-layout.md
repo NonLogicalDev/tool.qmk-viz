@@ -38,7 +38,8 @@ The source config lives at `https://github.com/abhinav/home/blob/master/etc/atre
 - The generic qmk-viz Atreus model exposes 42 slots, while the Keyboardio Atreus source has 44 physical keys plus four blocked matrix positions.
 - User clarification: source positions `29` and `30` are real Keyboardio split keys above `A15` and `A36`, not unsupported keys.
 - The Keyboardio variant maps source position `29` to `A42` and source position `30` to `A43`. Those restore `` KC_GRV `` / `KC_BSLS` on `BASE` and `KC_VOLU` / `KC_MPLY` on `FUN`.
-- Screenshot correction: the Chrysalis bottom rows map physically as left `Ctrl Alt Cmd Lower Shift Esc` and right `Bksp Space Raise Tab Meta Enter`; the first 44-key import kept the split keys but still mapped several bottom/layer positions to the wrong slots.
+- Screenshot correction: the Chrysalis bottom rows map physically as left `Ctrl Alt Cmd ShiftTo Lower Shift Esc` and right `Bksp Space ShiftTo Raise Tab ShiftTo Meta Enter`; the first 44-key import kept the split keys but still mapped several bottom/layer positions to the wrong slots.
+- Chrysalis `ShiftTo Lower` maps to QMK `MO(LOWER)`; this is a layer shift action, not `KC_LSFT`.
 - Source layers 4-8 contain no usable mappings, so omitting them preserves behavior while avoiding five empty layer tabs in the starter example.
 - The bottom-row mapping is not a straight source-order-to-KLE-order mapping; it follows the existing Atreus starter's KLE slot labels so layer shifts, modifiers, space, tab, enter, escape, and backspace stay on matching physical slots.
 
