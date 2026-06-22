@@ -1782,3 +1782,32 @@ Validation:
 - `npm run build` passed. Existing Vite large-chunk warning remains.
 - In-app browser validation on `http://127.0.0.1:5182/`: Composer measured about `857px` wide and the companion card about `325px` wide at the current viewport.
 - In-app browser validation: Composer and companion card share the same row, and support data starts below them full-width.
+
+## 2026-06-22: qmk-viz TanStack hash routing
+
+Goal: add hash-based app routing so Project, Layout, and Export pages can be linked directly and survive reloads, including on GitHub Pages.
+
+What did not work:
+
+- Page selection lived only in Zustand, so reloads fell back to the initial app state instead of preserving the visible page.
+- Direct links like `#/export` had no routing semantics.
+- Existing workflows still call `setActivePage(...)`, so replacing page state with route state outright would leave those internal navigations stale.
+
+Changes made:
+
+- Installed `@tanstack/react-router`.
+- Added a shared navigation map for `Project -> /project`, `Layout -> /layout`, and `Export -> /export`.
+- Added a TanStack route tree using `createHashHistory()`.
+- Changed `main.tsx` to render `RouterProvider`.
+- Changed `App` into the shared shell and renders routed pages through `<Outlet />`.
+- Routed top-nav page changes through TanStack navigation.
+- Kept existing Zustand `activePage` behavior synchronized by making `setActivePage(...)` update the hash route.
+- Added a root hash redirect from `#/` to `#/layout`.
+
+Validation:
+
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/#/export`: Export page rendered, nav highlighted Export, and reload stayed on `#/export`.
+- In-app browser validation: top-nav Project click changed the hash to `#/project`, highlighted Project, and rendered the Project page with model/KLE sections.
+- In-app browser validation: direct `#/layout` rendered the Layout page and highlighted Layout.
+- In-app browser validation: `#/` redirected to `#/layout`.

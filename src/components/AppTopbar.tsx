@@ -1,18 +1,5 @@
 import type { ReactNode } from "react";
-
-export type AppPage = "editor" | "projects" | "export";
-
-export type AppPageDefinition = {
-  id: AppPage;
-  label: string;
-  description: string;
-};
-
-export const appPages: AppPageDefinition[] = [
-  { id: "projects", label: "Project", description: "Project library and keyboard model" },
-  { id: "editor", label: "Layout", description: "Layouts, keyboard, and key actions" },
-  { id: "export", label: "Export", description: "JSON and KLE downloads" }
-];
+import { appPages, type AppPage } from "../lib/appNavigation";
 
 type AppTopbarProps = {
   activePage: AppPage;

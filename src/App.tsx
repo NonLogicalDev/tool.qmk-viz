@@ -1,19 +1,17 @@
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import "sonner/dist/styles.css";
 import { AppTopbar } from "./components/AppTopbar";
 import { CreateLayoutModal, JsonEditModal, KleHelpModal, RenameModal } from "./components/AppModals";
 import { ProjectBrowserModal } from "./components/ProjectBrowserModal";
-import { EditorPage } from "./pages/EditorPage";
-import { ExportPage } from "./pages/ExportPage";
-import { ProjectPage } from "./pages/ProjectPage";
 import { useAppWorkspace } from "./hooks/useAppWorkspace";
+import { pageForPath, pathForPage } from "./lib/appNavigation";
 
 export function App() {
   const {
     activeKeyboardProject,
     activeKeyboardProjectId,
     activeLayoutId,
-    activePage,
     availableLayouts,
     canRedo,
     canUndo,
@@ -41,7 +39,6 @@ export function App() {
     restoreWorkspace,
     runMenuAction,
     safeProjectBrowserPage,
-    setActivePage,
     setCreateLayoutNameDraft,
     setJsonEditDialog,
     setProjectBrowserPage,
@@ -58,12 +55,16 @@ export function App() {
     undoApp,
     visibleProjectBrowserItems,
   } = useAppWorkspace({ enableGlobalEffects: true });
+  const navigate = useNavigate();
+  const routedPage = useRouterState({
+    select: (state) => pageForPath(state.location.pathname)
+  });
 
   return (
-    <main className={`app-shell page-${activePage}`}>
+    <main className={`app-shell page-${routedPage}`}>
       <Toaster closeButton position="bottom-right" richColors />
       <AppTopbar
-        activePage={activePage}
+        activePage={routedPage}
         canRedo={canRedo}
         canUndo={canUndo}
         layoutPicker={renderContextPicker({
@@ -121,16 +122,14 @@ export function App() {
             </label>
           </>
         ), { icon: "▦" })}
-        onPageChange={setActivePage}
+        onPageChange={(page) => {
+          void navigate({ to: pathForPage(page) });
+        }}
         onRedo={redoApp}
         onUndo={undoApp}
       />
 
-      {activePage === "editor" && <EditorPage />}
-
-      {activePage === "projects" && <ProjectPage />}
-
-      {activePage === "export" && <ExportPage />}
+      <Outlet />
 
       {showProjectBrowser && (
         <ProjectBrowserModal

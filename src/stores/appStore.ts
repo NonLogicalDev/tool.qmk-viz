@@ -4,7 +4,7 @@ import type { KeyboardModel } from "../lib/keyboardModel";
 import { createEmptyKeymapDocument, type ExtKey, type KeymapLayer } from "../lib/keymap";
 import { loadExampleProjects, loadKeyboardProjects, type SavedKeyboardProject } from "../lib/appModel";
 import { DEFAULT_KEYMAP_TEMPLATE, normalizeKeymapTemplate } from "../lib/keymapTemplate";
-import type { AppPage } from "../components/AppTopbar";
+import { pathForPage, type AppPage } from "../lib/appNavigation";
 import type { ProjectBrowserTab } from "../components/ProjectBrowserModal";
 import type { ExportPreviewTab } from "../pages/ExportPage";
 import type { SimpleComposerKind } from "../lib/qmkActions";
@@ -196,12 +196,34 @@ function createSetter<K extends keyof AppStoreValues>(
   } as Pick<AppStoreValues, K>));
 }
 
+function routeHashForPage(page: AppPage) {
+  return `#${pathForPage(page)}`;
+}
+
+function setLocationHashForPage(page: AppPage) {
+  if (typeof window === "undefined") return;
+  const nextHash = routeHashForPage(page);
+  if (window.location.hash !== nextHash) {
+    window.location.hash = nextHash;
+  }
+}
+
+function createActivePageSetter(
+  set: (updater: (state: AppStore) => Partial<AppStore>) => void
+): Setter<AppPage> {
+  return (next) => set((state) => {
+    const activePage = resolveNext(next, state.activePage);
+    setLocationHashForPage(activePage);
+    return { activePage };
+  });
+}
+
 export const useAppStore = create<AppStore>((set) => ({
   ...createInitialValues(),
   setActiveKeyboardProjectId: createSetter(set, "activeKeyboardProjectId"),
   setActiveLayerName: createSetter(set, "activeLayerName"),
   setActiveLayoutId: createSetter(set, "activeLayoutId"),
-  setActivePage: createSetter(set, "activePage"),
+  setActivePage: createActivePageSetter(set),
   setBehaviorSlots: createSetter(set, "behaviorSlots"),
   setCaptureTarget: createSetter(set, "captureTarget"),
   setComposerMode: createSetter(set, "composerMode"),
