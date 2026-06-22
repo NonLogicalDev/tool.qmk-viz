@@ -1,11 +1,14 @@
 {
   "name": "qmk-viz",
   "version": "0.1.0",
+  "homepage": "https://nonlogicaldev.github.io/tool.qmk-viz/",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:pages": "tsc --noEmit && vite build --base=/tool.qmk-viz/",
     "preview": "vite preview"
   },
   "dependencies": {

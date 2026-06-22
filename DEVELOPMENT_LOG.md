@@ -1,5 +1,30 @@
 # Development Log
 
+## 2026-06-22: qmk-viz GitHub Pages publishing setup
+
+Goal: publish qmk-viz as `NonLogicalDev/tool.qmk-viz` with an MIT license and automatic GitHub Pages deploys.
+
+What worked:
+
+- Added an MIT `LICENSE`.
+- Added package metadata for the GitHub Pages URL and MIT license.
+- Added `npm run build:pages`, which builds with Vite base `/tool.qmk-viz/`.
+- Added `.github/workflows/pages.yml` to deploy `dist/` through GitHub Pages on every `master` push.
+- Documented the public URL and Pages build command in `README.md`.
+
+What did not work:
+
+- The target GitHub repository did not exist yet, so it must be created before the first push.
+- The local branch was still named `main`; publishing requires renaming or pushing a `master` branch to match the requested workflow trigger.
+- `npm install --package-lock-only --ignore-scripts` reported two existing npm audit findings; these were not fixed because that would be an unrelated dependency upgrade.
+
+Validation:
+
+- `git diff --check` passed.
+- `npm run build` passed.
+- `npm run build:pages` passed and emitted a GitHub Pages base path for `/tool.qmk-viz/`.
+- GitHub push and Pages workflow validation are pending.
+
 ## 2026-06-22: qmk-viz Ergodox Infinity starter example
 
 Goal: ship the downloaded Input Club Ergodox Infinity project as a default example.

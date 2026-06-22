@@ -2,6 +2,8 @@
 
 Vite + TypeScript visual editor for QMK keyboard projects.
 
+Published app: <https://nonlogicaldev.github.io/tool.qmk-viz/>
+
 The app is static-hostable and stores projects in `localStorage`. The intended flow is:
 
 1. Create a Keyboard Project.
@@ -41,3 +43,11 @@ Build it from the repo root:
 ```bash
 just build
 ```
+
+Build it for the GitHub Pages project URL:
+
+```bash
+npm run build:pages
+```
+
+Deployments run from `.github/workflows/pages.yml` on every `master` push.
