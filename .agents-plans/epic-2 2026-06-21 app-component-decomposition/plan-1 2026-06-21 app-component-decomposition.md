@@ -32,6 +32,7 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 - Keep ephemeral DOM refs and derived `useMemo` values in components for now; move persisted/editor state and React-style setters into the store.
 - Third slice should move the heavy Editor page to `src/pages/EditorPage.tsx` and have the page subscribe to its own app-store state. Avoid a prop-bag extraction that leaves `App.tsx` importing the whole store.
 - `App.tsx` should become closer to an app shell: topbar wiring, page selection, cross-page project/export actions, and modal orchestration only. Editor-local keyboard/composer/version rendering should leave the shell.
+- Fourth slice should give `ProjectPage` and `ExportPage` the same ownership treatment: no page prop bags from `App.tsx`; each page should own its workspace/controller reads and actions.
 
 # Implementation Steps
 
@@ -53,6 +54,11 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 16. [x] Build and browser-validate editor flows.
 17. [x] Update `DEVELOPMENT_LOG.md`.
 18. [x] Checkpoint.
+19. [x] Move Project page store/controller ownership into `src/pages/ProjectPage.tsx`.
+20. [x] Move Export page store/controller ownership into `src/pages/ExportPage.tsx`.
+21. [x] Reduce `App.tsx` page-specific destructuring and rendered action-menu construction.
+22. [x] Update `DEVELOPMENT_LOG.md`.
+23. [ ] Checkpoint.
 
 # Learning Log
 
@@ -71,6 +77,8 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 - The shared `useAppWorkspace` hook is intentionally transitional: it preserves existing behavior while decoupling the shell from direct store ownership. Follow-up work should split this controller into page/domain hooks or real store actions.
 - The first mechanical extraction failed because it matched an effect cleanup `return (` instead of the component render return. Use the explicit `<main>` render marker for any future mechanical movement from the old App body.
 - In-app browser validation should use `load`, not `networkidle`; the local browser runtime rejected `networkidle` for this page.
+- Project and Export page ownership should use the existing `useAppWorkspace` controller for now, matching `EditorPage`; separate page/domain hooks can come after pages are no longer shell-owned.
+- After Project and Export ownership moved, `App.tsx` is 202 lines and only mounts pages instead of constructing their page-specific menus.
 
 # Work Log
 
@@ -89,6 +97,11 @@ Systematically break `App.tsx` into pages and logical components so it stops act
 - [x] 2026-06-21 23:24 - Build passed and in-app browser validation covered editor load, key selection, layout actions, composer picker, and clean console errors.
 - [x] 2026-06-21 23:24 - Updated `DEVELOPMENT_LOG.md` for the Editor page extraction.
 - [x] 2026-06-21 23:25 - Checkpointed the Editor page extraction: `7aaac61`.
+- [x] 2026-06-21 23:29 - Planned the Project page ownership slice to match the Editor page extraction without introducing a new project-domain abstraction yet.
+- [x] 2026-06-21 23:31 - Expanded the same slice to include Export page ownership after the user requested the same treatment for Export.
+- [x] 2026-06-21 23:34 - Moved Project and Export page action/state wiring into their page modules and reduced `App.tsx` to direct page mounts.
+- [x] 2026-06-21 23:36 - Build passed and in-app browser validation covered Project menus, KLE actions, Export preview tabs, downloads menu, and clean console errors.
+- [x] 2026-06-21 23:37 - Updated `DEVELOPMENT_LOG.md` for the Project and Export page ownership slice.
 
 # Unfinished Work
 

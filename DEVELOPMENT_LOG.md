@@ -1,5 +1,46 @@
 # Development Log
 
+## 2026-06-21: qmk-viz Project and Export page ownership
+
+Goal: give Project and Export the same treatment as Editor so pages own their own state/actions instead of receiving prop bags from `App.tsx`.
+
+What worked:
+
+- `ProjectPage` now subscribes through `useAppWorkspace()` and owns:
+  - active project/model stats
+  - Create Project menu
+  - Project actions menu
+  - KLE model actions menu
+  - Project Browser and KLE help entrypoints
+  - project/KLE upload handlers
+- `ExportPage` now subscribes through `useAppWorkspace()` and owns:
+  - template editor state
+  - preview tab state
+  - rendered keymap and layout JSON preview
+  - copy actions
+  - export downloads menu
+- `App.tsx` now renders `<ProjectPage />` and `<ExportPage />` directly.
+- `App.tsx` dropped from 329 lines to 202 lines and no longer constructs Project or Export page action menus.
+
+What did not work:
+
+- Stopping after Project would have left Export as the next obvious prop-bag page, so this slice expanded before checkpointing.
+- The browser REPL had a stale top-level variable binding during Export validation; rerunning with fresh variable names fixed the validation script.
+- `useAppWorkspace` remains a large transitional controller. This slice intentionally moved ownership at the page boundary first; splitting the controller into page/domain hooks remains future work.
+
+Validation:
+
+- `npm run build` passed.
+- In-app browser validation at `http://127.0.0.1:5182/` confirmed:
+  - Project page renders active project readout, model readout, marker preview, and create/project/model action menus
+  - Create Project menu exposes Blank Project and From Example
+  - Project actions expose rename/import/download/delete controls
+  - KLE model actions expose upload/edit/download controls
+  - Export page renders template editor, preview output, and action bar
+  - Export JSON tab switches output to JSON
+  - Export downloads menu exposes Keymap C, Layout JSON, Layer KLE, and Project KLE
+  - no current browser console errors after both page interaction checks
+
 ## 2026-06-21: qmk-viz Editor page extraction
 
 Goal: pull the heavy Editor surface out of `App.tsx` and stop the app shell from directly importing/destructuring the full Zustand store.

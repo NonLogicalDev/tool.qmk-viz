@@ -1,38 +1,33 @@
-import type { ReactNode } from "react";
-import type { KeyboardModel } from "../lib/keyboardModel";
 import { KeyboardModelPreview } from "../components/KeyboardModelPreview";
+import { useAppWorkspace } from "../hooks/useAppWorkspace";
 
-export type ActiveProjectStats = {
-  keyCount: number;
-  layoutCount: number;
-  versionCount: number;
-};
+export function ProjectPage() {
+  const {
+    activeKeyboardProject,
+    activeProjectStats,
+    closeActionMenus,
+    createBlankKeyboardProject,
+    deleteKeyboardProject,
+    downloadFullProject,
+    downloadProjectKle,
+    duplicateKeyboardProject,
+    importFullProject,
+    keyboardProjectNameDraft,
+    keyboardProjects,
+    model,
+    openJsonEditDialog,
+    openProjectBrowser,
+    openProjectRenameDialog,
+    renderActionMenu,
+    runMenuAction,
+    setShowKleHelp,
+    setStatusMessage,
+    updateActiveKeyboardModel
+  } = useAppWorkspace();
+  const hasActiveProject = Boolean(activeKeyboardProject);
+  const projectName = keyboardProjectNameDraft;
+  const userProjectCount = keyboardProjects.length;
 
-type ProjectPageProps = {
-  activeProjectStats: ActiveProjectStats | null;
-  createProjectMenu: ReactNode;
-  hasActiveProject: boolean;
-  model: KeyboardModel | null;
-  modelActionsMenu: ReactNode;
-  projectActionsMenu: ReactNode;
-  projectName: string;
-  userProjectCount: number;
-  onOpenProjectBrowser: () => void;
-  onShowKleHelp: () => void;
-};
-
-export function ProjectPage({
-  activeProjectStats,
-  createProjectMenu,
-  hasActiveProject,
-  model,
-  modelActionsMenu,
-  projectActionsMenu,
-  projectName,
-  userProjectCount,
-  onOpenProjectBrowser,
-  onShowKleHelp
-}: ProjectPageProps) {
   return (
     <section className="page-panel project-page">
       <div className="page-heading">
@@ -42,9 +37,40 @@ export function ProjectPage({
           <p>Configure the active keyboard project here. Use Project Browser when you need to switch projects or load examples.</p>
         </div>
         <div className="page-actions">
-          <button className="action-import" data-icon="⌘" data-testid="open-project-browser" onClick={onOpenProjectBrowser} type="button">Project Browser</button>
-          {createProjectMenu}
-          {projectActionsMenu}
+          <button className="action-import" data-icon="⌘" data-testid="open-project-browser" onClick={() => openProjectBrowser("projects")} type="button">Project Browser</button>
+          {renderActionMenu("create-project-actions", "Create Project", (
+            <>
+              <button className="action-create" data-icon="+" data-testid="new-project" onClick={() => runMenuAction(createBlankKeyboardProject)} role="menuitem" type="button">Blank Project</button>
+              <button className="action-default" data-icon="★" data-testid="new-project-from-example" onClick={() => runMenuAction(() => openProjectBrowser("examples"))} role="menuitem" type="button">From Example</button>
+            </>
+          ), { className: "action-create", icon: "+", testId: "create-project-menu" })}
+          {renderActionMenu("project-actions", "Project actions", (
+            <>
+              <button className="action-rename" data-icon="✎" data-testid="rename-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(openProjectRenameDialog)} role="menuitem" type="button">Rename Project</button>
+              <button className="action-copy" data-icon="⧉" data-testid="duplicate-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(duplicateKeyboardProject)} role="menuitem" type="button">Duplicate Project</button>
+              <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Import a full qmk-viz project JSON backup">
+                Import Project
+                <input
+                  data-testid="project-upload"
+                  accept="application/json,.json"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void importFullProject(file).catch((error: unknown) => {
+                        setStatusMessage(error instanceof Error ? error.message : "Failed to import project JSON.");
+                      });
+                    }
+                    closeActionMenus();
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
+              <button className="action-rename" data-icon="{}" data-testid="edit-project-json" disabled={!activeKeyboardProject} onClick={() => runMenuAction(() => openJsonEditDialog("project"))} role="menuitem" type="button">Edit Project JSON</button>
+              <button className="action-export" data-icon="⇡" data-testid="download-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(downloadFullProject)} role="menuitem" type="button">Download Project</button>
+              <button className="danger-button action-danger" data-icon="!" data-testid="delete-project" disabled={!activeKeyboardProject} onClick={() => runMenuAction(deleteKeyboardProject)} role="menuitem" type="button">Delete Project</button>
+            </>
+          ), { testId: "project-actions-menu" })}
         </div>
       </div>
       <div className="admin-grid project-dashboard-grid">
@@ -112,9 +138,39 @@ export function ProjectPage({
               : "This project has no keyboard model yet. Upload a KLE file or edit KLE JSON to define the key IDs."}
           </p>
           <div className="button-row">
-            {modelActionsMenu}
+            {renderActionMenu("model-actions", "KLE model", (
+              <>
+                <label
+                  aria-disabled={!activeKeyboardProject}
+                  className={`file-import action-import ${!activeKeyboardProject ? "disabled" : ""}`}
+                  data-icon="⇣"
+                  role="menuitem"
+                  title={activeKeyboardProject ? "Upload or replace the active project's KLE JSON model" : "Create or import a project before uploading KLE"}
+                >
+                  Upload/Update KLE
+                  <input
+                    data-testid="keyboard-upload"
+                    accept="application/json,.json"
+                    disabled={!activeKeyboardProject}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void updateActiveKeyboardModel(file).catch((error: unknown) => {
+                          setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
+                        });
+                      }
+                      closeActionMenus();
+                      event.target.value = "";
+                    }}
+                    type="file"
+                  />
+                </label>
+                <button className="action-rename" data-icon="{}" data-testid="edit-kle-json" disabled={!activeKeyboardProject} onClick={() => runMenuAction(() => openJsonEditDialog("kle"))} role="menuitem" type="button">Edit KLE JSON</button>
+                <button className="action-export" data-icon="⇡" data-testid="download-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Download KLE</button>
+              </>
+            ), { disabled: !activeKeyboardProject && !model, testId: "model-actions-menu" })}
             <a className="action-link action-import" data-icon="↗" href="https://www.keyboard-layout-editor.com/#/" rel="noreferrer" target="_blank">Open KLE</a>
-            <button className="action-default" data-icon="?" data-testid="kle-help" onClick={onShowKleHelp} type="button">Mapping Help</button>
+            <button className="action-default" data-icon="?" data-testid="kle-help" onClick={() => setShowKleHelp(true)} type="button">Mapping Help</button>
           </div>
         </div>
         <div className="editor-card admin-card project-model-preview-card">

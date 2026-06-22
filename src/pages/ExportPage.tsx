@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import MonacoEditor from "@monaco-editor/react";
+import { useAppWorkspace } from "../hooks/useAppWorkspace";
 
 export type ExportPreviewTab = "keymap" | "json";
 
@@ -25,8 +26,6 @@ type ExportActionBarProps = {
   onCopyJson: () => void;
   onCopyKeymap: () => void;
 };
-
-export type ExportPageProps = KeymapTemplateEditorProps & ExportPreviewPanelProps & ExportActionBarProps;
 
 function KeymapTemplateEditor({ projectName, template, onTemplateChange }: KeymapTemplateEditorProps) {
   return (
@@ -139,7 +138,30 @@ function ExportActionBar({
   );
 }
 
-export function ExportPage(props: ExportPageProps) {
+export function ExportPage() {
+  const {
+    activeSavedLayout,
+    copyJson,
+    copyKeymap,
+    downloadActiveLayerKle,
+    downloadJson,
+    downloadKeymap,
+    downloadProjectKle,
+    exportPreviewTab,
+    jsonOutput,
+    keyboardProjectNameDraft,
+    keymapTemplateDraft,
+    layoutNameDraft,
+    model,
+    renderedKeymap,
+    renderedKeymapHasError,
+    renderActionMenu,
+    runMenuAction,
+    setExportPreviewTab,
+    setKeymapTemplateDraft
+  } = useAppWorkspace();
+  const canExport = Boolean(model && activeSavedLayout);
+
   return (
     <section className="page-panel export-page">
       <div className="page-heading">
@@ -150,10 +172,34 @@ export function ExportPage(props: ExportPageProps) {
         </div>
       </div>
       <div className="export-workspace-grid">
-        <KeymapTemplateEditor {...props} />
-        <ExportPreviewPanel {...props} />
+        <KeymapTemplateEditor
+          projectName={keyboardProjectNameDraft}
+          template={keymapTemplateDraft}
+          onTemplateChange={setKeymapTemplateDraft}
+        />
+        <ExportPreviewPanel
+          activeTab={exportPreviewTab}
+          jsonOutput={jsonOutput}
+          renderedKeymap={renderedKeymap}
+          renderedKeymapHasError={renderedKeymapHasError}
+          onPreviewTabChange={setExportPreviewTab}
+        />
       </div>
-      <ExportActionBar {...props} />
+      <ExportActionBar
+        canCopyKeymap={canExport && !renderedKeymapHasError}
+        canExport={canExport}
+        downloadsMenu={renderActionMenu("export-downloads", "Downloads", (
+          <>
+            <button className="action-export" data-icon="⇡" data-testid="download-keymap" disabled={!model || !activeSavedLayout || renderedKeymapHasError} onClick={() => runMenuAction(downloadKeymap)} role="menuitem" type="button">Keymap C</button>
+            <button className="action-export" data-icon="⇡" data-testid="download-layout-json" disabled={!model || !activeSavedLayout} onClick={() => runMenuAction(downloadJson)} role="menuitem" type="button">Layout JSON</button>
+            <button className="action-export" data-icon="⇡" data-testid="download-layer-kle" disabled={!model || !activeSavedLayout} onClick={() => runMenuAction(downloadActiveLayerKle)} role="menuitem" type="button">Layer KLE</button>
+            <button className="action-export" data-icon="⇡" data-testid="download-project-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Project KLE</button>
+          </>
+        ), { className: "action-export", icon: "⇡" })}
+        layoutName={layoutNameDraft}
+        onCopyJson={copyJson}
+        onCopyKeymap={copyKeymap}
+      />
     </section>
   );
 }
