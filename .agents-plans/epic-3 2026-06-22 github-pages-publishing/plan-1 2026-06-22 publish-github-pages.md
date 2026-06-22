@@ -42,13 +42,15 @@ The repo is currently local-only, on branch `main`, with no remote. GitHub CLI a
 
 - GitHub CLI is authenticated as `NonLogicalDev`; the target repo did not exist before this publish slice.
 - `npm install --package-lock-only --ignore-scripts` reported two audit findings, but fixing them would be separate dependency-upgrade work.
+- `actions/configure-pages@v5` defaults to `enablement: false`; a new repository needs `enablement: true` or the configure step fails with "Get Pages site failed".
 
 # Work Log
 
 - [x] 2026-06-22 00:25 - Confirmed local repo is clean, has no remote, and GitHub auth is available for `NonLogicalDev`.
-- [x] 2026-06-22 00:32 - Added MIT license, Pages workflow, `build:pages`, package metadata, README notes, and development log entry.
-- [x] 2026-06-22 00:35 - Validated `git diff --check`, `npm run build`, and `npm run build:pages`.
+- [x] 2026-06-22 00:26 - Added MIT license, Pages workflow, `build:pages`, package metadata, README notes, and development log entry.
+- [x] 2026-06-22 00:27 - Validated `git diff --check`, `npm run build`, and `npm run build:pages`.
+- [x] 2026-06-22 00:28 - Created `NonLogicalDev/tool.qmk-viz`, pushed `master`, and found the initial Pages run failed before Pages enablement.
 
 # Unfinished Work
 
-- [ ] Create and push the GitHub repository.
+- [ ] Push the Pages enablement fix and confirm deployment.

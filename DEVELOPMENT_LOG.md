@@ -17,13 +17,14 @@ What did not work:
 - The target GitHub repository did not exist yet, so it must be created before the first push.
 - The local branch was still named `main`; publishing requires renaming or pushing a `master` branch to match the requested workflow trigger.
 - `npm install --package-lock-only --ignore-scripts` reported two existing npm audit findings; these were not fixed because that would be an unrelated dependency upgrade.
+- The first GitHub Pages run failed because Pages was not enabled yet and `actions/configure-pages` defaults to `enablement: false`; the workflow now passes `enablement: true`.
 
 Validation:
 
 - `git diff --check` passed.
 - `npm run build` passed.
 - `npm run build:pages` passed and emitted a GitHub Pages base path for `/tool.qmk-viz/`.
-- GitHub push and Pages workflow validation are pending.
+- First GitHub push succeeded; final Pages workflow validation is pending after the enablement fix.
 
 ## 2026-06-22: qmk-viz Ergodox Infinity starter example
 
