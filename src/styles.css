@@ -494,6 +494,7 @@ textarea {
 .project-actions button:focus-visible,
 .layer-color-swatches button:focus-visible,
 .file-import:focus-within,
+.action-menu button:focus-visible,
 .page-actions button:focus-visible,
 .section-header > button:focus-visible,
 .button-row button:focus-visible,
@@ -930,13 +931,13 @@ textarea {
   border-color: rgb(0 120 168 / 28%);
 }
 
-.page-actions button:first-child {
+.page-actions > button:first-child {
   background: var(--ink);
   border-color: var(--ink);
   color: #fff;
 }
 
-.page-actions button:first-child:hover:not(:disabled),
+.page-actions > button:first-child:hover:not(:disabled),
 .generated button:hover:not(:disabled) {
   background: #141620;
   border-color: #141620;
@@ -974,6 +975,52 @@ button[data-icon]::before,
   line-height: 1;
   min-width: 15px;
   padding: 0 2px;
+}
+
+.action-menu {
+  display: inline-flex;
+  position: relative;
+}
+
+.action-menu-trigger {
+  white-space: nowrap;
+}
+
+.action-menu-popover {
+  background:
+    radial-gradient(circle at 0% 0%, rgb(0 120 168 / 8%), transparent 38%),
+    var(--paper);
+  border: 1px solid rgb(217 210 196 / 92%);
+  border-radius: 11px;
+  box-shadow: 0 16px 38px rgb(54 47 35 / 18%);
+  display: grid;
+  gap: 5px;
+  min-width: 190px;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 25;
+}
+
+.action-menu-popover button,
+.action-menu-popover .file-import {
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+}
+
+.action-menu-popover .action-danger {
+  margin-top: 3px;
+}
+
+.support-row-actions .action-menu-trigger {
+  min-height: 24px;
+  padding: 4px 7px;
+}
+
+.support-row-actions .action-menu-popover {
+  min-width: 145px;
 }
 
 .action-create:not(:disabled) {

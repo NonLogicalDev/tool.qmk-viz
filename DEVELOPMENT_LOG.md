@@ -1,5 +1,47 @@
 # Development Log
 
+## 2026-06-21: qmk-viz action menu consolidation
+
+Goal: reduce repeated button clutter by keeping primary actions visible and moving secondary/destructive/file actions into compact hamburger-style action menus.
+
+What worked:
+
+- Added a shared action-menu helper with one-open-menu state, outside-click closing, and Escape-key closing.
+- Kept primary actions visible:
+  - Create Layout
+  - Apply raw
+  - Create Project
+  - Copy JSON
+  - Save Version
+- Moved secondary actions into grouped menus:
+  - Layout actions: duplicate, import, edit JSON, download, rename, save as default, delete
+  - Layer actions: rename, add, move left/right, remove
+  - Key actions: transparent, no-op, start/cancel swap
+  - Support data row actions: edit/delete for dances, macros, and aliases
+  - Version actions: rename/delete
+  - Project file: import, edit JSON, download
+  - Project actions: rename, duplicate, delete
+  - KLE model: upload/update, edit JSON, download
+  - Export downloads: layout JSON, layer KLE, project KLE
+- File upload entries inside menus close after file selection instead of on label click.
+- Added compact popover menu styling with full-width left-aligned menu commands.
+- Tightened `.page-actions` primary-button selector to direct children so menu entries do not accidentally inherit black primary styling.
+
+What did not work:
+
+- The first screenshot pass showed `.page-actions button:first-child` leaking into nested menu triggers and menu entries. Changing it to `.page-actions > button:first-child` fixed the bleed.
+- Table-row action menus may still be constrained by the table scroll container in very dense data sets; current starter-project screenshots do not expose clipping.
+- Vite still reports the existing warning that the built JavaScript chunk is larger than 500 kB after minification.
+
+Validation:
+
+- `git diff --check` passed.
+- `just build` passed.
+- Screenshot capture produced:
+  - `/private/tmp/qmk-viz-action-menu-editor-layout.png`
+  - `/private/tmp/qmk-viz-action-menu-project-file.png`
+  - `/private/tmp/qmk-viz-action-menu-export-downloads.png`
+
 ## 2026-06-21: qmk-viz UI validation and polish
 
 Goal: validate that the standalone qmk-viz app runs and make a systematic polish pass over the visible UI controls without changing the data model.

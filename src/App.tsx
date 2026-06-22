@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { composeBehaviorAction, describeAction, parseActionToBehaviorSlots, type BehaviorSlots } from "./lib/actions";
 import { buildKeyboardModelFromKle, type KeyboardModel, type KeySlot } from "./lib/keyboardModel";
 import {
@@ -255,6 +255,7 @@ export function App() {
   const [renameDialog, setRenameDialog] = useState<RenameDialog | null>(null);
   const [createLayoutNameDraft, setCreateLayoutNameDraft] = useState<string | null>(null);
   const [jsonEditDialog, setJsonEditDialog] = useState<JsonEditDialog | null>(null);
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
   const [keyboardViewportSize, setKeyboardViewportSize] = useState(() => ({
     width: 0,
     screenHeight: typeof window === "undefined" ? 900 : window.innerHeight
@@ -1486,6 +1487,45 @@ export function App() {
     setStatusMessage(`Downloaded ${filename}.`);
   }
 
+  function closeActionMenus() {
+    setOpenActionMenuId(null);
+  }
+
+  function runMenuAction(action: () => void) {
+    closeActionMenus();
+    action();
+  }
+
+  function renderActionMenu(
+    id: string,
+    label: string,
+    children: ReactNode,
+    options: { className?: string; disabled?: boolean; icon?: string } = {}
+  ) {
+    const isOpen = openActionMenuId === id;
+
+    return (
+      <div className="action-menu" data-action-menu-root>
+        <button
+          aria-expanded={isOpen}
+          aria-haspopup="menu"
+          className={`action-menu-trigger ${options.className ?? ""}`.trim()}
+          data-icon={options.icon ?? "☰"}
+          disabled={options.disabled}
+          onClick={() => setOpenActionMenuId((current) => current === id ? null : id)}
+          type="button"
+        >
+          {label}
+        </button>
+        {isOpen && (
+          <div className="action-menu-popover" role="menu">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const simpleAction = simpleComposerActions.find((action) => action.kind === simpleKind) ?? simpleComposerActions[0];
   const simpleDecoratedKeycode = applySimpleKeycodeModifiers(simpleKeycode, simpleKeycodeModifiers);
   const simpleGeneratedAction =
@@ -1534,6 +1574,29 @@ export function App() {
   useEffect(() => {
     persistActiveKeyboardProject();
   }, [activeKeyboardProjectId, activeLayoutId, keyboardProjectNameDraft, keymapDocument, layoutNameDraft, model]);
+
+  useEffect(() => {
+    if (!openActionMenuId) return;
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-action-menu-root]")) return;
+      closeActionMenus();
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeActionMenus();
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [openActionMenuId]);
 
   useEffect(() => {
     setSelectedVersionNameDraft(activeLayoutVersion?.name ?? "");
@@ -1694,44 +1757,41 @@ export function App() {
               </label>
               <div className="button-row editor-layout-actions">
                 <button className="action-create" data-icon="+" data-testid="new-layout" disabled={!model} onClick={openCreateLayoutDialog} type="button">Create Layout</button>
-                <button className="action-copy" data-icon="⧉" data-testid="duplicate-layout" disabled={!activeSavedLayout} onClick={duplicateLayout} type="button">Duplicate Layout</button>
-                <label
-                  aria-disabled={!model}
-                  className={`file-import action-import ${!model ? "disabled" : ""}`}
-                  data-icon="⇣"
-                  title={model ? "Import a layout JSON file" : "Add a KLE model before importing layouts"}
-                >
-                  Import Layout
-                  <input
-                    data-testid="layout-upload"
-                    accept="application/json,.json"
-                    disabled={!model}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        void uploadLayout(file).catch((error: unknown) => {
-                          setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
-                        });
-                      }
-                      event.target.value = "";
-                    }}
-                    type="file"
-                  />
-                </label>
-                <button className="action-rename" data-icon="{}" data-testid="edit-layout-json" disabled={!activeSavedLayout} onClick={() => openJsonEditDialog("layout")} type="button">Edit Layout JSON</button>
-                <button className="action-export" data-icon="⇡" data-testid="download-layout" disabled={!activeSavedLayout} onClick={downloadJson} type="button">Download Layout</button>
-                <button className="action-rename" data-icon="✎" data-testid="rename-layout" disabled={!activeSavedLayout} onClick={openLayoutRenameDialog} type="button">Rename Layout</button>
-                <button className="action-default" data-icon="★" data-testid="save-default-layout" disabled={!activeSavedLayout} onClick={saveCurrentLayoutAsDefault} type="button">Save as Default</button>
-                <button
-                  className="danger-button action-danger"
-                  data-icon="!"
-                  data-testid="delete-layout"
-                  disabled={!activeSavedLayout}
-                  onClick={deleteLayout}
-                  type="button"
-                >
-                  Delete Layout
-                </button>
+                {renderActionMenu("layout-actions", "Layout actions", (
+                  <>
+                    <button className="action-copy" data-icon="⧉" data-testid="duplicate-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(duplicateLayout)} role="menuitem" type="button">Duplicate Layout</button>
+                    <label
+                      aria-disabled={!model}
+                      className={`file-import action-import ${!model ? "disabled" : ""}`}
+                      data-icon="⇣"
+                      role="menuitem"
+                      title={model ? "Import a layout JSON file" : "Add a KLE model before importing layouts"}
+                    >
+                      Import Layout
+                      <input
+                        data-testid="layout-upload"
+                        accept="application/json,.json"
+                        disabled={!model}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) {
+                            void uploadLayout(file).catch((error: unknown) => {
+                              setStatusMessage(error instanceof Error ? error.message : "Failed to upload layout JSON.");
+                            });
+                          }
+                          closeActionMenus();
+                          event.target.value = "";
+                        }}
+                        type="file"
+                      />
+                    </label>
+                    <button className="action-rename" data-icon="{}" data-testid="edit-layout-json" disabled={!activeSavedLayout} onClick={() => runMenuAction(() => openJsonEditDialog("layout"))} role="menuitem" type="button">Edit Layout JSON</button>
+                    <button className="action-export" data-icon="⇡" data-testid="download-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(downloadJson)} role="menuitem" type="button">Download Layout</button>
+                    <button className="action-rename" data-icon="✎" data-testid="rename-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(openLayoutRenameDialog)} role="menuitem" type="button">Rename Layout</button>
+                    <button className="action-default" data-icon="★" data-testid="save-default-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(saveCurrentLayoutAsDefault)} role="menuitem" type="button">Save as Default</button>
+                    <button className="danger-button action-danger" data-icon="!" data-testid="delete-layout" disabled={!activeSavedLayout} onClick={() => runMenuAction(deleteLayout)} role="menuitem" type="button">Delete Layout</button>
+                  </>
+                ), { disabled: !model && !activeSavedLayout })}
               </div>
             </div>
           </div>
@@ -1798,38 +1858,15 @@ export function App() {
               />
             </label>
             <div className="button-row">
-              <button className="action-rename" data-icon="✎" data-testid="rename-layer" onClick={renameActiveLayer} type="button">Rename</button>
-              <button className="action-create" data-icon="+" data-testid="add-layer" onClick={addLayer} type="button">Add</button>
-              <button
-                className="action-move"
-                data-icon="←"
-                data-testid="move-layer-left"
-                disabled={activeLayerIndex === 0}
-                onClick={() => moveActiveLayer(-1)}
-                type="button"
-              >
-                Move left
-              </button>
-              <button
-                className="action-move"
-                data-icon="→"
-                data-testid="move-layer-right"
-                disabled={activeLayerIndex === layers.length - 1}
-                onClick={() => moveActiveLayer(1)}
-                type="button"
-              >
-                Move right
-              </button>
-              <button
-                className="action-danger"
-                data-icon="!"
-                data-testid="remove-layer"
-                disabled={layers.length <= 1}
-                onClick={removeActiveLayer}
-                type="button"
-              >
-                Remove
-              </button>
+              {renderActionMenu("layer-actions", "Layer actions", (
+                <>
+                  <button className="action-rename" data-icon="✎" data-testid="rename-layer" onClick={() => runMenuAction(renameActiveLayer)} role="menuitem" type="button">Rename</button>
+                  <button className="action-create" data-icon="+" data-testid="add-layer" onClick={() => runMenuAction(addLayer)} role="menuitem" type="button">Add</button>
+                  <button className="action-move" data-icon="←" data-testid="move-layer-left" disabled={activeLayerIndex === 0} onClick={() => runMenuAction(() => moveActiveLayer(-1))} role="menuitem" type="button">Move left</button>
+                  <button className="action-move" data-icon="→" data-testid="move-layer-right" disabled={activeLayerIndex === layers.length - 1} onClick={() => runMenuAction(() => moveActiveLayer(1))} role="menuitem" type="button">Move right</button>
+                  <button className="action-danger" data-icon="!" data-testid="remove-layer" disabled={layers.length <= 1} onClick={() => runMenuAction(removeActiveLayer)} role="menuitem" type="button">Remove</button>
+                </>
+              ))}
             </div>
             <div className="layer-color-picker" aria-label={`Color for ${activeLayer.name}`}>
               <span>Color</span>
@@ -1998,39 +2035,46 @@ export function App() {
               >
                 Apply raw
               </button>
-              <button
-                className="action-transparent"
-                data-icon="~"
-                data-testid="transparent-action"
-                onClick={() => {
-                  writeAction(TRANSPARENT);
-                  setStatusMessage(`${selectedKey.slot} is transparent on ${activeLayer.name}.`);
-                }}
-                type="button"
-              >
-                Transparent
-              </button>
-              <button
-                className="action-disable"
-                data-icon="×"
-                data-testid="noop-action"
-                onClick={() => {
-                  writeAction("KC_NO");
-                  setStatusMessage(`${selectedKey.slot} is disabled on ${activeLayer.name}.`);
-                }}
-                type="button"
-              >
-                No-op
-              </button>
-              <button
-                className={swapSourceSlot ? "action-swap active" : "action-swap"}
-                data-icon="⇄"
-                data-testid="swap-action"
-                onClick={swapSourceSlot ? cancelKeySwap : startKeySwap}
-                type="button"
-              >
-                {swapSourceSlot ? "Cancel swap" : "Start swap"}
-              </button>
+              {renderActionMenu("key-actions", "Key actions", (
+                <>
+                  <button
+                    className="action-transparent"
+                    data-icon="~"
+                    data-testid="transparent-action"
+                    onClick={() => runMenuAction(() => {
+                      writeAction(TRANSPARENT);
+                      setStatusMessage(`${selectedKey.slot} is transparent on ${activeLayer.name}.`);
+                    })}
+                    role="menuitem"
+                    type="button"
+                  >
+                    Transparent
+                  </button>
+                  <button
+                    className="action-disable"
+                    data-icon="×"
+                    data-testid="noop-action"
+                    onClick={() => runMenuAction(() => {
+                      writeAction("KC_NO");
+                      setStatusMessage(`${selectedKey.slot} is disabled on ${activeLayer.name}.`);
+                    })}
+                    role="menuitem"
+                    type="button"
+                  >
+                    No-op
+                  </button>
+                  <button
+                    className={swapSourceSlot ? "action-swap active" : "action-swap"}
+                    data-icon="⇄"
+                    data-testid="swap-action"
+                    onClick={() => runMenuAction(swapSourceSlot ? cancelKeySwap : startKeySwap)}
+                    role="menuitem"
+                    type="button"
+                  >
+                    {swapSourceSlot ? "Cancel swap" : "Start swap"}
+                  </button>
+                </>
+              ))}
             </div>
             <p className="editor-status" data-testid="editor-status">{statusMessage}</p>
             </div>
@@ -2311,8 +2355,12 @@ export function App() {
                               <td><code>{slots.tapHold || "-"}</code></td>
                               <td>
                                 <div className="support-row-actions">
-                                  <button className="action-rename" data-icon="✎" data-testid={`edit-dance-${name}`} onClick={() => startEditDance(name, slots)} type="button">Edit</button>
-                                  <button className="action-danger" data-icon="!" data-testid={`delete-dance-${name}`} onClick={() => deleteDance(name)} type="button">Delete</button>
+                                  {renderActionMenu(`dance-actions-${name}`, "Actions", (
+                                    <>
+                                      <button className="action-rename" data-icon="✎" data-testid={`edit-dance-${name}`} onClick={() => runMenuAction(() => startEditDance(name, slots))} role="menuitem" type="button">Edit</button>
+                                      <button className="action-danger" data-icon="!" data-testid={`delete-dance-${name}`} onClick={() => runMenuAction(() => deleteDance(name))} role="menuitem" type="button">Delete</button>
+                                    </>
+                                  ), { icon: "⋯" })}
                                 </div>
                               </td>
                             </tr>
@@ -2364,8 +2412,12 @@ export function App() {
                               <td>{key.notes || "-"}</td>
                               <td>
                                 <div className="support-row-actions">
-                                  <button className="action-rename" data-icon="✎" data-testid={`edit-extkey-${key.name}`} onClick={() => startEditExtKey(key)} type="button">Edit</button>
-                                  <button className="action-danger" data-icon="!" data-testid={`delete-extkey-${key.name}`} onClick={() => deleteExtKey(key.name)} type="button">Delete</button>
+                                  {renderActionMenu(`macro-actions-${key.name}`, "Actions", (
+                                    <>
+                                      <button className="action-rename" data-icon="✎" data-testid={`edit-extkey-${key.name}`} onClick={() => runMenuAction(() => startEditExtKey(key))} role="menuitem" type="button">Edit</button>
+                                      <button className="action-danger" data-icon="!" data-testid={`delete-extkey-${key.name}`} onClick={() => runMenuAction(() => deleteExtKey(key.name))} role="menuitem" type="button">Delete</button>
+                                    </>
+                                  ), { icon: "⋯" })}
                                 </div>
                               </td>
                             </tr>
@@ -2417,8 +2469,12 @@ export function App() {
                               <td>{key.notes || "-"}</td>
                               <td>
                                 <div className="support-row-actions">
-                                  <button className="action-rename" data-icon="✎" data-testid={`edit-extkey-${key.name}`} onClick={() => startEditExtKey(key)} type="button">Edit</button>
-                                  <button className="action-danger" data-icon="!" data-testid={`delete-extkey-${key.name}`} onClick={() => deleteExtKey(key.name)} type="button">Delete</button>
+                                  {renderActionMenu(`alias-actions-${key.name}`, "Actions", (
+                                    <>
+                                      <button className="action-rename" data-icon="✎" data-testid={`edit-extkey-${key.name}`} onClick={() => runMenuAction(() => startEditExtKey(key))} role="menuitem" type="button">Edit</button>
+                                      <button className="action-danger" data-icon="!" data-testid={`delete-extkey-${key.name}`} onClick={() => runMenuAction(() => deleteExtKey(key.name))} role="menuitem" type="button">Delete</button>
+                                    </>
+                                  ), { icon: "⋯" })}
                                 </div>
                               </td>
                             </tr>
@@ -2476,19 +2532,12 @@ export function App() {
                   />
                 </label>
                 <div className="button-row version-edit-actions">
-                  <button className="action-rename" data-icon="✎" data-testid="rename-version" onClick={renameActiveVersion} type="button">
-                    Rename Version
-                  </button>
-                  <button
-                    className="danger-button action-danger"
-                    data-icon="!"
-                    data-testid="delete-version"
-                    disabled={activeSavedLayout.versions.length <= 1}
-                    onClick={deleteActiveVersion}
-                    type="button"
-                  >
-                    Delete Version
-                  </button>
+                  {renderActionMenu("version-actions", "Version actions", (
+                    <>
+                      <button className="action-rename" data-icon="✎" data-testid="rename-version" onClick={() => runMenuAction(renameActiveVersion)} role="menuitem" type="button">Rename Version</button>
+                      <button className="danger-button action-danger" data-icon="!" data-testid="delete-version" disabled={activeSavedLayout.versions.length <= 1} onClick={() => runMenuAction(deleteActiveVersion)} role="menuitem" type="button">Delete Version</button>
+                    </>
+                  ))}
                 </div>
               </div>
               <LayoutVersionTree layout={activeSavedLayout} onSelectVersion={loadLayoutVersion} />
@@ -2515,25 +2564,30 @@ export function App() {
             </div>
             <div className="page-actions">
               <button className="action-create" data-icon="+" data-testid="new-project" onClick={createBlankKeyboardProject} type="button">Create Project</button>
-              <label className="file-import action-import" data-icon="⇣" title="Import a full qmk-viz project JSON backup">
-                Import Project
-                <input
-                  data-testid="project-upload"
-                  accept="application/json,.json"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                      void importFullProject(file).catch((error: unknown) => {
-                        setStatusMessage(error instanceof Error ? error.message : "Failed to import project JSON.");
-                      });
-                    }
-                    event.target.value = "";
-                  }}
-                  type="file"
-                />
-              </label>
-              <button className="action-rename" data-icon="{}" data-testid="edit-project-json" onClick={() => openJsonEditDialog("project")} type="button">Edit Project JSON</button>
-              <button className="action-export" data-icon="⇡" data-testid="download-project" onClick={downloadFullProject} type="button">Download Project</button>
+              {renderActionMenu("project-file-actions", "Project file", (
+                <>
+                  <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Import a full qmk-viz project JSON backup">
+                    Import Project
+                    <input
+                      data-testid="project-upload"
+                      accept="application/json,.json"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          void importFullProject(file).catch((error: unknown) => {
+                            setStatusMessage(error instanceof Error ? error.message : "Failed to import project JSON.");
+                          });
+                        }
+                        closeActionMenus();
+                        event.target.value = "";
+                      }}
+                      type="file"
+                    />
+                  </label>
+                  <button className="action-rename" data-icon="{}" data-testid="edit-project-json" onClick={() => runMenuAction(() => openJsonEditDialog("project"))} role="menuitem" type="button">Edit Project JSON</button>
+                  <button className="action-export" data-icon="⇡" data-testid="download-project" onClick={() => runMenuAction(downloadFullProject)} role="menuitem" type="button">Download Project</button>
+                </>
+              ))}
             </div>
           </div>
           <div className="admin-grid two-column">
@@ -2575,17 +2629,13 @@ export function App() {
                 ))}
               </div>
               <div className="button-row">
-                <button className="action-rename" data-icon="✎" data-testid="rename-project" onClick={openProjectRenameDialog} type="button">Rename Project</button>
-                <button className="action-copy" data-icon="⧉" data-testid="duplicate-project" onClick={duplicateKeyboardProject} type="button">Duplicate</button>
-                <button
-                  className="danger-button action-danger"
-                  data-icon="!"
-                  data-testid="delete-project"
-                  onClick={deleteKeyboardProject}
-                  type="button"
-                >
-                  Delete
-                </button>
+                {renderActionMenu("project-actions", "Project actions", (
+                  <>
+                    <button className="action-rename" data-icon="✎" data-testid="rename-project" onClick={() => runMenuAction(openProjectRenameDialog)} role="menuitem" type="button">Rename Project</button>
+                    <button className="action-copy" data-icon="⧉" data-testid="duplicate-project" onClick={() => runMenuAction(duplicateKeyboardProject)} role="menuitem" type="button">Duplicate</button>
+                    <button className="danger-button action-danger" data-icon="!" data-testid="delete-project" onClick={() => runMenuAction(deleteKeyboardProject)} role="menuitem" type="button">Delete</button>
+                  </>
+                ))}
               </div>
             </div>
             <div className="editor-card admin-card">
@@ -2616,25 +2666,30 @@ export function App() {
                   : "This project has no keyboard model yet. Upload a KLE file or edit KLE JSON to define the key IDs."}
               </p>
               <div className="button-row">
-                <label className="file-import action-import" data-icon="⇣" title="Upload or replace the active project's KLE JSON model">
-                  Upload/Update KLE
-                  <input
-                    data-testid="keyboard-upload"
-                    accept="application/json,.json"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        void updateActiveKeyboardModel(file).catch((error: unknown) => {
-                          setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
-                        });
-                      }
-                      event.target.value = "";
-                    }}
-                    type="file"
-                  />
-                </label>
-                <button className="action-rename" data-icon="{}" data-testid="edit-kle-json" onClick={() => openJsonEditDialog("kle")} type="button">Edit KLE JSON</button>
-                <button className="action-export" data-icon="⇡" data-testid="download-kle" disabled={!model} onClick={downloadProjectKle} type="button">Download KLE</button>
+                {renderActionMenu("model-actions", "KLE model", (
+                  <>
+                    <label className="file-import action-import" data-icon="⇣" role="menuitem" title="Upload or replace the active project's KLE JSON model">
+                      Upload/Update KLE
+                      <input
+                        data-testid="keyboard-upload"
+                        accept="application/json,.json"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) {
+                            void updateActiveKeyboardModel(file).catch((error: unknown) => {
+                              setStatusMessage(error instanceof Error ? error.message : "Failed to update KLE JSON.");
+                            });
+                          }
+                          closeActionMenus();
+                          event.target.value = "";
+                        }}
+                        type="file"
+                      />
+                    </label>
+                    <button className="action-rename" data-icon="{}" data-testid="edit-kle-json" onClick={() => runMenuAction(() => openJsonEditDialog("kle"))} role="menuitem" type="button">Edit KLE JSON</button>
+                    <button className="action-export" data-icon="⇡" data-testid="download-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Download KLE</button>
+                  </>
+                ))}
               </div>
             </div>
             <div className="editor-card admin-card project-model-preview-card">
@@ -2666,8 +2721,13 @@ export function App() {
             </div>
             <div className="page-actions">
               <button className="action-copy" data-icon="⧉" data-testid="copy-json" onClick={copyJson} type="button">Copy JSON</button>
-              <button className="action-export" data-icon="⇡" data-testid="download-layout-json" disabled={!model || !activeSavedLayout} onClick={downloadJson} type="button">Layout JSON</button>
-              <button className="action-export" data-icon="⇡" data-testid="download-layer-kle" disabled={!model || !activeSavedLayout} onClick={downloadActiveLayerKle} type="button">Layer KLE</button>
+              {renderActionMenu("export-downloads", "Downloads", (
+                <>
+                  <button className="action-export" data-icon="⇡" data-testid="download-layout-json" disabled={!model || !activeSavedLayout} onClick={() => runMenuAction(downloadJson)} role="menuitem" type="button">Layout JSON</button>
+                  <button className="action-export" data-icon="⇡" data-testid="download-layer-kle" disabled={!model || !activeSavedLayout} onClick={() => runMenuAction(downloadActiveLayerKle)} role="menuitem" type="button">Layer KLE</button>
+                  <button className="action-export" data-icon="⇡" data-testid="download-project-kle" disabled={!model} onClick={() => runMenuAction(downloadProjectKle)} role="menuitem" type="button">Project KLE</button>
+                </>
+              ), { className: "action-export", icon: "⇡" })}
             </div>
           </div>
           <div className="editor-card export-card">
@@ -2676,7 +2736,6 @@ export function App() {
                 <p className="eyebrow">Current layout JSON</p>
                 <h2>{keyboardProjectNameDraft} / {layoutNameDraft || "No layout"}</h2>
               </div>
-              <button className="action-export" data-icon="⇡" data-testid="download-project-kle" disabled={!model} onClick={downloadProjectKle} type="button">Project KLE</button>
             </div>
             <textarea
               aria-label="Current layout JSON export"
