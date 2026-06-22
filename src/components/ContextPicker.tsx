@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useAppStore, type ContextPickerId } from "../stores/appStore";
 
 export type ContextPickerOption = {
@@ -34,7 +34,10 @@ export function ContextPicker({
   searchTestId,
   optionTestId
 }: ContextPickerProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const [popoverLeft, setPopoverLeft] = useState(0);
   const {
     contextPickerActiveIndex,
     contextPickerSearch,
@@ -120,8 +123,30 @@ export function ContextPicker({
     return () => window.cancelAnimationFrame(focusFrame);
   }, [isOpen]);
 
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const root = rootRef.current;
+      const popover = popoverRef.current;
+      if (!root || !popover) return;
+
+      const rootRect = root.getBoundingClientRect();
+      const popoverWidth = popover.getBoundingClientRect().width;
+      const margin = 8;
+      const maxViewportLeft = Math.max(margin, window.innerWidth - popoverWidth - margin);
+      const rightAlignedViewportLeft = rootRect.right - popoverWidth;
+      const wantsRightAlignment = rootRect.left + popoverWidth > window.innerWidth - margin && rightAlignedViewportLeft >= margin;
+      const preferredViewportLeft = wantsRightAlignment ? rightAlignedViewportLeft : rootRect.left;
+      const clampedViewportLeft = Math.min(Math.max(preferredViewportLeft, margin), maxViewportLeft);
+      setPopoverLeft(clampedViewportLeft - rootRect.left);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen, filteredOptions.length]);
+
   return (
-    <div className={`context-picker ${className}`.trim()} data-context-picker-root>
+    <div className={`context-picker ${className}`.trim()} data-context-picker-root ref={rootRef}>
       <span className="context-picker-label">{label}</span>
       <button
         aria-controls={`${id}-context-listbox`}
@@ -144,7 +169,7 @@ export function ContextPicker({
         <small>{triggerMeta}</small>
       </button>
       {isOpen && (
-        <div className="context-picker-popover" onKeyDown={handleKeyDown}>
+        <div className="context-picker-popover" onKeyDown={handleKeyDown} ref={popoverRef} style={{ left: popoverLeft }}>
           <input
             aria-activedescendant={filteredOptions.length > 0 ? activeOptionId : undefined}
             aria-controls={`${id}-context-listbox`}

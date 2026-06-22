@@ -1658,3 +1658,41 @@ Validation:
 - In-app browser validation: Copy Key changes to Cancel Copy, marks the copied source key with `.copy-source`, enables Paste Key, then Cancel Copy clears the badge and disables Paste Key.
 - In-app browser validation: active Cancel Copy computes to white text on dark purple; active Cancel Swap computes to white text on dark orange, preserving hover contrast.
 - In-app browser validation: Transparent writes `KC_TRNS`, No-op writes `KC_NO`, and the test key was restored to its original mapping afterward.
+
+## 2026-06-22: qmk-viz composer preview well and bottom actions
+
+Goal: make the Action Composer read as a compact form with fields first, a generated-output preview well second, and final action buttons at the bottom.
+
+What did not work:
+
+- Putting generated action buttons before the preview interrupted the composer flow.
+- The preview well was reversed from the desired reading order; the expression came before the graphical key preview.
+- Auto-fit parameter columns made composer controls feel uneven and harder to scan in a narrow editor panel.
+- Hyper and Meh modifier options hid their actual modifier stacks, which made the dropdown less self-explanatory.
+- The Layer actions toolbar placement spread controls apart and carried an unnecessary `Active layer` label.
+- Popovers used hardcoded alignment, which let left-edge action menus clip and made some field-level context pickers open opposite the requested side.
+
+Changes made:
+
+- Reordered Action Composer content into compact sections: mode tabs, full-width parameter fields, preview well, then action buttons.
+- Moved the graphical key preview to the left of the generated expression inside the output well.
+- Grouped Copy expression, Save Key Alias, and Use generated as a right-aligned bottom action cluster.
+- Changed composer parameter grids to single-column full-width rows.
+- Added compact horizontal section separators to divide composer controls without adding large whitespace.
+- Updated mod-tap modifier option labels to `Hyper (Gui+Shift+Alt+Ctrl)` and `Meh (Shift+Alt+Ctrl)`.
+- Reworked the layer toolbar to a compact `[Layer actions] [name input] ... [Color]` row with the left controls bunched together.
+- Added viewport-clamped popover positioning for action menus and context pickers.
+- Renamed the final composer action from `Use generated` to `Apply generated`.
+
+Validation:
+
+- `git diff --check` passed.
+- `npm run build` passed. Existing Vite large-chunk warning remains.
+- In-app browser validation on `http://127.0.0.1:5182/`: composer section order is mode tabs, full-width fields, preview well, bottom actions.
+- In-app browser validation: output well children render as key preview first and generated expression second.
+- In-app browser validation: action buttons are bunched to the right at the bottom of the composer.
+- In-app browser validation: behavior fields compute as one full-width column.
+- In-app browser validation: mod-tap modifier dropdown includes `Hyper (Gui+Shift+Alt+Ctrl)` and `Meh (Shift+Alt+Ctrl)`.
+- In-app browser validation: Layer actions popover opens inside the viewport from the left toolbar group.
+- In-app browser validation: Hold Modifier picker opens left-preferred inside the viewport instead of forcing right alignment.
+- In-app browser validation: the bottom composer action row shows `Apply generated`.

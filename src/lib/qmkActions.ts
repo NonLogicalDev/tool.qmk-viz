@@ -35,8 +35,8 @@ export const modTapActions = [
   { value: "SFT_T", label: "Shift" },
   { value: "ALT_T", label: "Alt" },
   { value: "GUI_T", label: "Gui/Cmd" },
-  { value: "HYPR_T", label: "Hyper" },
-  { value: "MEH_T", label: "Meh" }
+  { value: "HYPR_T", label: "Hyper (Gui+Shift+Alt+Ctrl)" },
+  { value: "MEH_T", label: "Meh (Shift+Alt+Ctrl)" }
 ];
 
 export type ParsedSimpleComposerAction = {

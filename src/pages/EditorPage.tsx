@@ -270,29 +270,31 @@ export function EditorPage() {
           </div>
 
           <div className="layer-toolbar" aria-label="Layer management">
-            <label>
-              Active layer
-              <input
-                data-testid="layer-name-input"
-                value={layerNameDraft}
-                onChange={(event) => setLayerNameDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    renameActiveLayer();
-                  }
-                }}
-                spellCheck={false}
-              />
-            </label>
-            <div className="button-row">
-              {renderActionMenu("layer-actions", "Layer actions", (
-                <>
-                  <button className="action-create" data-icon="+" data-testid="add-layer" onClick={() => runMenuAction(addLayer)} role="menuitem" type="button">Add</button>
-                  <button className="action-move" data-icon="←" data-testid="move-layer-left" disabled={activeLayerIndex === 0} onClick={() => runMenuAction(() => moveActiveLayer(-1))} role="menuitem" type="button">Move left</button>
-                  <button className="action-move" data-icon="→" data-testid="move-layer-right" disabled={activeLayerIndex === layers.length - 1} onClick={() => runMenuAction(() => moveActiveLayer(1))} role="menuitem" type="button">Move right</button>
-                  <button className="action-danger" data-icon="!" data-testid="remove-layer" disabled={layers.length <= 1} onClick={() => runMenuAction(removeActiveLayer)} role="menuitem" type="button">Remove</button>
-                </>
-              ))}
+            <div className="layer-edit-group">
+              <div className="layer-edit-controls">
+                <div className="button-row">
+                  {renderActionMenu("layer-actions", "Layer actions", (
+                    <>
+                      <button className="action-create" data-icon="+" data-testid="add-layer" onClick={() => runMenuAction(addLayer)} role="menuitem" type="button">Add</button>
+                      <button className="action-move" data-icon="←" data-testid="move-layer-left" disabled={activeLayerIndex === 0} onClick={() => runMenuAction(() => moveActiveLayer(-1))} role="menuitem" type="button">Move left</button>
+                      <button className="action-move" data-icon="→" data-testid="move-layer-right" disabled={activeLayerIndex === layers.length - 1} onClick={() => runMenuAction(() => moveActiveLayer(1))} role="menuitem" type="button">Move right</button>
+                      <button className="action-danger" data-icon="!" data-testid="remove-layer" disabled={layers.length <= 1} onClick={() => runMenuAction(removeActiveLayer)} role="menuitem" type="button">Remove</button>
+                    </>
+                  ), { testId: "layer-actions-trigger" })}
+                </div>
+                <input
+                  aria-label="Active layer name"
+                  data-testid="layer-name-input"
+                  value={layerNameDraft}
+                  onChange={(event) => setLayerNameDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      renameActiveLayer();
+                    }
+                  }}
+                  spellCheck={false}
+                />
+              </div>
             </div>
             <div className="layer-color-picker" aria-label={`Color for ${activeLayer.name}`}>
               <span>Color</span>
@@ -543,8 +545,9 @@ export function EditorPage() {
                 Dance
               </button>
             </div>
-            {composerMode === "simple" ? (
-              <>
+            <div className="composer-section composer-fields-section">
+              {composerMode === "simple" ? (
+                <>
                 {renderContextPicker({
                   id: "simple-kind",
                   label: "Action type",
@@ -646,9 +649,9 @@ export function EditorPage() {
                     })
                   )}
                 </div>
-              </>
-            ) : (
-              <>
+                </>
+              ) : (
+                <>
               <label>
                 Dance name
                 <input
@@ -674,48 +677,15 @@ export function EditorPage() {
                   </label>
                 ))}
               </div>
-              </>
-            )}
-            <div className="generated">
-              <span>
-                {composerMode === "dance"
-                  ? `Apply TD(${danceName || "DANCE_0"}) and add or update its dances JSON entry.`
-                  : `Apply this generated raw identifier to ${selectedKey.slot} on ${activeLayer.name}.`}
-              </span>
-              <button
-                className="action-copy"
-                data-icon="⧉"
-                data-testid="copy-generated-action"
-                onClick={copyGeneratedAction}
-                type="button"
-              >
-                Copy expression
-              </button>
-              <button
-                className="action-default"
-                data-icon="+"
-                data-testid="open-save-key-alias"
-                onClick={openSaveAliasDialog}
-                type="button"
-              >
-                Save Key Alias
-              </button>
-              <button
-                className="action-save"
-                data-icon="✓"
-                data-testid="use-generated-action"
-                onClick={applyGeneratedAction}
-                type="button"
-              >
-                Use generated
-              </button>
+                </>
+              )}
             </div>
-            <div className={`composer-output-preview ${composerMode === "dance" ? "needs-code" : ""}`}>
+            <div className={`composer-section composer-output-preview ${composerMode === "dance" ? "needs-code" : ""}`}>
+              <PreviewKeycap action={generatedAction} layerColors={layerColorMap} slot={selectedKey.slot} testId="composer-key-preview" />
               <div className="generated-expression">
                 <span>Generated expression</span>
                 <code className={composerMode === "dance" ? "needs-code" : ""}>{generatedAction}</code>
               </div>
-              <PreviewKeycap action={generatedAction} layerColors={layerColorMap} slot={selectedKey.slot} testId="composer-key-preview" />
             </div>
             {composerMode === "dance" && danceComposition.supportCode && (
               <details className="support-code-preview">
@@ -723,6 +693,42 @@ export function EditorPage() {
                 <pre>{danceComposition.supportCode}</pre>
               </details>
             )}
+            <div className="composer-section generated composer-actions">
+              <span>
+                {composerMode === "dance"
+                  ? `Apply TD(${danceName || "DANCE_0"}) and add or update its dances JSON entry.`
+                  : `Apply this generated raw identifier to ${selectedKey.slot} on ${activeLayer.name}.`}
+              </span>
+              <div className="composer-action-buttons">
+                <button
+                  className="action-copy"
+                  data-icon="⧉"
+                  data-testid="copy-generated-action"
+                  onClick={copyGeneratedAction}
+                  type="button"
+                >
+                  Copy expression
+                </button>
+                <button
+                  className="action-default"
+                  data-icon="+"
+                  data-testid="open-save-key-alias"
+                  onClick={openSaveAliasDialog}
+                  type="button"
+                >
+                  Save Key Alias
+                </button>
+                <button
+                  className="action-save"
+                  data-icon="✓"
+                  data-testid="use-generated-action"
+                  onClick={applyGeneratedAction}
+                  type="button"
+                >
+                  Apply generated
+                </button>
+              </div>
+            </div>
             </div>
 
             <div className="editor-card support-data-card">
